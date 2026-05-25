@@ -1,0 +1,74 @@
+﻿<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZB202 Digital Twin | Device Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="device">
+  <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
+  <div class="bg-orb bg-orb-b" aria-hidden="true"></div>
+
+  <div class="page-shell">
+    <header class="hero detail-hero">
+      <div class="hero-topbar">
+        <a id="back-link" class="back-link" href="overview.html" data-i18n="detail.back">← 返回总览</a>
+        <div class="hero-actions">
+          <button id="detail-view-toggle" class="btn" type="button" data-i18n="detail.switchToTable">切换为数据表格</button>
+          <button id="lang-toggle" class="btn btn-quiet" type="button">EN</button>
+        </div>
+      </div>
+
+      <p class="eyebrow" data-i18n="detail.eyebrow">ZB202 / 设备档案</p>
+      <h1 class="hero-title" id="device-title">设备详情</h1>
+    </header>
+
+    <main id="device-main-view" class="detail-layout">
+      <section class="panel info-panel soft-panel">
+        <h2 data-i18n="detail.basicInfo">基础信息</h2>
+        <dl class="info-list" id="device-info-list"></dl>
+
+        <div class="maintenance-placeholder">
+          <h3 data-i18n="detail.maintenanceTitle">检修记录</h3>
+          <p data-i18n="detail.maintenanceNote">预留后端检修明细、责任人和工单编号。</p>
+        </div>
+      </section>
+
+      <section class="model-float-wrap">
+        <div class="model-placeholder">
+          <div class="cube-stage" id="cube-stage" aria-label="3D cube placeholder">
+            <div class="cube" id="cube">
+              <span class="face front"></span>
+              <span class="face back"></span>
+              <span class="face right"></span>
+              <span class="face left"></span>
+              <span class="face top"></span>
+              <span class="face bottom"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <main id="device-table-mode" class="table-mode hidden">
+      <section class="table-wrap detail-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th data-i18n="common.field">字段</th>
+              <th data-i18n="common.value">信息</th>
+            </tr>
+          </thead>
+          <tbody id="detail-device-table-body"></tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
