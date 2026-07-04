@@ -1,0 +1,15 @@
+Connection
+----------
+Broker host: itf.beeerise.com
+Port: 1889
+Client ID：本项目采用“ZB202-DT-01”形式命名规则，后面部分的“01”可更换其他内容。请注意！！“不要”使用4个数字的组合作为客户端ID，这个形式的有其他项目在使用。
+
+Topic
+-----
+Uplink Topic:
+/ZB202/milesight/uplink
+
+Downlink Topic:
+/ZB202/milesight/downlink/$deveui
+注意，暂时没有设备可以进行下行指令控制，请不要调用下行接口。
+
