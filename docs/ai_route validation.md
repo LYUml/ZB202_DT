@@ -17,12 +17,15 @@ Expected result:
 ## Route B: Revit -> xeokit BIM Viewer
 
 Validation target:
-- Export Revit model to IFC or a xeokit-supported pipeline.
+- Use `rvt/Lab Architecture Model.rvt` and `rvt/Lab MEP Model.rvt` as the source models.
+- Export Revit model to IFC from a Revit/Windows environment, then convert to XKT or another xeokit-supported format.
+- Keep `web/xeokit.html` ready as the viewer integration shell while conversion is pending.
 - Check whether components can be selected, highlighted, hidden, and linked to `deviceId`.
 
 Expected result:
 - Strong candidate for web-based BIM digital twin.
 - Requires model conversion and license review before deeper development.
+- Current blocker: `.rvt` cannot be loaded directly by the browser or xeokit.
 
 ## Route C: Revit -> Blender/Bonsai -> GLB -> Web
 

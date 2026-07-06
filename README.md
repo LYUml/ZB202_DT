@@ -26,6 +26,7 @@ This folder collects the current materials for the ZB202 digital twin / IoT prot
   - `overview.html` shows the device directory.
   - `device.html` shows device details.
   - `twin.html` is a lightweight room-level DT prototype with device status markers.
+  - `xeokit.html` is a xeokit route-validation page with a reserved BIM viewer slot.
   - Current live values are mock values shaped like the planned backend API response.
 
 ## Intended Data Flow
@@ -44,6 +45,7 @@ Open these files directly in a browser:
 - `web/overview.html`
 - `web/device.html?deviceId=AM103_07`
 - `web/twin.html`
+- `web/xeokit.html`
 
 The frontend currently uses `web/data/devices.js` as a mock API payload. Backend integration target:
 
@@ -53,3 +55,22 @@ GET /api/latest
 GET /api/history?deviceId=AM103_07&metric=temperature&range=24h
 GET /api/alerts
 ```
+
+## BIM / xeokit Model Interface
+
+The repository already contains source Revit models:
+
+- `rvt/Lab Architecture Model.rvt`
+- `rvt/Lab MEP Model.rvt`
+
+These `.rvt` files cannot be loaded directly by the static web prototype or xeokit. The reserved xeokit path is:
+
+```text
+RVT
+-> export IFC from Revit or a Windows/Revit environment
+-> convert IFC to XKT
+-> place converted model at web/models/zb202.xkt
+-> open web/xeokit.html?model=models/zb202.xkt
+```
+
+Until a converted model is available, `web/xeokit.html` validates the frontend integration shell, device list, and `deviceId -> objectId` binding structure.
