@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ZB202 Digital Twin | Lightweight Room</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-page="twin">
+  <div class="page-shell twin-shell">
+    <header class="hero twin-hero">
+      <div class="hero-topbar">
+        <a class="back-link" href="overview.html">← 返回设备总览</a>
+        <p class="eyebrow">ZB202 / Lightweight Digital Twin Prototype</p>
+      </div>
+      <h1 class="hero-title">设备状态房间视图</h1>
+      <div class="hero-meta">
+        <div>
+          <p class="kicker">数据源</p>
+          <p class="hero-value">Mock API</p>
+        </div>
+        <div>
+          <p class="kicker">设备</p>
+          <p class="hero-value" id="twin-device-count">0</p>
+        </div>
+        <div class="hero-note">
+          <p>用于验证“模型内直接显示设备状态”的轻量路线。后续可替换为 xeokit、GLB 或 Unity 场景。</p>
+        </div>
+      </div>
+    </header>
+
+    <main class="twin-layout">
+      <section class="twin-scene-wrap">
+        <div class="twin-scene" id="twin-scene" aria-label="ZB202 simplified digital twin room">
+          <div class="room-plane">
+            <div class="room-wall wall-back"></div>
+            <div class="room-wall wall-left"></div>
+            <div class="room-wall wall-right"></div>
+            <div class="room-label">ZB202</div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel twin-inspector" id="twin-inspector">
+        <p class="eyebrow">Selected Device</p>
+        <h2 id="twin-device-title">选择一个设备</h2>
+        <dl class="info-list" id="twin-device-info">
+          <div><dt>状态</dt><dd>点击房间中的设备点位</dd></div>
+        </dl>
+      </aside>
+    </main>
+  </div>
+
+  <script src="data/devices.js"></script>
+  <script src="twin.js"></script>
+</body>
+</html>

@@ -67,6 +67,12 @@ const i18n = {
     "common.id": "编号",
     "common.location": "位置",
     "common.status": "状态",
+    "common.model": "型号",
+    "common.type": "类型",
+    "common.devEui": "DevEUI",
+    "common.profile": "配置",
+    "common.decoder": "Decoder",
+    "common.latestValues": "最新数据",
     "common.lastMaintenance": "最近检修",
     "common.action": "操作",
     "common.viewDetail": "查看详情",
@@ -104,6 +110,12 @@ const i18n = {
     "common.id": "ID",
     "common.location": "Location",
     "common.status": "Status",
+    "common.model": "Model",
+    "common.type": "Type",
+    "common.devEui": "DevEUI",
+    "common.profile": "Profile",
+    "common.decoder": "Decoder",
+    "common.latestValues": "Latest Values",
     "common.lastMaintenance": "Last Maintenance",
     "common.action": "Action",
     "common.viewDetail": "View Detail",
@@ -191,6 +203,13 @@ function getMaintenanceText(rawValue) {
   return rawValue === "TBD" ? t("common.tbd") : rawValue;
 }
 
+function formatLatestValues(values) {
+  if (!values || typeof values !== "object") return t("common.tbd");
+  return Object.entries(values)
+    .map(([key, value]) => `${key}: ${value}`)
+    .join(" / ");
+}
+
 function renderOverview(devices) {
   const cardRoot = document.getElementById("card-view");
   const tableBody = document.getElementById("device-table-body");
@@ -208,12 +227,14 @@ function renderOverview(devices) {
       return `
       <article class="device-card">
         <h3>${getDeviceText(device.name)}</h3>
-        <p class="muted">${device.id}</p>
+        <p class="muted">${device.id}${device.model ? ` · ${device.model}` : ""}</p>
         <div class="card-row"><span>${t("common.locationLabel")}</span><span>${getDeviceText(device.location)}</span></div>
+        <div class="card-row"><span>${t("common.type")}</span><span>${getDeviceText(device.type)}</span></div>
         <div class="card-row">
           <span>${t("common.statusLabel")}</span>
           <span class="status"><i class="dot ${statusClass}"></i>${statusText}</span>
         </div>
+        <div class="card-row"><span>${t("common.latestValues")}</span><span>${formatLatestValues(device.latestValues)}</span></div>
         <div class="card-row"><span>${t("common.maintenanceLabel")}</span><span>${getMaintenanceText(device.maintenanceDate)}</span></div>
         <a class="btn" href="${deviceUrl(device.id)}">${t("common.viewDetail")}</a>
       </article>`;
@@ -275,6 +296,26 @@ function renderDetailTable(devices) {
       <td>${device.id}</td>
     </tr>
     <tr>
+      <td>${t("common.model")}</td>
+      <td>${device.model || "-"}</td>
+    </tr>
+    <tr>
+      <td>${t("common.type")}</td>
+      <td>${getDeviceText(device.type)}</td>
+    </tr>
+    <tr>
+      <td>${t("common.devEui")}</td>
+      <td>${device.devEui || "-"}</td>
+    </tr>
+    <tr>
+      <td>${t("common.profile")}</td>
+      <td>${device.profile || "-"}</td>
+    </tr>
+    <tr>
+      <td>${t("common.decoder")}</td>
+      <td>${device.decoder || "-"}</td>
+    </tr>
+    <tr>
       <td>${t("common.location")}</td>
       <td>${getDeviceText(device.location)}</td>
     </tr>
@@ -285,6 +326,10 @@ function renderDetailTable(devices) {
     <tr>
       <td>${t("common.lastMaintenance")}</td>
       <td>${getMaintenanceText(device.maintenanceDate)}</td>
+    </tr>
+    <tr>
+      <td>${t("common.latestValues")}</td>
+      <td>${formatLatestValues(device.latestValues)}</td>
     </tr>`;
 }
 
@@ -368,17 +413,21 @@ function renderDeviceDetail(devices) {
   listEl.innerHTML = `
     <div><dt>${t("common.name")}</dt><dd>${getDeviceText(device.name)}</dd></div>
     <div><dt>${t("common.id")}</dt><dd>${device.id}</dd></div>
+    <div><dt>${t("common.model")}</dt><dd>${device.model || "-"}</dd></div>
+    <div><dt>${t("common.type")}</dt><dd>${getDeviceText(device.type)}</dd></div>
+    <div><dt>${t("common.devEui")}</dt><dd>${device.devEui || "-"}</dd></div>
+    <div><dt>${t("common.decoder")}</dt><dd>${device.decoder || "-"}</dd></div>
     <div><dt>${t("common.location")}</dt><dd>${getDeviceText(device.location)}</dd></div>
     <div><dt>${t("common.status")}</dt><dd><span class="status"><i class="dot ${statusClass}"></i>${statusText}</span></dd></div>
+    <div><dt>${t("common.latestValues")}</dt><dd>${formatLatestValues(device.latestValues)}</dd></div>
     <div><dt>${t("common.lastMaintenance")}</dt><dd>${getMaintenanceText(device.maintenanceDate)}</dd></div>
   `;
 }
 
 async function loadDevices() {
-  // TODO: Replace with backend API, e.g. GET /api/zb202/devices
-  // const resp = await fetch('/api/zb202/devices');
-  // return await resp.json();
-  return placeholderDevices;
+  // Backend integration target: GET /api/devices.
+  // During frontend development, data/devices.js provides the same shape.
+  return window.ZB202_DEVICE_DATA || placeholderDevices;
 }
 
 (async function init() {
@@ -406,4 +455,3 @@ async function loadDevices() {
     });
   }
 })();
-
