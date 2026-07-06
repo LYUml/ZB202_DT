@@ -19,7 +19,7 @@ flowchart TB
     R1_START["流程<br/>Web API + 设备点位表<br/>-> Three.js / WebGL 简化房间<br/>-> marker绑定deviceId<br/>-> 模型内显示状态与告警"]
 
     R1_SPLIT["路线评估"]
-    R1_PRO["优势<br/>开发最快<br/>移动端轻量<br/>不依赖RVT转换<br/>适合近期Demo"]
+    R1_PRO["优势<br/>开发最快<br/>移动端轻量<br/>不依赖RVT转换<br/>适合轻量Demo"]
     R1_CON["限制<br/>不是完整BIM<br/>点位需手工维护<br/>模型精细度有限"]
     R1_USE["适用场景<br/>第一阶段原型<br/>设备状态可视化<br/>故障定位和维修流程展示"]
 
@@ -64,7 +64,7 @@ flowchart TB
     R4_START["流程<br/>RVT -> FBX / IFC<br/>-> Unity搭建交互场景<br/>-> Unity连接后端API<br/>-> 场景内显示状态"]
 
     R4_SPLIT["路线评估"]
-    R4_PRO["优势<br/>沉浸感强<br/>适合漫游和动画<br/>可复用Unity经验"]
+    R4_PRO["优势<br/>沉浸感强<br/>易于web部署<br/>可复用Unity经验"]
     R4_CON["限制<br/>比Web路线更重<br/>移动端部署成本高<br/>平台化功能集成较难"]
     R4_USE["适用场景<br/>沉浸式展示优先<br/>已有Unity工程基础<br/>不以轻量Web平台为第一目标"]
 
@@ -74,27 +74,65 @@ flowchart TB
     R4_SPLIT --> R4_USE
   end
 
+  subgraph R5["路线E：Revit -> Blender/Bonsai -> GLB -> Babylon.js"]
+    direction TB
+    R5_START["流程<br/>RVT -> IFC / FBX<br/>-> Blender + Bonsai清理模型<br/>-> 导出GLB / glTF<br/>-> Babylon.js场景内状态叠加"]
+
+    R5_SPLIT["路线评估"]
+    R5_PRO["优势<br/>比Unity更轻<br/>比Three.js更像完整场景引擎<br/>适合网页沉浸式展示"]
+    R5_CON["限制<br/>BIM语义较弱<br/>仍需模型转换和mapping<br/>学习成本略高于Three.js"]
+    R5_USE["适用场景<br/>想要网页内较强沉浸感<br/>不想上Unity<br/>需要自建Web平台"]
+
+    R5_START --> R5_SPLIT
+    R5_SPLIT --> R5_PRO
+    R5_SPLIT --> R5_CON
+    R5_SPLIT --> R5_USE
+  end
+
+  subgraph R6["路线F：Revit -> IFC -> That Open / IFC.js"]
+    direction TB
+    R6_START["流程<br/>RVT -> IFC<br/>-> That Open / IFC.js<br/>-> Web BIM组件<br/>-> 设备状态叠加"]
+
+    R6_SPLIT["路线评估"]
+    R6_PRO["优势<br/>开源IFC/Web BIM路线<br/>适合二次开发<br/>比纯GLB更保留BIM语义"]
+    R6_CON["限制<br/>仍需RVT导出IFC<br/>生态需要调研<br/>短期Demo成本高于简化3D"]
+    R6_USE["适用场景<br/>坚持open BIM / IFC-native<br/>自建Web平台<br/>需要BIM语义和构件管理"]
+
+    R6_START --> R6_SPLIT
+    R6_SPLIT --> R6_PRO
+    R6_SPLIT --> R6_CON
+    R6_SPLIT --> R6_USE
+  end
+
   ROUTE_ENTRY --> R1_START
   ROUTE_ENTRY --> R2_START
   ROUTE_ENTRY --> R3_START
   ROUTE_ENTRY --> R4_START
+  ROUTE_ENTRY --> R5_START
+  ROUTE_ENTRY --> R6_START
 
   R1_START ~~~ R2_START
   R2_START ~~~ R3_START
   R3_START ~~~ R4_START
+  R4_START ~~~ R5_START
+  R5_START ~~~ R6_START
 
   R1_USE ~~~ R2_USE
   R2_USE ~~~ R3_USE
   R3_USE ~~~ R4_USE
+  R4_USE ~~~ R5_USE
+  R5_USE ~~~ R6_USE
 
   JOIN["路线比较汇总"]
 
-  SUMMARY["建议决策<br/>近期Demo：优先路线A<br/>需要真实BIM构件管理：推进路线B<br/>需要轻量网页模型：采用路线C作为模型处理链路<br/>需要强沉浸演示：评估路线D"]
+  SUMMARY["建议决策<br/>近期Demo：优先路线A<br/>轻量网页模型：路线C<br/>网页沉浸场景：路线E<br/>BIM语义/构件管理：路线B或F<br/>强沉浸展示：评估路线D"]
 
   R1_USE --> JOIN
   R2_USE --> JOIN
   R3_USE --> JOIN
   R4_USE --> JOIN
+  R5_USE --> JOIN
+  R6_USE --> JOIN
   JOIN --> SUMMARY
 
   style ROUTE_ENTRY fill:transparent,stroke:transparent,color:transparent
