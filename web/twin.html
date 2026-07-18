@@ -14,38 +14,38 @@
   <div class="dt-app">
     <header class="dt-topbar">
       <div class="dt-brand">
-        <a class="dt-back" href="overview.html" aria-label="返回设备总览">←</a>
+        <a class="dt-back" id="overview-link" href="overview.html" aria-label="返回设备总览" data-i18n-aria="backAria">←</a>
         <div class="dt-brand-mark" aria-hidden="true">ZB</div>
         <div>
           <p class="dt-overline">WEB DIGITAL TWIN · ROUTE A</p>
-          <h1>ZB202 空间设备监控</h1>
+          <h1 data-i18n="title">ZB202 空间设备监控</h1>
         </div>
       </div>
 
-      <div class="dt-live-status" aria-label="数据连接状态">
+      <div class="dt-live-status" aria-label="数据连接状态" data-i18n-aria="connectionAria">
         <span class="dt-live-dot"></span>
-        <span>模拟数据运行中</span>
+        <span data-i18n="mockRunning">模拟数据运行中</span>
         <time id="dt-clock">--:--:--</time>
       </div>
     </header>
 
     <main class="dt-workspace">
-      <section class="dt-viewer-card" aria-label="FBX 三维模型">
+      <section class="dt-viewer-card" aria-label="FBX 三维模型" data-i18n-aria="viewerAria">
         <div class="dt-viewer-toolbar">
           <div class="dt-model-control">
-            <label for="model-select">模型</label>
-            <select id="model-select">
-              <option value="3dnew">ZN1001 · 三维视图</option>
-              <option value="legacy">ZN1001 · 原始导出</option>
-            </select>
+            <span class="dt-model-label" data-i18n="model">模型</span>
+            <span class="dt-model-name">ZN1001</span>
           </div>
 
           <div class="dt-tool-actions">
-            <button class="dt-icon-btn" id="calibrate-btn" type="button" title="在模型表面拾取世界坐标">
-              <span aria-hidden="true">＋</span> 校准点位
+            <button class="dt-icon-btn" id="device-panel-btn" type="button" aria-controls="device-panel" aria-expanded="false">
+              <span aria-hidden="true">☰</span> <span data-i18n="openDevicePanel">设备面板</span>
             </button>
-            <button class="dt-icon-btn" id="reset-view-btn" type="button" title="重置模型视角">
-              <span aria-hidden="true">⌂</span> 重置视角
+            <button class="dt-icon-btn" id="calibrate-btn" type="button" title="在模型表面拾取世界坐标" data-i18n-title="calibrateTitle">
+              <span aria-hidden="true">＋</span> <span data-i18n="calibrate">校准点位</span>
+            </button>
+            <button class="dt-icon-btn" id="reset-view-btn" type="button" title="重置模型视角" data-i18n-title="resetTitle">
+              <span aria-hidden="true">⌂</span> <span data-i18n="resetView">重置视角</span>
             </button>
           </div>
         </div>
@@ -55,46 +55,49 @@
 
           <div class="dt-loading" id="model-loading" role="status">
             <div class="dt-loader-orbit" aria-hidden="true"><span></span></div>
-            <p class="dt-loading-title" id="loading-title">正在准备三维场景</p>
+            <p class="dt-loading-title" id="loading-title" data-i18n="preparingScene">正在准备三维场景</p>
             <div class="dt-progress-track"><span id="loading-progress"></span></div>
-            <p class="dt-loading-meta" id="loading-meta">初始化渲染器…</p>
+            <p class="dt-loading-meta" id="loading-meta" data-i18n="initializingRenderer">初始化渲染器…</p>
           </div>
 
           <div class="dt-error hidden" id="model-error" role="alert">
             <span class="dt-error-icon" aria-hidden="true">!</span>
             <div>
-              <strong>模型加载失败</strong>
-              <p id="model-error-message">请检查模型文件后重试。</p>
+              <strong data-i18n="loadFailed">模型加载失败</strong>
+              <p id="model-error-message" data-i18n="loadRetryHint">请检查模型文件后重试。</p>
             </div>
-            <button class="dt-secondary-btn" id="retry-model-btn" type="button">重新加载</button>
+            <button class="dt-secondary-btn" id="retry-model-btn" type="button" data-i18n="reload">重新加载</button>
           </div>
 
           <div class="dt-viewer-hint">
-            <span>左键旋转</span><i></i><span>右键平移</span><i></i><span>滚轮缩放</span>
+            <span data-i18n="rotateHint">左键旋转</span><i></i><span data-i18n="panHint">右键平移</span><i></i><span data-i18n="zoomHint">滚轮缩放</span>
           </div>
 
           <div class="dt-scene-stats">
             <span id="model-name">—</span>
-            <span><b id="mesh-count">0</b> 构件</span>
+            <span><b id="mesh-count">0</b> <span data-i18n="components">构件</span></span>
           </div>
 
           <div class="dt-coordinate-toast hidden" id="coordinate-toast">
             <span id="coordinate-value">[0, 0, 0]</span>
-            <button type="button" id="copy-coordinate-btn">复制</button>
+            <button type="button" id="copy-coordinate-btn" data-i18n="copy">复制</button>
           </div>
         </div>
       </section>
 
-      <aside class="dt-sidebar" aria-label="设备实时信息">
+      <aside class="dt-sidebar" id="device-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-label="设备实时信息" data-i18n-aria="sidebarAria" inert>
         <section class="dt-side-section dt-side-header">
           <div>
             <p class="dt-overline">LIVE ASSETS</p>
-            <h2>设备状态</h2>
+            <h2 data-i18n="deviceStatus">设备状态</h2>
           </div>
-          <span class="dt-count" id="device-count">2</span>
+          <div class="dt-panel-header-actions">
+            <span class="dt-count" id="device-count">2</span>
+            <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭设备面板" data-i18n-aria="closeDevicePanel">×</button>
+          </div>
         </section>
 
-        <section class="dt-device-list" id="device-list" aria-label="测试设备列表"></section>
+        <section class="dt-device-list" id="device-list" aria-label="测试设备列表" data-i18n-aria="deviceListAria"></section>
 
         <section class="dt-detail" id="device-detail">
           <div class="dt-detail-heading">
@@ -114,9 +117,9 @@
                 <span id="trend-label">送风温度</span>
                 <strong id="trend-value">—</strong>
               </div>
-              <span>最近 48 秒</span>
+              <span data-i18n="last48Seconds">最近 48 秒</span>
             </div>
-            <svg id="trend-chart" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="实时数据趋势图">
+            <svg id="trend-chart" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="实时数据趋势图" data-i18n-aria="trendAria">
               <defs>
                 <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stop-color="#2f7df4" stop-opacity="0.28" />
@@ -129,7 +132,7 @@
           </div>
 
           <div class="dt-update-row">
-            <span>最后更新</span>
+            <span data-i18n="lastUpdated">最后更新</span>
             <time id="updated-at">—</time>
           </div>
 

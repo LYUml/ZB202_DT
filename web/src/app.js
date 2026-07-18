@@ -173,6 +173,9 @@ function applyLanguage(lang) {
 
   const backLink = document.getElementById("back-link");
   if (backLink) backLink.href = `overview.html?lang=${activeLang}`;
+
+  const roomViewLink = document.getElementById("room-view-link");
+  if (roomViewLink) roomViewLink.href = `twin.html?lang=${activeLang}`;
 }
 
 function addLangToggle(onChange) {

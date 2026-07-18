@@ -29,21 +29,6 @@ flowchart TB
     R1_SPLIT --> R1_USE
   end
 
-  subgraph R2["路线B：Revit -> xeokit BIM Viewer"]
-    direction TB
-    R2_START["流程<br/>RVT -> IFC / XKT<br/>-> Web App嵌入xeokit<br/>-> 构件绑定deviceId/objectId<br/>-> 模型内高亮、标签、告警"]
-
-    R2_SPLIT["路线评估"]
-    R2_PRO["优势<br/>适合构件级查看<br/>Web原生<br/>支持选择/隐藏/高亮<br/>利于后续FM"]
-    R2_CON["限制<br/>需要模型转换<br/>大模型需优化<br/>沉浸感需额外设计<br/>授权边界需确认"]
-    R2_USE["适用场景<br/>需要保留BIM语义<br/>需要构件级设备管理<br/>中长期Web Digital Twin平台"]
-
-    R2_START --> R2_SPLIT
-    R2_SPLIT --> R2_PRO
-    R2_SPLIT --> R2_CON
-    R2_SPLIT --> R2_USE
-  end
-
   subgraph R3["路线C：Revit -> Blender/Bonsai -> GLB -> Web"]
     direction TB
     R3_START["流程<br/>RVT -> IFC / FBX<br/>-> Blender + Bonsai清理模型<br/>-> 导出GLB / glTF<br/>-> Web加载并叠加数据"]
@@ -105,30 +90,26 @@ flowchart TB
   end
 
   ROUTE_ENTRY --> R1_START
-  ROUTE_ENTRY --> R2_START
   ROUTE_ENTRY --> R3_START
   ROUTE_ENTRY --> R4_START
   ROUTE_ENTRY --> R5_START
   ROUTE_ENTRY --> R6_START
 
-  R1_START ~~~ R2_START
-  R2_START ~~~ R3_START
+  R1_START ~~~ R3_START
   R3_START ~~~ R4_START
   R4_START ~~~ R5_START
   R5_START ~~~ R6_START
 
-  R1_USE ~~~ R2_USE
-  R2_USE ~~~ R3_USE
+  R1_USE ~~~ R3_USE
   R3_USE ~~~ R4_USE
   R4_USE ~~~ R5_USE
   R5_USE ~~~ R6_USE
 
   JOIN["路线比较汇总"]
 
-  SUMMARY["建议决策<br/>近期Demo：优先路线A<br/>轻量网页模型：路线C<br/>网页沉浸场景：路线E<br/>BIM语义/构件管理：路线B或F<br/>强沉浸展示：评估路线D"]
+  SUMMARY["建议决策<br/>近期Demo：优先路线A<br/>轻量网页模型：路线C<br/>网页沉浸场景：路线E<br/>BIM语义/构件管理：路线F<br/>强沉浸展示：评估路线D"]
 
   R1_USE --> JOIN
-  R2_USE --> JOIN
   R3_USE --> JOIN
   R4_USE --> JOIN
   R5_USE --> JOIN

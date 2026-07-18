@@ -2,62 +2,103 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
-import primaryModelUrl from "../../models/fbx/ZN1001v2-3dnew.fbx?url";
-import legacyModelUrl from "../../models/fbx/ZN1001v2.fbx?url";
+import modelUrl from "../../models/fbx/ZN1001v2.fbx?url";
 
-const MODELS = {
-  "3dnew": {
-    name: "ZN1001v2-3dnew.fbx",
-    url: primaryModelUrl,
-    label: "ZN1001 · 三维视图",
+const MODEL = {
+  name: "ZN1001v2.fbx",
+  url: modelUrl,
+  label: "ZN1001",
+};
+
+const I18N = {
+  zh: {
+    backAria: "返回设备总览", title: "ZB202 空间设备监控", connectionAria: "数据连接状态",
+    mockRunning: "模拟数据运行中", viewerAria: "FBX 三维模型", model: "模型",
+    calibrate: "校准点位", calibrateTitle: "在模型表面拾取世界坐标", resetView: "重置视角", resetTitle: "重置模型视角",
+    preparingScene: "正在准备三维场景", initializingRenderer: "初始化渲染器…", loadFailed: "模型加载失败",
+    loadRetryHint: "请检查模型文件后重试。", reload: "重新加载", rotateHint: "左键旋转", panHint: "右键平移",
+    zoomHint: "滚轮缩放", components: "构件", copy: "复制", copied: "已复制", sidebarAria: "设备实时信息",
+    deviceStatus: "设备状态", deviceListAria: "测试设备列表", last48Seconds: "最近 48 秒", trendAria: "实时数据趋势图",
+    openDevicePanel: "设备面板", closeDevicePanel: "关闭设备面板",
+    lastUpdated: "最后更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未绑定",
+    noBinding: "当前模型无绑定", objectBinding: "BIM 构件绑定", markerBinding: "空间坐标绑定",
+    restoreNormal: "恢复设备正常", simulateFault: "模拟设备故障", readingModel: "读取模型文件…",
+    loadingModel: "正在加载 {model}", modelReady: "{count} 个构件 · 模型准备完成",
+    loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 fbx 文件夹中存在该文件。",
+    fcuName: "风机盘管 FCU-01", fcuSubtitle: "BIM 构件", sensorName: "环境传感器 AM103", sensorSubtitle: "空间点位",
+    supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
   },
-  legacy: {
-    name: "ZN1001v2.fbx",
-    url: legacyModelUrl,
-    label: "ZN1001 · 原始导出",
+  en: {
+    backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
+    mockRunning: "Mock data running", viewerAria: "FBX 3D model", model: "Model",
+    calibrate: "Calibrate Point", calibrateTitle: "Pick world coordinates on the model surface", resetView: "Reset View", resetTitle: "Reset model view",
+    preparingScene: "Preparing 3D scene", initializingRenderer: "Initializing renderer…", loadFailed: "Model loading failed",
+    loadRetryHint: "Check the model file and try again.", reload: "Reload", rotateHint: "Left-drag to rotate", panHint: "Right-drag to pan",
+    zoomHint: "Scroll to zoom", components: "components", copy: "Copy", copied: "Copied", sidebarAria: "Live device information",
+    deviceStatus: "Device Status", deviceListAria: "Demo device list", last48Seconds: "Last 48 seconds", trendAria: "Live data trend chart",
+    openDevicePanel: "Device Panel", closeDevicePanel: "Close device panel",
+    lastUpdated: "Last updated", normal: "Normal", warning: "Warning", fault: "Fault", unavailable: "Unbound",
+    noBinding: "Not bound in this model", objectBinding: "BIM Component Binding", markerBinding: "Spatial Coordinate Binding",
+    restoreNormal: "Restore Normal Status", simulateFault: "Simulate Device Fault", readingModel: "Reading model file…",
+    loadingModel: "Loading {model}", modelReady: "{count} components · Model ready",
+    loadError: "Unable to load {model}. Start the project with npm run dev and confirm the file exists in the fbx folder.",
+    fcuName: "Fan Coil Unit FCU-01", fcuSubtitle: "BIM Component", sensorName: "Environmental Sensor AM103", sensorSubtitle: "Spatial Point",
+    supplyTemperature: "Supply Air Temperature", fanPower: "Fan Power", airflow: "Airflow", temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
   },
 };
 
+const query = new URLSearchParams(window.location.search);
+let activeLang = (query.get("lang") || localStorage.getItem("lang")) === "en" ? "en" : "zh";
+
+function t(key, values = {}) {
+  let text = I18N[activeLang][key] || I18N.zh[key] || key;
+  for (const [name, value] of Object.entries(values)) text = text.replace(`{${name}}`, value);
+  return text;
+}
+
 const STATUS = {
-  normal: { label: "正常", color: 0x20a464 },
-  warning: { label: "注意", color: 0xe99a2c },
-  fault: { label: "故障", color: 0xe34d59 },
-  unavailable: { label: "未绑定", color: 0x8b94a6 },
+  normal: { color: 0x20a464 },
+  warning: { color: 0xe99a2c },
+  fault: { color: 0xe34d59 },
+  unavailable: { color: 0x8b94a6 },
 };
 
 const DEVICES = [
   {
     id: "FCU-738100",
-    name: "风机盘管 FCU-01",
-    subtitle: "BIM 构件",
+    nameKey: "fcuName",
+    subtitleKey: "fcuSubtitle",
     binding: {
       kind: "object",
       exactToken: "[738100]",
       fallbackTerms: ["带回风箱的风机盘管机组", "风机盘管"],
     },
     metrics: [
-      { key: "supplyTemperature", label: "送风温度", unit: "°C", value: 18.4, variance: 0.22 },
-      { key: "fanPower", label: "风机功率", unit: "W", value: 328, variance: 5.5 },
-      { key: "airflow", label: "送风量", unit: "L/s", value: 186, variance: 2.2 },
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 18.4, variance: 0.22 },
+      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 328, variance: 5.5 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
     ],
   },
   {
     id: "AM103-DEMO",
-    name: "环境传感器 AM103",
-    subtitle: "空间点位",
+    nameKey: "sensorName",
+    subtitleKey: "sensorSubtitle",
     binding: { kind: "marker", normalizedPosition: [0.58, 0.52, 0.56] },
     metrics: [
-      { key: "temperature", label: "室内温度", unit: "°C", value: 24.6, variance: 0.14 },
-      { key: "humidity", label: "相对湿度", unit: "%", value: 61, variance: 0.45 },
-      { key: "co2", label: "CO₂", unit: "ppm", value: 760, variance: 8 },
+      { key: "temperature", labelKey: "temperature", unit: "°C", value: 24.6, variance: 0.14 },
+      { key: "humidity", labelKey: "humidity", unit: "%", value: 61, variance: 0.45 },
+      { key: "co2", labelKey: "co2", unit: "ppm", value: 760, variance: 8 },
     ],
   },
 ];
 
 const elements = {
+  overviewLink: document.getElementById("overview-link"),
+  devicePanelButton: document.getElementById("device-panel-btn"),
+  devicePanel: document.getElementById("device-panel"),
+  devicePanelClose: document.getElementById("device-panel-close"),
   wrap: document.getElementById("viewer-wrap"),
   canvas: document.getElementById("twin-canvas"),
-  modelSelect: document.getElementById("model-select"),
   loading: document.getElementById("model-loading"),
   loadingTitle: document.getElementById("loading-title"),
   loadingProgress: document.getElementById("loading-progress"),
@@ -89,7 +130,6 @@ const elements = {
 };
 
 const state = {
-  modelKey: "3dnew",
   model: null,
   modelBox: new THREE.Box3(),
   modelCenter: new THREE.Vector3(),
@@ -159,7 +199,7 @@ let pointerDownPosition = null;
 let gridHelper = null;
 
 function formatNumber(value) {
-  if (Math.abs(value) >= 100) return Math.round(value).toLocaleString("zh-CN");
+  if (Math.abs(value) >= 100) return Math.round(value).toLocaleString(activeLang === "en" ? "en" : "zh-CN");
   return value.toFixed(1);
 }
 
@@ -167,10 +207,10 @@ function statusFor(deviceId) {
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
-function showLoading(model, percent = 0, meta = "读取模型文件…") {
+function showLoading(model, percent = 0, meta = t("readingModel")) {
   elements.error.classList.add("hidden");
   elements.loading.classList.remove("hidden");
-  elements.loadingTitle.textContent = `正在加载 ${model.label}`;
+  elements.loadingTitle.textContent = t("loadingModel", { model: model.label });
   elements.loadingProgress.style.width = `${Math.max(3, percent)}%`;
   elements.loadingMeta.textContent = meta;
 }
@@ -273,19 +313,10 @@ function fitCameraToModel(animate = false) {
   controls.maxDistance = radius * 12;
 }
 
-function animateCamera(destination, target, duration = 650) {
-  const startPosition = camera.position.clone();
-  const startTarget = controls.target.clone();
-  const startedAt = performance.now();
-
-  function step(now) {
-    const raw = Math.min((now - startedAt) / duration, 1);
-    const eased = 1 - Math.pow(1 - raw, 3);
-    camera.position.lerpVectors(startPosition, destination, eased);
-    controls.target.lerpVectors(startTarget, target, eased);
-    if (raw < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+function animateCamera(destination, target) {
+  camera.position.copy(destination);
+  controls.target.copy(target);
+  controls.update();
 }
 
 function findBindingObject(device) {
@@ -415,8 +446,8 @@ function renderDeviceList() {
     button.innerHTML = `
       <span class="dt-device-status"></span>
       <span class="dt-device-copy">
-        <strong>${device.name}</strong>
-        <small>${device.subtitle} · ${bound ? STATUS[snapshot.status].label : "当前模型无绑定"}</small>
+        <strong>${t(device.nameKey)}</strong>
+        <small>${t(device.subtitleKey)} · ${bound ? t(snapshot.status) : t("noBinding")}</small>
       </span>
       <span class="dt-device-chevron">›</span>
     `;
@@ -448,15 +479,15 @@ function renderSelectedDevice() {
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
   const displayStatus = bound ? snapshot.status : "unavailable";
 
-  elements.bindingLabel.textContent = device.binding.kind === "object" ? "BIM 构件绑定" : "空间坐标绑定";
-  elements.deviceName.textContent = device.name;
+  elements.bindingLabel.textContent = device.binding.kind === "object" ? t("objectBinding") : t("markerBinding");
+  elements.deviceName.textContent = t(device.nameKey);
   elements.deviceId.textContent = device.id;
-  elements.statusBadge.textContent = STATUS[displayStatus].label;
+  elements.statusBadge.textContent = t(displayStatus);
   elements.statusBadge.className = `dt-status-badge ${displayStatus}`;
 
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
     <div class="dt-metric">
-      <span>${metric.label}</span>
+      <span>${t(metric.labelKey)}</span>
       <strong>${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small></strong>
     </div>
   `).join("");
@@ -464,12 +495,12 @@ function renderSelectedDevice() {
   const primaryMetric = device.metrics[0];
   const trend = snapshot.trends[primaryMetric.key];
   const paths = sparklinePath(trend);
-  elements.trendLabel.textContent = primaryMetric.label;
+  elements.trendLabel.textContent = t(primaryMetric.labelKey);
   elements.trendValue.textContent = `${formatNumber(snapshot.values[primaryMetric.key])} ${primaryMetric.unit}`;
   elements.trendLine.setAttribute("d", paths.line);
   elements.trendArea.setAttribute("d", paths.area);
-  elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString("zh-CN", { hour12: false });
-  elements.faultButtonText.textContent = snapshot.status === "fault" ? "恢复设备正常" : "模拟设备故障";
+  elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLang === "en" ? "en-GB" : "zh-CN", { hour12: false });
+  elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
   elements.faultToggle.disabled = !bound;
 }
@@ -478,6 +509,36 @@ function renderUI() {
   renderDeviceList();
   renderSelectedDevice();
   updateAllVisualStates();
+}
+
+function applyLanguage(lang) {
+  activeLang = lang === "en" ? "en" : "zh";
+  localStorage.setItem("lang", activeLang);
+  document.documentElement.lang = activeLang === "en" ? "en" : "zh-HK";
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach((element) => {
+    element.title = t(element.dataset.i18nTitle);
+  });
+  document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nAria));
+  });
+  elements.overviewLink.href = `overview.html?lang=${activeLang}`;
+  if (!elements.error.classList.contains("hidden")) {
+    elements.errorMessage.textContent = t("loadError", { model: MODEL.name });
+  }
+  renderUI();
+}
+
+function setDevicePanelOpen(open) {
+  elements.wrap.closest(".dt-workspace").classList.toggle("panel-open", open);
+  elements.devicePanel.classList.toggle("is-open", open);
+  elements.devicePanel.setAttribute("aria-hidden", String(!open));
+  elements.devicePanel.inert = !open;
+  elements.devicePanelButton.setAttribute("aria-expanded", String(open));
+  if (open) elements.devicePanelClose.focus({ preventScroll: true });
+  else elements.devicePanelButton.focus({ preventScroll: true });
 }
 
 function selectDevice(deviceId, focus = false) {
@@ -514,7 +575,7 @@ function updateMockData() {
     snapshot.updatedAt = new Date();
   }
   renderSelectedDevice();
-  elements.clock.textContent = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  elements.clock.textContent = new Date().toLocaleTimeString(activeLang === "en" ? "en-GB" : "zh-CN", { hour12: false });
 }
 
 function addGrid() {
@@ -528,11 +589,9 @@ function addGrid() {
   scene.add(gridHelper);
 }
 
-function loadModel(modelKey = state.modelKey) {
-  const model = MODELS[modelKey];
-  if (!model) return;
+function loadModel() {
+  const model = MODEL;
   const requestId = ++state.loadRequest;
-  state.modelKey = modelKey;
   state.selectedDeviceId = DEVICES[0].id;
   clearCurrentModel();
   showLoading(model);
@@ -558,10 +617,10 @@ function loadModel(modelKey = state.modelKey) {
       addGrid();
       fitCameraToModel(false);
       bindDevices();
-      elements.meshCount.textContent = meshCount.toLocaleString("zh-CN");
+      elements.meshCount.textContent = meshCount.toLocaleString(activeLang === "en" ? "en" : "zh-CN");
       elements.loadingProgress.style.width = "100%";
-      elements.loadingMeta.textContent = `${meshCount} 个构件 · 模型准备完成`;
-      window.setTimeout(() => elements.loading.classList.add("hidden"), 320);
+      elements.loadingMeta.textContent = t("modelReady", { count: meshCount.toLocaleString(activeLang === "en" ? "en" : "zh-CN") });
+      elements.loading.classList.add("hidden");
       renderUI();
     },
     (event) => {
@@ -574,7 +633,7 @@ function loadModel(modelKey = state.modelKey) {
     (error) => {
       if (requestId !== state.loadRequest) return;
       console.error("FBX loading failed", error);
-      showError(`无法读取 ${model.name}。请通过 npm run dev 启动项目，并确认 fbx 文件夹中存在该文件。`);
+      showError(t("loadError", { model: model.name }));
       renderUI();
     },
   );
@@ -630,8 +689,12 @@ function resizeRenderer() {
   labelRenderer.setSize(width, height);
 }
 
-elements.modelSelect.addEventListener("change", (event) => loadModel(event.target.value));
-elements.retryButton.addEventListener("click", () => loadModel(state.modelKey));
+elements.retryButton.addEventListener("click", loadModel);
+elements.devicePanelButton.addEventListener("click", () => setDevicePanelOpen(true));
+elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
+});
 elements.resetViewButton.addEventListener("click", () => fitCameraToModel(true));
 elements.faultToggle.addEventListener("click", () => {
   const snapshot = state.snapshots.get(state.selectedDeviceId);
@@ -645,8 +708,8 @@ elements.calibrateButton.addEventListener("click", () => {
 });
 elements.copyCoordinateButton.addEventListener("click", async () => {
   await navigator.clipboard.writeText(elements.coordinateValue.textContent);
-  elements.copyCoordinateButton.textContent = "已复制";
-  window.setTimeout(() => { elements.copyCoordinateButton.textContent = "复制"; }, 1200);
+  elements.copyCoordinateButton.textContent = t("copied");
+  window.setTimeout(() => { elements.copyCoordinateButton.textContent = t("copy"); }, 1200);
 });
 elements.canvas.addEventListener("pointerdown", (event) => {
   pointerDownPosition = { x: event.clientX, y: event.clientY };
@@ -668,9 +731,9 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
-renderUI();
+applyLanguage(activeLang);
 resizeRenderer();
-loadModel("3dnew");
+loadModel();
 animate();
 updateMockData();
 window.setInterval(updateMockData, 2000);
