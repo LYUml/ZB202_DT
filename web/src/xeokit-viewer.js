@@ -4,7 +4,7 @@ const placeholderEl = document.getElementById("xeokit-placeholder");
 const deviceListEl = document.getElementById("xeokit-device-list");
 const deviceInfoEl = document.getElementById("xeokit-device-info");
 
-const MODEL_SRC = new URLSearchParams(window.location.search).get("model") || "models/zb202.xkt";
+const MODEL_SRC = new URLSearchParams(window.location.search).get("model") || "models/xkt/zb202.xkt";
 const SHOULD_LOAD_MODEL = new URLSearchParams(window.location.search).has("model");
 
 const objectMapping = {

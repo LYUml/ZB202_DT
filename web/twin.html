@@ -3,58 +3,150 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ZB202 Digital Twin | Lightweight Room</title>
+  <meta name="description" content="ZB202 WebGL + FBX digital twin route validation" />
+  <title>ZB202 Digital Twin | WebGL + FBX</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/styles.css" />
 </head>
 <body data-page="twin">
-  <div class="page-shell twin-shell">
-    <header class="hero twin-hero">
-      <div class="hero-topbar">
-        <a class="back-link" href="overview.html">← 返回设备总览</a>
-        <p class="eyebrow">ZB202 / Lightweight Digital Twin Prototype</p>
+  <div class="dt-app">
+    <header class="dt-topbar">
+      <div class="dt-brand">
+        <a class="dt-back" href="overview.html" aria-label="返回设备总览">←</a>
+        <div class="dt-brand-mark" aria-hidden="true">ZB</div>
+        <div>
+          <p class="dt-overline">WEB DIGITAL TWIN · ROUTE A</p>
+          <h1>ZB202 空间设备监控</h1>
+        </div>
       </div>
-      <h1 class="hero-title">设备状态房间视图</h1>
-      <div class="hero-meta">
-        <div>
-          <p class="kicker">数据源</p>
-          <p class="hero-value">Mock API</p>
-        </div>
-        <div>
-          <p class="kicker">设备</p>
-          <p class="hero-value" id="twin-device-count">0</p>
-        </div>
-        <div class="hero-note">
-          <p>用于验证“模型内直接显示设备状态”的轻量路线。后续可替换为 xeokit、GLB 或 Unity 场景。</p>
-        </div>
+
+      <div class="dt-live-status" aria-label="数据连接状态">
+        <span class="dt-live-dot"></span>
+        <span>模拟数据运行中</span>
+        <time id="dt-clock">--:--:--</time>
       </div>
     </header>
 
-    <main class="twin-layout">
-      <section class="twin-scene-wrap">
-        <div class="twin-scene" id="twin-scene" aria-label="ZB202 simplified digital twin room">
-          <div class="room-plane">
-            <div class="room-wall wall-back"></div>
-            <div class="room-wall wall-left"></div>
-            <div class="room-wall wall-right"></div>
-            <div class="room-label">ZB202</div>
+    <main class="dt-workspace">
+      <section class="dt-viewer-card" aria-label="FBX 三维模型">
+        <div class="dt-viewer-toolbar">
+          <div class="dt-model-control">
+            <label for="model-select">模型</label>
+            <select id="model-select">
+              <option value="3dnew">ZN1001 · 三维视图</option>
+              <option value="legacy">ZN1001 · 原始导出</option>
+            </select>
+          </div>
+
+          <div class="dt-tool-actions">
+            <button class="dt-icon-btn" id="calibrate-btn" type="button" title="在模型表面拾取世界坐标">
+              <span aria-hidden="true">＋</span> 校准点位
+            </button>
+            <button class="dt-icon-btn" id="reset-view-btn" type="button" title="重置模型视角">
+              <span aria-hidden="true">⌂</span> 重置视角
+            </button>
+          </div>
+        </div>
+
+        <div class="dt-canvas-wrap" id="viewer-wrap">
+          <canvas id="twin-canvas"></canvas>
+
+          <div class="dt-loading" id="model-loading" role="status">
+            <div class="dt-loader-orbit" aria-hidden="true"><span></span></div>
+            <p class="dt-loading-title" id="loading-title">正在准备三维场景</p>
+            <div class="dt-progress-track"><span id="loading-progress"></span></div>
+            <p class="dt-loading-meta" id="loading-meta">初始化渲染器…</p>
+          </div>
+
+          <div class="dt-error hidden" id="model-error" role="alert">
+            <span class="dt-error-icon" aria-hidden="true">!</span>
+            <div>
+              <strong>模型加载失败</strong>
+              <p id="model-error-message">请检查模型文件后重试。</p>
+            </div>
+            <button class="dt-secondary-btn" id="retry-model-btn" type="button">重新加载</button>
+          </div>
+
+          <div class="dt-viewer-hint">
+            <span>左键旋转</span><i></i><span>右键平移</span><i></i><span>滚轮缩放</span>
+          </div>
+
+          <div class="dt-scene-stats">
+            <span id="model-name">—</span>
+            <span><b id="mesh-count">0</b> 构件</span>
+          </div>
+
+          <div class="dt-coordinate-toast hidden" id="coordinate-toast">
+            <span id="coordinate-value">[0, 0, 0]</span>
+            <button type="button" id="copy-coordinate-btn">复制</button>
           </div>
         </div>
       </section>
 
-      <aside class="panel twin-inspector" id="twin-inspector">
-        <p class="eyebrow">Selected Device</p>
-        <h2 id="twin-device-title">选择一个设备</h2>
-        <dl class="info-list" id="twin-device-info">
-          <div><dt>状态</dt><dd>点击房间中的设备点位</dd></div>
-        </dl>
+      <aside class="dt-sidebar" aria-label="设备实时信息">
+        <section class="dt-side-section dt-side-header">
+          <div>
+            <p class="dt-overline">LIVE ASSETS</p>
+            <h2>设备状态</h2>
+          </div>
+          <span class="dt-count" id="device-count">2</span>
+        </section>
+
+        <section class="dt-device-list" id="device-list" aria-label="测试设备列表"></section>
+
+        <section class="dt-detail" id="device-detail">
+          <div class="dt-detail-heading">
+            <div>
+              <p class="dt-binding-label" id="binding-label">BIM 构件绑定</p>
+              <h2 id="device-name">风机盘管 FCU-01</h2>
+              <p id="device-id">FCU-738100</p>
+            </div>
+            <span class="dt-status-badge normal" id="status-badge">正常</span>
+          </div>
+
+          <div class="dt-metrics" id="metric-grid"></div>
+
+          <div class="dt-trend-card">
+            <div class="dt-trend-heading">
+              <div>
+                <span id="trend-label">送风温度</span>
+                <strong id="trend-value">—</strong>
+              </div>
+              <span>最近 48 秒</span>
+            </div>
+            <svg id="trend-chart" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="实时数据趋势图">
+              <defs>
+                <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#2f7df4" stop-opacity="0.28" />
+                  <stop offset="100%" stop-color="#2f7df4" stop-opacity="0" />
+                </linearGradient>
+              </defs>
+              <path class="dt-trend-area" id="trend-area"></path>
+              <path class="dt-trend-line" id="trend-line"></path>
+            </svg>
+          </div>
+
+          <div class="dt-update-row">
+            <span>最后更新</span>
+            <time id="updated-at">—</time>
+          </div>
+
+          <button class="dt-fault-btn" id="fault-toggle" type="button">
+            <span class="dt-fault-icon" aria-hidden="true">!</span>
+            <span id="fault-button-text">模拟设备故障</span>
+          </button>
+        </section>
+
+        <footer class="dt-side-footer">
+          <span>WebGL / Three.js / FBX</span>
+          <span>PoC v0.1</span>
+        </footer>
       </aside>
     </main>
   </div>
 
-  <script src="data/devices.js"></script>
-  <script src="twin.js"></script>
+  <script type="module" src="src/twin.js"></script>
 </body>
 </html>
