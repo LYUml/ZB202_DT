@@ -6,6 +6,8 @@ A web digital twin proof of concept for monitoring laboratory equipment in ZB202
 
 > This is currently a frontend PoC. All device data is mocked; no live MQTT, database, or backend API is connected yet.
 
+Live demo: [https://lyuml.github.io/ZB202_DT/](https://lyuml.github.io/ZB202_DT/)
+
 ## Highlights
 
 - Loads `ZN1001v2.fbx`, displays 145 physical components, and filters 61 helper centerlines.
@@ -40,6 +42,10 @@ npm run preview
 ```
 
 The preview is normally available at [http://localhost:4173/](http://localhost:4173/). Production files are written to `dist/`. Only the FBX referenced by the application is bundled; RVT files, device backups, and internal documentation are excluded.
+
+### GitHub Pages Deployment
+
+Every push to `main` triggers GitHub Actions to run `npm ci` and `npm run build` with Node.js 24, then publish `dist/` to GitHub Pages. The generated `dist/` directory is not committed.
 
 ## Pages
 

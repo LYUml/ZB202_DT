@@ -6,6 +6,8 @@
 
 > 当前为前端 PoC。设备数据均为 Mock，尚未连接真实 MQTT、数据库或后端 API。
 
+在线演示：[https://lyuml.github.io/ZB202_DT/](https://lyuml.github.io/ZB202_DT/)
+
 ## 功能概览
 
 - 加载 `ZN1001v2.fbx`，显示 145 个实体构件，并过滤 61 条辅助中心线。
@@ -40,6 +42,10 @@ npm run preview
 ```
 
 预览地址通常为 [http://localhost:4173/](http://localhost:4173/)。生产文件输出到 `dist/`；构建只包含代码实际引用的 FBX，不包含 RVT、设备备份或内部文档。
+
+### GitHub Pages 部署
+
+推送到 `main` 分支后，GitHub Actions 会使用 Node.js 24 执行 `npm ci` 和 `npm run build`，并将 `dist/` 自动发布到 GitHub Pages。`dist/` 不提交到仓库。
 
 ## 页面入口
 
