@@ -18,6 +18,34 @@ Live demo: [https://lyuml.github.io/ZB202_DT/](https://lyuml.github.io/ZB202_DT/
 - Supports Chinese and English; the room view inherits the language selected on the overview page.
 - Includes device overview, device detail, and point-coordinate calibration tools.
 
+## Current Solution Assessment
+
+### 1. Technical Path
+
+The current implementation follows a lightweight web digital-twin PoC path. Revit/FBX provides the spatial model, Vite builds the frontend, and Three.js/WebGL renders it in the browser. Devices are associated with the model through BIM component IDs or world coordinates. Device lists, metrics, trends, and fault states are currently driven by frontend mock data.
+
+The planned production data path is: sensors or the BA system publish through MQTT; backend services collect messages, match DevEUIs, decode payloads, and store live values, history, and alerts; HTTP APIs or WebSockets then deliver the data to the frontend. The frontend handles 3D positioning, status overlays, and interaction rather than connecting directly to the MQTT broker.
+
+This path is well suited to validating the value of equipment monitoring, spatial positioning, and fault visualization first. If web loading performance becomes the priority, FBX should be preprocessed into GLB/glTF. If complete BIM properties and component-query capabilities are required, an IFC/Web BIM path should be evaluated further.
+
+### 2. Advantages
+
+- **Fast PoC delivery**: the small stack avoids a Unity deployment or a full BIM platform, and the static build can be demonstrated through GitHub Pages.
+- **Low access barrier**: no client installation is required; a desktop browser is enough for reviews, sharing, and iteration.
+- **Relative separation of model and business data**: the 3D model provides spatial context while device data is organized by `deviceId`, DevEUI, and binding metadata, allowing mock data to be replaced without rebuilding the scene.
+- **Flexible positioning**: BIM component IDs and spatial coordinates cover both modeled assets and sensors that do not exist as BIM components.
+- **A testable interaction loop already exists**: the room view, overview, detail page, bilingual UI, fault simulation, and point calibration form a complete demonstration flow.
+
+### 3. Challenges and Limitations
+
+- **No live digital-twin loop yet**: values, trends, and alerts are mocked. The MQTT collector, decoding, database, API/WebSocket layer, reconnection handling, and data-freshness monitoring remain to be implemented.
+- **FBX is not an ideal long-term web delivery format**: file size, loading speed, material optimization, and progressive loading are limited, and performance risk rises as the model grows.
+- **Limited BIM semantics**: FBX does not reliably preserve Revit properties, system relationships, or stable component identities. Bindings based on object names or manual coordinates can break after a model re-export.
+- **No formal model pipeline**: RVT/FBX cleaning, coordinate alignment, optimization, versioning, and binding regression checks are not standardized, so model updates may move points or change component IDs.
+- **The frontend architecture remains PoC-level**: device data and some UI logic are duplicated, with no unified state layer, API contract validation, automated tests, access control, or observability. Maintenance cost will rise with scope.
+- **Runtime constraints**: Three.js depends on WebGL and client GPU capacity. Low-end hardware, larger models, or many live labels may cause slow initial loads, frame drops, and high memory use.
+- **Production security is not covered**: broker credentials, API authentication, device authorization, auditing, data retention, and alert acknowledgement are outside the current implementation. Downlink control is not ready to be enabled safely.
+
 ## Quick Start
 
 ### Requirements
