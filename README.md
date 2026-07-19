@@ -27,30 +27,58 @@
 计划中的生产数据链路为：传感器或 BA 系统通过 MQTT 上报，后端按 DevEUI 完成采集与 payload 解码，将实时值、历史数据和告警写入数据库，再通过 HTTP API 或 WebSocket 提供给前端。前端负责 3D 定位、状态叠加和交互展示，不直接连接 MQTT Broker。
 
 ```mermaid
-flowchart LR
-  subgraph MODEL["空间模型链路"]
-    RVT["Revit 源模型"] --> FBX["FBX 导出与清理"]
-    FBX --> THREE["Three.js / WebGL 渲染"]
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 32, "rankSpacing": 48}, "themeVariables": {"fontFamily": "Inter, PingFang SC, Microsoft YaHei, sans-serif", "fontSize": "14px", "lineColor": "#94a3b8"}}}%%
+flowchart TB
+  subgraph SOURCES["01 · 数据源与空间底座"]
+    direction LR
+    subgraph MODEL["空间模型 · 当前已实现"]
+      direction LR
+      RVT["Revit<br/>源模型"] --> FBX["FBX<br/>导出与清理"] --> THREE["Three.js<br/>WebGL 渲染"]
+    end
+    subgraph DATA["实时数据 · 规划接入"]
+      direction LR
+      SENSOR["传感器<br/>BA 系统"] --> MQTT["MQTT<br/>上行"] --> SERVICE["采集与解码<br/>DevEUI 匹配"] --> DB[("时序 / 业务<br/>数据库")] --> API["API<br/>WebSocket"]
+    end
   end
 
-  subgraph DATA["设备数据链路"]
-    SENSOR["传感器 / BA 系统"] --> MQTT["MQTT 上行"]
-    MQTT --> COLLECTOR["采集器 + Payload 解码"]
-    COLLECTOR --> DB["时序数据库 / 业务数据库"]
-    DB --> API["HTTP API / WebSocket"]
+  subgraph CORE["02 · 数字孪生融合层"]
+    direction LR
+    MOCK["Mock 数据<br/>当前 PoC"] -. "临时驱动" .-> BIND{{"设备数据 × 空间模型<br/>绑定与状态融合"}}
+    THREE ==> BIND
+    API -. "计划接入" .-> BIND
   end
 
-  MOCK["当前阶段：前端 Mock 数据"] -. PoC 替代 .-> BIND
-  API -. 计划接入 .-> BIND["设备数据与模型绑定"]
-  THREE --> BIND
-  BIND --> APP["Web 数字孪生应用"]
-  APP --> VIEW["3D 定位与状态叠加"]
-  APP --> DASH["设备总览 / 详情 / 告警"]
+  BIND ==> APP(["ZB202 Web Digital Twin"])
 
-  classDef current fill:#e8f3ff,stroke:#1677ff,color:#102a43;
-  classDef planned fill:#fff7e6,stroke:#d48806,color:#613400,stroke-dasharray:5 5;
-  class THREE,MOCK,BIND,APP,VIEW,DASH current;
-  class SENSOR,MQTT,COLLECTOR,DB,API planned;
+  subgraph EXPERIENCE["03 · 应用与交互"]
+    direction LR
+    VIEW["3D 空间定位<br/>状态叠加"]
+    DASH["设备总览<br/>档案与趋势"]
+    ALERT["故障模拟<br/>告警展示"]
+    CALIBRATE["点位校准<br/>双语交互"]
+  end
+
+  APP --> VIEW & DASH & ALERT & CALIBRATE
+
+  classDef source fill:#f1f5f9,stroke:#94a3b8,color:#334155,stroke-width:1px;
+  classDef current fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.5px;
+  classDef planned fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px,stroke-dasharray:5 4;
+  classDef core fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
+  classDef product fill:#0f766e,stroke:#134e4a,color:#ffffff,stroke-width:2px;
+  classDef output fill:#ecfdf5,stroke:#10b981,color:#064e3b,stroke-width:1.5px;
+
+  class RVT,FBX source;
+  class THREE,MOCK current;
+  class SENSOR,MQTT,SERVICE,DB,API planned;
+  class BIND core;
+  class APP product;
+  class VIEW,DASH,ALERT,CALIBRATE output;
+
+  style SOURCES fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
+  style MODEL fill:#f8fafc,stroke:#7dd3fc,stroke-width:1px
+  style DATA fill:#fffbeb,stroke:#fcd34d,stroke-width:1px,stroke-dasharray:5 4
+  style CORE fill:#faf5ff,stroke:#c4b5fd,stroke-width:1px
+  style EXPERIENCE fill:#f0fdf4,stroke:#86efac,stroke-width:1px
 ```
 
 图中蓝色节点为当前 PoC 已实现的主要部分，橙色虚线节点为计划中的真实数据接入链路。

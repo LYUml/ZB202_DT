@@ -27,30 +27,58 @@ The current implementation follows a lightweight web digital-twin PoC path. Revi
 The planned production data path is: sensors or the BA system publish through MQTT; backend services collect messages, match DevEUIs, decode payloads, and store live values, history, and alerts; HTTP APIs or WebSockets then deliver the data to the frontend. The frontend handles 3D positioning, status overlays, and interaction rather than connecting directly to the MQTT broker.
 
 ```mermaid
-flowchart LR
-  subgraph MODEL["Spatial Model Path"]
-    RVT["Revit Source Models"] --> FBX["FBX Export and Cleanup"]
-    FBX --> THREE["Three.js / WebGL Rendering"]
+%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 32, "rankSpacing": 48}, "themeVariables": {"fontFamily": "Inter, Arial, sans-serif", "fontSize": "14px", "lineColor": "#94a3b8"}}}%%
+flowchart TB
+  subgraph SOURCES["01 · Sources and Spatial Foundation"]
+    direction LR
+    subgraph MODEL["Spatial Model · Implemented"]
+      direction LR
+      RVT["Revit<br/>Source Models"] --> FBX["FBX<br/>Export and Cleanup"] --> THREE["Three.js<br/>WebGL Rendering"]
+    end
+    subgraph DATA["Live Data · Planned"]
+      direction LR
+      SENSOR["Sensors<br/>BA System"] --> MQTT["MQTT<br/>Uplink"] --> SERVICE["Collection and Decoding<br/>DevEUI Matching"] --> DB[("Time-series / Business<br/>Database")] --> API["API<br/>WebSocket"]
+    end
   end
 
-  subgraph DATA["Device Data Path"]
-    SENSOR["Sensors / BA System"] --> MQTT["MQTT Uplink"]
-    MQTT --> COLLECTOR["Collector + Payload Decoder"]
-    COLLECTOR --> DB["Time-series / Business Database"]
-    DB --> API["HTTP API / WebSocket"]
+  subgraph CORE["02 · Digital Twin Fusion Layer"]
+    direction LR
+    MOCK["Mock Data<br/>Current PoC"] -. "Temporary Input" .-> BIND{{"Device Data × Spatial Model<br/>Binding and State Fusion"}}
+    THREE ==> BIND
+    API -. "Planned Integration" .-> BIND
   end
 
-  MOCK["Current Stage: Frontend Mock Data"] -. PoC substitute .-> BIND
-  API -. Planned integration .-> BIND["Device-to-Model Binding"]
-  THREE --> BIND
-  BIND --> APP["Web Digital Twin"]
-  APP --> VIEW["3D Positioning and Status Overlays"]
-  APP --> DASH["Overview / Details / Alerts"]
+  BIND ==> APP(["ZB202 Web Digital Twin"])
 
-  classDef current fill:#e8f3ff,stroke:#1677ff,color:#102a43;
-  classDef planned fill:#fff7e6,stroke:#d48806,color:#613400,stroke-dasharray:5 5;
-  class THREE,MOCK,BIND,APP,VIEW,DASH current;
-  class SENSOR,MQTT,COLLECTOR,DB,API planned;
+  subgraph EXPERIENCE["03 · Applications and Interaction"]
+    direction LR
+    VIEW["3D Positioning<br/>Status Overlays"]
+    DASH["Device Overview<br/>Profiles and Trends"]
+    ALERT["Fault Simulation<br/>Alert Display"]
+    CALIBRATE["Point Calibration<br/>Bilingual UI"]
+  end
+
+  APP --> VIEW & DASH & ALERT & CALIBRATE
+
+  classDef source fill:#f1f5f9,stroke:#94a3b8,color:#334155,stroke-width:1px;
+  classDef current fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e,stroke-width:1.5px;
+  classDef planned fill:#fff7ed,stroke:#f59e0b,color:#7c2d12,stroke-width:1.5px,stroke-dasharray:5 4;
+  classDef core fill:#ede9fe,stroke:#7c3aed,color:#4c1d95,stroke-width:2px;
+  classDef product fill:#0f766e,stroke:#134e4a,color:#ffffff,stroke-width:2px;
+  classDef output fill:#ecfdf5,stroke:#10b981,color:#064e3b,stroke-width:1.5px;
+
+  class RVT,FBX source;
+  class THREE,MOCK current;
+  class SENSOR,MQTT,SERVICE,DB,API planned;
+  class BIND core;
+  class APP product;
+  class VIEW,DASH,ALERT,CALIBRATE output;
+
+  style SOURCES fill:#ffffff,stroke:#cbd5e1,stroke-width:1px
+  style MODEL fill:#f8fafc,stroke:#7dd3fc,stroke-width:1px
+  style DATA fill:#fffbeb,stroke:#fcd34d,stroke-width:1px,stroke-dasharray:5 4
+  style CORE fill:#faf5ff,stroke:#c4b5fd,stroke-width:1px
+  style EXPERIENCE fill:#f0fdf4,stroke:#86efac,stroke-width:1px
 ```
 
 Blue nodes represent the main parts already implemented in the PoC. Orange dashed nodes represent the planned live-data integration path.
