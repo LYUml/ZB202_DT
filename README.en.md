@@ -26,6 +26,35 @@ The current implementation follows a lightweight web digital-twin PoC path. Revi
 
 The planned production data path is: sensors or the BA system publish through MQTT; backend services collect messages, match DevEUIs, decode payloads, and store live values, history, and alerts; HTTP APIs or WebSockets then deliver the data to the frontend. The frontend handles 3D positioning, status overlays, and interaction rather than connecting directly to the MQTT broker.
 
+```mermaid
+flowchart LR
+  subgraph MODEL["Spatial Model Path"]
+    RVT["Revit Source Models"] --> FBX["FBX Export and Cleanup"]
+    FBX --> THREE["Three.js / WebGL Rendering"]
+  end
+
+  subgraph DATA["Device Data Path"]
+    SENSOR["Sensors / BA System"] --> MQTT["MQTT Uplink"]
+    MQTT --> COLLECTOR["Collector + Payload Decoder"]
+    COLLECTOR --> DB["Time-series / Business Database"]
+    DB --> API["HTTP API / WebSocket"]
+  end
+
+  MOCK["Current Stage: Frontend Mock Data"] -. PoC substitute .-> BIND
+  API -. Planned integration .-> BIND["Device-to-Model Binding"]
+  THREE --> BIND
+  BIND --> APP["Web Digital Twin"]
+  APP --> VIEW["3D Positioning and Status Overlays"]
+  APP --> DASH["Overview / Details / Alerts"]
+
+  classDef current fill:#e8f3ff,stroke:#1677ff,color:#102a43;
+  classDef planned fill:#fff7e6,stroke:#d48806,color:#613400,stroke-dasharray:5 5;
+  class THREE,MOCK,BIND,APP,VIEW,DASH current;
+  class SENSOR,MQTT,COLLECTOR,DB,API planned;
+```
+
+Blue nodes represent the main parts already implemented in the PoC. Orange dashed nodes represent the planned live-data integration path.
+
 This path is well suited to validating the value of equipment monitoring, spatial positioning, and fault visualization first. If web loading performance becomes the priority, FBX should be preprocessed into GLB/glTF. If complete BIM properties and component-query capabilities are required, an IFC/Web BIM path should be evaluated further.
 
 ### 2. Advantages

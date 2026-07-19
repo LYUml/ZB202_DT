@@ -26,6 +26,35 @@
 
 计划中的生产数据链路为：传感器或 BA 系统通过 MQTT 上报，后端按 DevEUI 完成采集与 payload 解码，将实时值、历史数据和告警写入数据库，再通过 HTTP API 或 WebSocket 提供给前端。前端负责 3D 定位、状态叠加和交互展示，不直接连接 MQTT Broker。
 
+```mermaid
+flowchart LR
+  subgraph MODEL["空间模型链路"]
+    RVT["Revit 源模型"] --> FBX["FBX 导出与清理"]
+    FBX --> THREE["Three.js / WebGL 渲染"]
+  end
+
+  subgraph DATA["设备数据链路"]
+    SENSOR["传感器 / BA 系统"] --> MQTT["MQTT 上行"]
+    MQTT --> COLLECTOR["采集器 + Payload 解码"]
+    COLLECTOR --> DB["时序数据库 / 业务数据库"]
+    DB --> API["HTTP API / WebSocket"]
+  end
+
+  MOCK["当前阶段：前端 Mock 数据"] -. PoC 替代 .-> BIND
+  API -. 计划接入 .-> BIND["设备数据与模型绑定"]
+  THREE --> BIND
+  BIND --> APP["Web 数字孪生应用"]
+  APP --> VIEW["3D 定位与状态叠加"]
+  APP --> DASH["设备总览 / 详情 / 告警"]
+
+  classDef current fill:#e8f3ff,stroke:#1677ff,color:#102a43;
+  classDef planned fill:#fff7e6,stroke:#d48806,color:#613400,stroke-dasharray:5 5;
+  class THREE,MOCK,BIND,APP,VIEW,DASH current;
+  class SENSOR,MQTT,COLLECTOR,DB,API planned;
+```
+
+图中蓝色节点为当前 PoC 已实现的主要部分，橙色虚线节点为计划中的真实数据接入链路。
+
 这条路线适合先验证设备监控、空间定位和故障展示的业务价值；若后续更重视网页加载性能，可将 FBX 预处理为 GLB/glTF；若必须保留完整 BIM 属性和构件查询能力，则需进一步评估 IFC/Web BIM 路线。
 
 ### 2. 优点
