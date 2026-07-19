@@ -83,7 +83,6 @@ This path is well suited to validating the value of equipment monitoring, spatia
 - **Limited BIM semantics**: FBX does not reliably preserve Revit properties, system relationships, or stable component identities. Bindings based on object names or manual coordinates can break after a model re-export.
 - **No formal model pipeline**: RVT/FBX cleaning, coordinate alignment, optimization, versioning, and binding regression checks are not standardized, so model updates may move points or change component IDs.
 - **The frontend architecture remains PoC-level**: device data and some UI logic are duplicated, with no unified state layer, API contract validation, automated tests, access control, or observability. Maintenance cost will rise with scope.
-- **Runtime constraints**: Three.js depends on WebGL and client GPU capacity. Low-end hardware, larger models, or many live labels may cause slow initial loads, frame drops, and high memory use.
 - **Production security is not covered**: broker credentials, API authentication, device authorization, auditing, data retention, and alert acknowledgement are outside the current implementation. Downlink control is not ready to be enabled safely.
 
 ## Quick Start
