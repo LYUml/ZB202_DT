@@ -1,47 +1,53 @@
 ﻿const placeholderDevices = [
   {
     id: "ZB202-HVAC-AHU-01",
-    name: { zh: "组合式空调机组", en: "Air Handling Unit" },
-    location: { zh: "ZB202 顶部机电区", en: "Ceiling MEP Zone, ZB202" },
+    name: { zh: "组合式空调机组", "zh-Hant": "組合式空調機組", en: "Air Handling Unit" },
+    location: { zh: "ZB202 顶部机电区", "zh-Hant": "ZB202 頂部機電區", en: "Ceiling MEP Zone, ZB202" },
     status: "normal",
     maintenanceDate: "TBD",
   },
   {
     id: "ZB202-HVAC-FCU-02",
-    name: { zh: "风机盘管", en: "Fan Coil Unit" },
-    location: { zh: "ZB202 东侧吊顶", en: "East Ceiling, ZB202" },
+    name: { zh: "风机盘管", "zh-Hant": "風機盤管", en: "Fan Coil Unit" },
+    location: { zh: "ZB202 东侧吊顶", "zh-Hant": "ZB202 東側吊頂", en: "East Ceiling, ZB202" },
     status: "warning",
     maintenanceDate: "TBD",
   },
   {
     id: "ZB202-HVAC-VAV-03",
-    name: { zh: "VAV 变风量箱", en: "VAV Terminal Box" },
-    location: { zh: "ZB202 西侧风管支路", en: "West Duct Branch, ZB202" },
+    name: { zh: "VAV 变风量箱", "zh-Hant": "VAV 變風量箱", en: "VAV Terminal Box" },
+    location: { zh: "ZB202 西侧风管支路", "zh-Hant": "ZB202 西側風管支路", en: "West Duct Branch, ZB202" },
     status: "normal",
     maintenanceDate: "TBD",
   },
   {
     id: "ZB202-HVAC-EXF-04",
-    name: { zh: "排风机", en: "Exhaust Fan" },
-    location: { zh: "ZB202 南侧排风井", en: "South Exhaust Shaft, ZB202" },
+    name: { zh: "排风机", "zh-Hant": "排風機", en: "Exhaust Fan" },
+    location: { zh: "ZB202 南侧排风井", "zh-Hant": "ZB202 南側排風井", en: "South Exhaust Shaft, ZB202" },
     status: "alert",
     maintenanceDate: "TBD",
   },
   {
     id: "ZB202-HVAC-CHW-05",
-    name: { zh: "冷冻水阀组", en: "Chilled Water Valve Set" },
-    location: { zh: "ZB202 管井接口", en: "Pipe Riser Interface, ZB202" },
+    name: { zh: "冷冻水阀组", "zh-Hant": "冷凍水閥組", en: "Chilled Water Valve Set" },
+    location: { zh: "ZB202 管井接口", "zh-Hant": "ZB202 管井介面", en: "Pipe Riser Interface, ZB202" },
     status: "normal",
     maintenanceDate: "TBD",
   },
   {
     id: "ZB202-HVAC-THS-06",
-    name: { zh: "温湿度传感器", en: "Temperature & Humidity Sensor" },
-    location: { zh: "ZB202 中部监测点", en: "Center Monitoring Point, ZB202" },
+    name: { zh: "温湿度传感器", "zh-Hant": "溫濕度感測器", en: "Temperature & Humidity Sensor" },
+    location: { zh: "ZB202 中部监测点", "zh-Hant": "ZB202 中部監測點", en: "Center Monitoring Point, ZB202" },
     status: "alert",
     maintenanceDate: "TBD",
   },
 ];
+
+import "@phosphor-icons/web/regular";
+
+const THEME_STORAGE_KEY = "zb202-theme";
+const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 
 const i18n = {
   zh: {
@@ -50,6 +56,7 @@ const i18n = {
     "overview.note": "当前为演示占位数据，后续将接入实时 IoT 与 BIM 状态。",
     "overview.viewCard": "卡片",
     "overview.viewTable": "表格",
+    "overview.roomView": "房间视图",
     "detail.back": "← 返回总览",
     "detail.eyebrow": "ZB202 / 设备档案",
     "detail.basicInfo": "基础信息",
@@ -86,6 +93,58 @@ const i18n = {
     "status.normal": "在线",
     "status.warning": "告警",
     "status.alert": "离线",
+    "theme.day": "日间模式",
+    "theme.night": "夜间模式",
+    "theme.switchToDay": "切换至日间模式",
+    "theme.switchToNight": "切换至夜间模式",
+  },
+  "zh-Hant": {
+    "overview.eyebrow": "ZB202 / 建築數位孿生",
+    "overview.title": "空間設備總覽",
+    "overview.note": "目前為示範佔位資料，後續將接入即時 IoT 與 BIM 狀態。",
+    "overview.viewCard": "卡片",
+    "overview.viewTable": "表格",
+    "overview.roomView": "房間視圖",
+    "detail.back": "← 返回總覽",
+    "detail.eyebrow": "ZB202 / 設備檔案",
+    "detail.basicInfo": "基礎資訊",
+    "detail.maintenanceTitle": "檢修紀錄",
+    "detail.maintenanceNote": "預留後端檢修明細、負責人和工單編號。",
+    "detail.modelTitle": "BIM 模型與狀態疊加視圖",
+    "detail.modelSubtitle": "此區域用於承載三維模型、狀態顏色疊加與重要警報註解。",
+    "detail.modelPlaceholder": "BIM 3D 容器預留位",
+    "detail.modelPlaceholderHint": "後續在此連接模型渲染器與 IoT 即時狀態流",
+    "detail.switchToTable": "看資料表",
+    "detail.switchToVisual": "看模型",
+    "common.room": "房間",
+    "common.devices": "設備數",
+    "common.name": "設備名稱",
+    "common.id": "編號",
+    "common.location": "位置",
+    "common.status": "狀態",
+    "common.model": "型號",
+    "common.type": "類型",
+    "common.devEui": "DevEUI",
+    "common.profile": "設定",
+    "common.decoder": "Decoder",
+    "common.latestValues": "最新資料",
+    "common.lastMaintenance": "最近檢修",
+    "common.action": "操作",
+    "common.viewDetail": "查看詳情",
+    "common.statusLabel": "狀態",
+    "common.locationLabel": "位置",
+    "common.maintenanceLabel": "檢修",
+    "common.deviceDetail": "設備詳情",
+    "common.field": "欄位",
+    "common.value": "資訊",
+    "common.tbd": "待接入",
+    "status.normal": "線上",
+    "status.warning": "警報",
+    "status.alert": "離線",
+    "theme.day": "日間模式",
+    "theme.night": "夜間模式",
+    "theme.switchToDay": "切換至日間模式",
+    "theme.switchToNight": "切換至夜間模式",
   },
   en: {
     "overview.eyebrow": "ZB202 / Building Digital Twin",
@@ -93,6 +152,7 @@ const i18n = {
     "overview.note": "Demo placeholder data for now; live IoT and BIM status will be integrated later.",
     "overview.viewCard": "Card",
     "overview.viewTable": "Table",
+    "overview.roomView": "Room View",
     "detail.back": "← Back to Overview",
     "detail.eyebrow": "ZB202 / Device Profile",
     "detail.basicInfo": "Basic Information",
@@ -129,6 +189,10 @@ const i18n = {
     "status.normal": "Online",
     "status.warning": "Warning",
     "status.alert": "Offline",
+    "theme.day": "Day mode",
+    "theme.night": "Night mode",
+    "theme.switchToDay": "Switch to day mode",
+    "theme.switchToNight": "Switch to night mode",
   },
 };
 
@@ -140,15 +204,21 @@ const statusClassMap = {
 
 const query = new URLSearchParams(window.location.search);
 const initialLang = query.get("lang") || localStorage.getItem("lang") || "zh";
-let activeLang = initialLang === "en" ? "en" : "zh";
+let activeLang = normalizeLanguage(initialLang);
 let isDeviceTableMode = false;
 
+function normalizeLanguage(lang) {
+  if (lang === "en") return "en";
+  if (lang === "zh-Hant" || lang === "zh-HK" || lang === "zh-TW") return "zh-Hant";
+  return "zh";
+}
+
 function t(key) {
-  return i18n[activeLang][key] || key;
+  return i18n[activeLang]?.[key] || i18n.zh[key] || key;
 }
 
 function applyI18nText() {
-  document.documentElement.lang = activeLang === "zh" ? "zh-HK" : "en";
+  document.documentElement.lang = activeLang === "en" ? "en" : activeLang === "zh-Hant" ? "zh-Hant" : "zh-CN";
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.dataset.i18n;
     el.textContent = t(key);
@@ -162,32 +232,81 @@ function updateDeviceModeButton() {
 }
 
 function applyLanguage(lang) {
-  activeLang = lang === "en" ? "en" : "zh";
+  activeLang = normalizeLanguage(lang);
   localStorage.setItem("lang", activeLang);
 
-  const toggle = document.getElementById("lang-toggle");
-  if (toggle) toggle.textContent = activeLang === "en" ? "中文" : "EN";
+  const select = document.getElementById("lang-select");
+  if (select) select.value = activeLang;
 
   applyI18nText();
   updateDeviceModeButton();
+  updateThemeControl();
 
   const backLink = document.getElementById("back-link");
   if (backLink) backLink.href = `overview.html?lang=${activeLang}`;
 
   const roomViewLink = document.getElementById("room-view-link");
   if (roomViewLink) roomViewLink.href = `twin.html?lang=${activeLang}`;
+
+  const currentUrl = new URL(window.location.href);
+  currentUrl.searchParams.set("lang", activeLang);
+  window.history.replaceState(null, "", currentUrl);
 }
 
-function addLangToggle(onChange) {
-  const toggle = document.getElementById("lang-toggle");
-  if (!toggle) return;
+function addLanguageControl(onChange) {
+  const select = document.getElementById("lang-select");
+  if (!select) return;
 
-  toggle.addEventListener("click", () => {
-    const next = activeLang === "en" ? "zh" : "en";
-    applyLanguage(next);
+  select.addEventListener("change", () => {
+    applyLanguage(select.value);
     if (typeof onChange === "function") onChange();
   });
 }
+
+function getStoredTheme() {
+  const value = localStorage.getItem(THEME_STORAGE_KEY);
+  return value === "light" || value === "dark" ? value : null;
+}
+
+function updateThemeControl() {
+  const toggle = document.getElementById("theme-toggle");
+  const icon = document.getElementById("theme-icon");
+  const label = document.getElementById("theme-toggle-label");
+  if (!toggle || !icon || !label) return;
+
+  const isDark = activeTheme === "dark";
+  const actionLabel = t(isDark ? "theme.switchToDay" : "theme.switchToNight");
+  label.textContent = t(isDark ? "theme.day" : "theme.night");
+  icon.className = `ph ${isDark ? "ph-sun" : "ph-moon-stars"}`;
+  toggle.setAttribute("aria-label", actionLabel);
+  toggle.title = actionLabel;
+}
+
+function applyTheme(theme, persist = false) {
+  activeTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = activeTheme;
+  if (persist) localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
+  updateThemeControl();
+}
+
+function attachThemeControl() {
+  const toggle = document.getElementById("theme-toggle");
+  if (!toggle) return;
+  toggle.addEventListener("click", () => {
+    applyTheme(activeTheme === "dark" ? "light" : "dark", true);
+  });
+}
+
+window.addEventListener("storage", (event) => {
+  if (event.key === THEME_STORAGE_KEY && (event.newValue === "light" || event.newValue === "dark")) {
+    applyTheme(event.newValue);
+  }
+  if (event.key === "lang" && event.newValue && normalizeLanguage(event.newValue) !== activeLang) {
+    const nextUrl = new URL(window.location.href);
+    nextUrl.searchParams.set("lang", normalizeLanguage(event.newValue));
+    window.location.replace(nextUrl);
+  }
+});
 
 function deviceUrl(deviceId) {
   return `device.html?deviceId=${encodeURIComponent(deviceId)}&lang=${activeLang}`;
@@ -195,7 +314,7 @@ function deviceUrl(deviceId) {
 
 function getDeviceText(value) {
   if (typeof value === "string") return value;
-  return value?.[activeLang] || "-";
+  return value?.[activeLang] || value?.zh || value?.en || "-";
 }
 
 function getStatusText(status) {
@@ -437,12 +556,17 @@ async function loadDevices() {
   const page = document.body.dataset.page;
   const devices = await loadDevices();
 
+  applyTheme(activeTheme);
   applyLanguage(activeLang);
+  systemThemeQuery.addEventListener("change", (event) => {
+    if (!getStoredTheme()) applyTheme(event.matches ? "dark" : "light");
+  });
 
   if (page === "overview") {
     renderOverview(devices);
     attachViewSwitch();
-    addLangToggle(() => renderOverview(devices));
+    addLanguageControl(() => renderOverview(devices));
+    attachThemeControl();
   }
 
   if (page === "device") {
@@ -451,7 +575,7 @@ async function loadDevices() {
     initCubeInteraction();
     attachDeviceModeToggle();
     syncDetailModeUI();
-    addLangToggle(() => {
+    addLanguageControl(() => {
       renderDeviceDetail(devices);
       renderDetailTable(devices);
       syncDetailModeUI();

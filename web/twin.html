@@ -5,16 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="ZB202 WebGL + FBX digital twin route validation" />
   <title>ZB202 Digital Twin | WebGL + FBX</title>
+  <script>
+    (() => {
+      const storageKey = "zb202-theme";
+      let savedTheme = null;
+      try {
+        savedTheme = localStorage.getItem(storageKey);
+      } catch {
+        savedTheme = null;
+      }
+      const theme = savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/styles.css" />
+  <link rel="stylesheet" href="src/twin-theme.css" />
 </head>
 <body data-page="twin">
   <div class="dt-app">
     <header class="dt-topbar">
       <div class="dt-brand">
-        <a class="dt-back" id="overview-link" href="overview.html" aria-label="返回设备总览" data-i18n-aria="backAria">←</a>
+        <a class="dt-back" id="overview-link" href="overview.html" aria-label="返回设备总览" data-i18n-aria="backAria">
+          <i class="ph ph-arrow-left" aria-hidden="true"></i>
+        </a>
         <div class="dt-brand-mark" aria-hidden="true">ZB</div>
         <div>
           <p class="dt-overline">WEB DIGITAL TWIN · ROUTE A</p>
@@ -22,10 +40,12 @@
         </div>
       </div>
 
-      <div class="dt-live-status" aria-label="数据连接状态" data-i18n-aria="connectionAria">
-        <span class="dt-live-dot"></span>
-        <span data-i18n="mockRunning">模拟数据运行中</span>
-        <time id="dt-clock">--:--:--</time>
+      <div class="dt-topbar-actions">
+        <div class="dt-live-status" aria-label="数据连接状态" data-i18n-aria="connectionAria">
+          <span class="dt-live-dot"></span>
+          <span data-i18n="mockRunning">模拟数据运行中</span>
+          <time id="dt-clock">--:--:--</time>
+        </div>
       </div>
     </header>
 
@@ -39,13 +59,16 @@
 
           <div class="dt-tool-actions">
             <button class="dt-icon-btn" id="device-panel-btn" type="button" aria-controls="device-panel" aria-expanded="false">
-              <span aria-hidden="true">☰</span> <span data-i18n="openDevicePanel">设备面板</span>
+              <i class="ph ph-sidebar-simple" aria-hidden="true"></i>
+              <span data-i18n="openDevicePanel">设备面板</span>
             </button>
             <button class="dt-icon-btn" id="calibrate-btn" type="button" title="在模型表面拾取世界坐标" data-i18n-title="calibrateTitle">
-              <span aria-hidden="true">＋</span> <span data-i18n="calibrate">校准点位</span>
+              <i class="ph ph-crosshair-simple" aria-hidden="true"></i>
+              <span data-i18n="calibrate">校准点位</span>
             </button>
             <button class="dt-icon-btn" id="reset-view-btn" type="button" title="重置模型视角" data-i18n-title="resetTitle">
-              <span aria-hidden="true">⌂</span> <span data-i18n="resetView">重置视角</span>
+              <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
+              <span data-i18n="resetView">重置视角</span>
             </button>
           </div>
         </div>
@@ -61,7 +84,7 @@
           </div>
 
           <div class="dt-error hidden" id="model-error" role="alert">
-            <span class="dt-error-icon" aria-hidden="true">!</span>
+            <i class="ph ph-warning-circle dt-error-icon" aria-hidden="true"></i>
             <div>
               <strong data-i18n="loadFailed">模型加载失败</strong>
               <p id="model-error-message" data-i18n="loadRetryHint">请检查模型文件后重试。</p>
@@ -71,6 +94,12 @@
 
           <div class="dt-viewer-hint">
             <span data-i18n="rotateHint">左键旋转</span><i></i><span data-i18n="panHint">右键平移</span><i></i><span data-i18n="zoomHint">滚轮缩放</span>
+          </div>
+
+          <div class="dt-status-legend" aria-label="设备状态图例" data-i18n-aria="statusLegendAria">
+            <span><i class="normal"></i><span data-i18n="normal">正常</span></span>
+            <span><i class="warning"></i><span data-i18n="warning">注意</span></span>
+            <span><i class="fault"></i><span data-i18n="fault">故障</span></span>
           </div>
 
           <div class="dt-scene-stats">
@@ -93,7 +122,9 @@
           </div>
           <div class="dt-panel-header-actions">
             <span class="dt-count" id="device-count">2</span>
-            <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭设备面板" data-i18n-aria="closeDevicePanel">×</button>
+            <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭设备面板" data-i18n-aria="closeDevicePanel">
+              <i class="ph ph-x" aria-hidden="true"></i>
+            </button>
           </div>
         </section>
 
@@ -122,8 +153,8 @@
             <svg id="trend-chart" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="实时数据趋势图" data-i18n-aria="trendAria">
               <defs>
                 <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#2f7df4" stop-opacity="0.28" />
-                  <stop offset="100%" stop-color="#2f7df4" stop-opacity="0" />
+                  <stop class="dt-trend-stop-start" offset="0%" stop-opacity="0.28" />
+                  <stop class="dt-trend-stop-end" offset="100%" stop-opacity="0" />
                 </linearGradient>
               </defs>
               <path class="dt-trend-area" id="trend-area"></path>
@@ -137,7 +168,7 @@
           </div>
 
           <button class="dt-fault-btn" id="fault-toggle" type="button">
-            <span class="dt-fault-icon" aria-hidden="true">!</span>
+            <i class="ph ph-warning dt-fault-icon" aria-hidden="true"></i>
             <span id="fault-button-text">模拟设备故障</span>
           </button>
         </section>

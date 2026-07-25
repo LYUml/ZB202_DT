@@ -15,7 +15,7 @@ Live demo: [https://lyuml.github.io/ZB202_DT/](https://lyuml.github.io/ZB202_DT/
 - Binds devices through BIM component IDs or spatial coordinates.
 - Displays device metrics, trends, timestamps, simulated faults, and status recovery.
 - Uses an immersive full-page 3D workspace with a device panel that slides in from the right.
-- Supports Chinese and English; the room view inherits the language selected on the overview page.
+- Supports Simplified Chinese, Traditional Chinese, and English; detail and room views inherit the language selected on the overview page.
 - Includes device overview, device detail, and point-coordinate calibration tools.
 
 ## Current Solution Assessment
@@ -122,7 +122,9 @@ Every push to `main` triggers GitHub Actions to run `npm ci` and `npm run build`
 | Device Overview | `/overview.html` | Card and table views for nine registered devices |
 | Device Detail | `/device.html?deviceId=AM103_07` | Profile and metrics for one device |
 
-The language is controlled by `?lang=zh` or `?lang=en` and stored in the browser. The overview page passes its active language to the room view.
+The language is controlled by `?lang=zh`, `?lang=zh-Hant`, or `?lang=en` and stored in the browser. The overview page offers Simplified Chinese, Traditional Chinese, and English, then passes the active language to detail and room views.
+
+Day/night mode is switched to the right of the language selector on the overview page and stored globally as `zb202-theme`; detail and room views inherit it automatically.
 
 ## Room View Controls
 

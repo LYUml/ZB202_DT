@@ -4,10 +4,19 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ZB202 Digital Twin | Device Detail</title>
+  <script>
+    (() => {
+      const saved = localStorage.getItem("zb202-theme");
+      document.documentElement.dataset.theme = saved === "light" || saved === "dark"
+        ? saved
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="src/styles.css" />
+  <link rel="stylesheet" href="src/global-theme.css" />
 </head>
 <body data-page="device">
   <div class="bg-orb bg-orb-a" aria-hidden="true"></div>
@@ -19,7 +28,11 @@
         <a id="back-link" class="back-link" href="overview.html" data-i18n="detail.back">← 返回总览</a>
         <div class="hero-actions">
           <button id="detail-view-toggle" class="btn" type="button" data-i18n="detail.switchToTable">切换为数据表格</button>
-          <button id="lang-toggle" class="btn btn-quiet" type="button">EN</button>
+          <select id="lang-select" class="language-select" aria-label="语言 / Language">
+            <option value="zh">简体中文</option>
+            <option value="zh-Hant">繁體中文</option>
+            <option value="en">English</option>
+          </select>
         </div>
       </div>
 

@@ -2,7 +2,45 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
+import "@phosphor-icons/web/regular";
 import modelUrl from "../../models/fbx/ZN1001v2.fbx?url";
+
+const THEME_STORAGE_KEY = "zb202-theme";
+const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+
+const THEME_PRESETS = {
+  light: {
+    background: 0xdfe6ef,
+    fog: 0xdfe6ef,
+    exposure: 0.92,
+    hemisphereSky: 0xf8fbff,
+    hemisphereGround: 0x5a6677,
+    hemisphereIntensity: 1.35,
+    key: 0xffffff,
+    keyIntensity: 1.6,
+    fill: 0xb8d7ff,
+    fillIntensity: 0.65,
+    gridCenter: 0xb8c4d4,
+    gridLine: 0xd4dce7,
+    gridOpacity: 0.35,
+  },
+  dark: {
+    background: 0x0f1216,
+    fog: 0x0f1216,
+    exposure: 1.03,
+    hemisphereSky: 0xe8ebef,
+    hemisphereGround: 0x242a31,
+    hemisphereIntensity: 1.48,
+    key: 0xffffff,
+    keyIntensity: 1.72,
+    fill: 0x9db4cc,
+    fillIntensity: 0.68,
+    gridCenter: 0x3b4149,
+    gridLine: 0x252a31,
+    gridOpacity: 0.4,
+  },
+};
 
 const MODEL = {
   name: "ZN1001v2.fbx",
@@ -19,7 +57,7 @@ const I18N = {
     loadRetryHint: "请检查模型文件后重试。", reload: "重新加载", rotateHint: "左键旋转", panHint: "右键平移",
     zoomHint: "滚轮缩放", components: "构件", copy: "复制", copied: "已复制", sidebarAria: "设备实时信息",
     deviceStatus: "设备状态", deviceListAria: "测试设备列表", last48Seconds: "最近 48 秒", trendAria: "实时数据趋势图",
-    openDevicePanel: "设备面板", closeDevicePanel: "关闭设备面板",
+    openDevicePanel: "设备面板", closeDevicePanel: "关闭设备面板", statusLegendAria: "设备状态图例",
     lastUpdated: "最后更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未绑定",
     noBinding: "当前模型无绑定", objectBinding: "BIM 构件绑定", markerBinding: "空间坐标绑定",
     restoreNormal: "恢复设备正常", simulateFault: "模拟设备故障", readingModel: "读取模型文件…",
@@ -27,6 +65,23 @@ const I18N = {
     loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 fbx 文件夹中存在该文件。",
     fcuName: "风机盘管 FCU-01", fcuSubtitle: "BIM 构件", sensorName: "环境传感器 AM103", sensorSubtitle: "空间点位",
     supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
+  },
+  "zh-Hant": {
+    backAria: "返回設備總覽", title: "ZB202 空間設備監控", connectionAria: "資料連線狀態",
+    mockRunning: "模擬資料運行中", viewerAria: "FBX 三維模型", model: "模型",
+    calibrate: "校準點位", calibrateTitle: "在模型表面擷取世界座標", resetView: "重設視角", resetTitle: "重設模型視角",
+    preparingScene: "正在準備三維場景", initializingRenderer: "初始化渲染器…", loadFailed: "模型載入失敗",
+    loadRetryHint: "請檢查模型檔案後重試。", reload: "重新載入", rotateHint: "左鍵旋轉", panHint: "右鍵平移",
+    zoomHint: "滾輪縮放", components: "構件", copy: "複製", copied: "已複製", sidebarAria: "設備即時資訊",
+    deviceStatus: "設備狀態", deviceListAria: "測試設備列表", last48Seconds: "最近 48 秒", trendAria: "即時資料趨勢圖",
+    openDevicePanel: "設備面板", closeDevicePanel: "關閉設備面板", statusLegendAria: "設備狀態圖例",
+    lastUpdated: "最後更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未綁定",
+    noBinding: "目前模型未綁定", objectBinding: "BIM 構件綁定", markerBinding: "空間座標綁定",
+    restoreNormal: "恢復設備正常", simulateFault: "模擬設備故障", readingModel: "讀取模型檔案…",
+    loadingModel: "正在載入 {model}", modelReady: "{count} 個構件 · 模型準備完成",
+    loadError: "無法讀取 {model}。請透過 npm run dev 啟動專案，並確認 fbx 資料夾中存在此檔案。",
+    fcuName: "風機盤管 FCU-01", fcuSubtitle: "BIM 構件", sensorName: "環境感測器 AM103", sensorSubtitle: "空間點位",
+    supplyTemperature: "送風溫度", fanPower: "風機功率", airflow: "送風量", temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
   },
   en: {
     backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
@@ -36,7 +91,7 @@ const I18N = {
     loadRetryHint: "Check the model file and try again.", reload: "Reload", rotateHint: "Left-drag to rotate", panHint: "Right-drag to pan",
     zoomHint: "Scroll to zoom", components: "components", copy: "Copy", copied: "Copied", sidebarAria: "Live device information",
     deviceStatus: "Device Status", deviceListAria: "Demo device list", last48Seconds: "Last 48 seconds", trendAria: "Live data trend chart",
-    openDevicePanel: "Device Panel", closeDevicePanel: "Close device panel",
+    openDevicePanel: "Device Panel", closeDevicePanel: "Close device panel", statusLegendAria: "Device status legend",
     lastUpdated: "Last updated", normal: "Normal", warning: "Warning", fault: "Fault", unavailable: "Unbound",
     noBinding: "Not bound in this model", objectBinding: "BIM Component Binding", markerBinding: "Spatial Coordinate Binding",
     restoreNormal: "Restore Normal Status", simulateFault: "Simulate Device Fault", readingModel: "Reading model file…",
@@ -48,12 +103,59 @@ const I18N = {
 };
 
 const query = new URLSearchParams(window.location.search);
-let activeLang = (query.get("lang") || localStorage.getItem("lang")) === "en" ? "en" : "zh";
+let activeLang = normalizeLanguage(query.get("lang") || localStorage.getItem("lang") || "zh");
+
+function normalizeLanguage(lang) {
+  if (lang === "en") return "en";
+  if (lang === "zh-Hant" || lang === "zh-HK" || lang === "zh-TW") return "zh-Hant";
+  return "zh";
+}
+
+function activeLocale() {
+  if (activeLang === "en") return "en-GB";
+  return activeLang === "zh-Hant" ? "zh-HK" : "zh-CN";
+}
 
 function t(key, values = {}) {
-  let text = I18N[activeLang][key] || I18N.zh[key] || key;
+  let text = I18N[activeLang]?.[key] || I18N.zh[key] || key;
   for (const [name, value] of Object.entries(values)) text = text.replace(`{${name}}`, value);
   return text;
+}
+
+function getStoredTheme() {
+  try {
+    const value = localStorage.getItem(THEME_STORAGE_KEY);
+    return value === "light" || value === "dark" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+function applyTheme(theme, persist = false) {
+  activeTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = activeTheme;
+
+  if (persist) {
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, activeTheme);
+    } catch {
+      // The selected theme still applies for this session when storage is unavailable.
+    }
+  }
+
+  const preset = THEME_PRESETS[activeTheme];
+  scene.background.setHex(preset.background);
+  scene.fog.color.setHex(preset.fog);
+  renderer.toneMappingExposure = preset.exposure;
+  hemisphereLight.color.setHex(preset.hemisphereSky);
+  hemisphereLight.groundColor.setHex(preset.hemisphereGround);
+  hemisphereLight.intensity = preset.hemisphereIntensity;
+  keyLight.color.setHex(preset.key);
+  keyLight.intensity = preset.keyIntensity;
+  fillLight.color.setHex(preset.fill);
+  fillLight.intensity = preset.fillIntensity;
+
+  if (state.model) addGrid();
 }
 
 const STATUS = {
@@ -155,8 +257,8 @@ for (const device of DEVICES) {
 }
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xdfe6ef);
-scene.fog = new THREE.Fog(0xdfe6ef, 180, 920);
+scene.background = new THREE.Color(THEME_PRESETS[activeTheme].background);
+scene.fog = new THREE.Fog(THEME_PRESETS[activeTheme].fog, 180, 920);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 5000);
 camera.position.set(8, 7, 10);
@@ -165,7 +267,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: elements.canvas, antialias: t
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.92;
+renderer.toneMappingExposure = THEME_PRESETS[activeTheme].exposure;
 
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.domElement.className = "dt-label-layer";
@@ -177,7 +279,8 @@ controls.dampingFactor = 0.065;
 controls.screenSpacePanning = true;
 controls.maxPolarAngle = Math.PI * 0.93;
 
-scene.add(new THREE.HemisphereLight(0xf8fbff, 0x5a6677, 1.35));
+const hemisphereLight = new THREE.HemisphereLight(0xf8fbff, 0x5a6677, 1.35);
+scene.add(hemisphereLight);
 const keyLight = new THREE.DirectionalLight(0xffffff, 1.6);
 keyLight.position.set(12, 22, 16);
 scene.add(keyLight);
@@ -199,7 +302,7 @@ let pointerDownPosition = null;
 let gridHelper = null;
 
 function formatNumber(value) {
-  if (Math.abs(value) >= 100) return Math.round(value).toLocaleString(activeLang === "en" ? "en" : "zh-CN");
+  if (Math.abs(value) >= 100) return Math.round(value).toLocaleString(activeLocale());
   return value.toFixed(1);
 }
 
@@ -449,7 +552,7 @@ function renderDeviceList() {
         <strong>${t(device.nameKey)}</strong>
         <small>${t(device.subtitleKey)} · ${bound ? t(snapshot.status) : t("noBinding")}</small>
       </span>
-      <span class="dt-device-chevron">›</span>
+      <i class="ph ph-caret-right dt-device-chevron" aria-hidden="true"></i>
     `;
     button.addEventListener("click", () => selectDevice(device.id, true));
     elements.deviceList.appendChild(button);
@@ -499,7 +602,7 @@ function renderSelectedDevice() {
   elements.trendValue.textContent = `${formatNumber(snapshot.values[primaryMetric.key])} ${primaryMetric.unit}`;
   elements.trendLine.setAttribute("d", paths.line);
   elements.trendArea.setAttribute("d", paths.area);
-  elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLang === "en" ? "en-GB" : "zh-CN", { hour12: false });
+  elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false });
   elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
   elements.faultToggle.disabled = !bound;
@@ -512,9 +615,9 @@ function renderUI() {
 }
 
 function applyLanguage(lang) {
-  activeLang = lang === "en" ? "en" : "zh";
+  activeLang = normalizeLanguage(lang);
   localStorage.setItem("lang", activeLang);
-  document.documentElement.lang = activeLang === "en" ? "en" : "zh-HK";
+  document.documentElement.lang = activeLang === "en" ? "en" : activeLang === "zh-Hant" ? "zh-Hant" : "zh-CN";
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.textContent = t(element.dataset.i18n);
   });
@@ -575,17 +678,24 @@ function updateMockData() {
     snapshot.updatedAt = new Date();
   }
   renderSelectedDevice();
-  elements.clock.textContent = new Date().toLocaleTimeString(activeLang === "en" ? "en-GB" : "zh-CN", { hour12: false });
+  elements.clock.textContent = new Date().toLocaleTimeString(activeLocale(), { hour12: false });
 }
 
 function addGrid() {
+  if (gridHelper) {
+    scene.remove(gridHelper);
+    gridHelper.geometry.dispose();
+    gridHelper.material.dispose();
+    gridHelper = null;
+  }
   const size = state.modelBox.getSize(new THREE.Vector3());
   const gridSize = Math.max(size.x, size.z) * 1.35;
   const divisions = 24;
-  gridHelper = new THREE.GridHelper(gridSize, divisions, 0xb8c4d4, 0xd4dce7);
+  const preset = THEME_PRESETS[activeTheme];
+  gridHelper = new THREE.GridHelper(gridSize, divisions, preset.gridCenter, preset.gridLine);
   gridHelper.position.set(state.modelCenter.x, state.modelBox.min.y - Math.max(state.modelRadius * 0.006, 0.01), state.modelCenter.z);
   gridHelper.material.transparent = true;
-  gridHelper.material.opacity = 0.35;
+  gridHelper.material.opacity = preset.gridOpacity;
   scene.add(gridHelper);
 }
 
@@ -617,9 +727,9 @@ function loadModel() {
       addGrid();
       fitCameraToModel(false);
       bindDevices();
-      elements.meshCount.textContent = meshCount.toLocaleString(activeLang === "en" ? "en" : "zh-CN");
+      elements.meshCount.textContent = meshCount.toLocaleString(activeLocale());
       elements.loadingProgress.style.width = "100%";
-      elements.loadingMeta.textContent = t("modelReady", { count: meshCount.toLocaleString(activeLang === "en" ? "en" : "zh-CN") });
+      elements.loadingMeta.textContent = t("modelReady", { count: meshCount.toLocaleString(activeLocale()) });
       elements.loading.classList.add("hidden");
       renderUI();
     },
@@ -690,6 +800,17 @@ function resizeRenderer() {
 }
 
 elements.retryButton.addEventListener("click", loadModel);
+systemThemeQuery.addEventListener("change", (event) => {
+  if (!getStoredTheme()) applyTheme(event.matches ? "dark" : "light");
+});
+window.addEventListener("storage", (event) => {
+  if (event.key === THEME_STORAGE_KEY && (event.newValue === "light" || event.newValue === "dark")) {
+    applyTheme(event.newValue);
+  }
+  if (event.key === "lang" && event.newValue) {
+    applyLanguage(event.newValue);
+  }
+});
 elements.devicePanelButton.addEventListener("click", () => setDevicePanelOpen(true));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
 window.addEventListener("keydown", (event) => {
@@ -731,6 +852,7 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
+applyTheme(activeTheme);
 applyLanguage(activeLang);
 resizeRenderer();
 loadModel();
