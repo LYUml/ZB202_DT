@@ -4,7 +4,7 @@
 
 **在线演示：[打开 ZB202 Web Digital Twin](https://lyuml.github.io/ZB202_DT/)**
 
-ZB202 实验室设备监控的轻量 Web 数字孪生 PoC。当前选择路线 A：Vite 多页面前端 + Three.js/WebGL + FBX 房间模型。
+ZB202 实验室设备监控的轻量 Web 数字孪生 PoC，采用 Vite 多页面前端 + Three.js/WebGL + FBX 房间模型。
 
 ## 技术路径
 
