@@ -101,6 +101,12 @@ npm run dev
 
 打开 [http://localhost:5173/](http://localhost:5173/)。根地址会自动进入房间模型页面。
 
+### Windows 一键启动
+
+不要直接双击 `web/*.html`。以 `file://` 打开时，浏览器无法正确加载 Vite 模块、Three.js 依赖和 FBX 资源。
+
+在项目根目录双击 `start-zb202.bat` 即可。脚本会在首次运行时安装依赖，启动 Vite 开发服务器，等待服务就绪，然后自动打开设备总览页。运行期间请保留 “ZB202 Dev Server” 命令窗口；需要停止时在该窗口按 `Ctrl+C`。
+
 ### 生产构建
 
 ```powershell

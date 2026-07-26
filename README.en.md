@@ -101,6 +101,12 @@ npm run dev
 
 Open [http://localhost:5173/](http://localhost:5173/). The root URL redirects to the room model.
 
+### One-click Start on Windows
+
+Do not double-click files under `web/*.html`. A `file://` page cannot load the Vite modules, Three.js dependencies, and FBX assets correctly.
+
+Double-click `start-zb202.bat` in the project root instead. On the first run it installs dependencies, starts the Vite development server, waits until it is ready, and opens the device overview. Keep the “ZB202 Dev Server” command window open while using the site; press `Ctrl+C` in that window to stop it.
+
 ### Production Build
 
 ```powershell
