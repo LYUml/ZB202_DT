@@ -2,6 +2,7 @@
   color-scheme: light;
 }
 
+/* Shared light and dark theme tokens. */
 html[data-theme="dark"] {
   color-scheme: dark;
   --bg: #080a0d;

@@ -3,7 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
-import modelUrl from "../../models/fbx/ZN1001v2.fbx?url";
+import modelUrl from "../../../models/fbx/ZN1001v2.fbx?url";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");

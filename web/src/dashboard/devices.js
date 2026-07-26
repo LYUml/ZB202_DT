@@ -1,3 +1,4 @@
+// Device records used by the overview and detail pages.
 window.ZB202_DEVICE_DATA = [
   {
     id: "AM103_07",

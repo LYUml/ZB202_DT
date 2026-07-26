@@ -45,6 +45,7 @@
 
 import "@phosphor-icons/web/regular";
 
+// Overview and device-detail page behavior.
 const THEME_STORAGE_KEY = "zb202-theme";
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";

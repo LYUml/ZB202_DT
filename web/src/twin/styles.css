@@ -29,6 +29,7 @@ body[data-page="twin"] {
   font-family: "Noto Sans SC", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+/* Full-screen Three.js room-view styles. */
 html[data-theme="dark"] body[data-page="twin"] {
   color-scheme: dark;
   --dt-app-bg: #080a0d;

@@ -1,5 +1,7 @@
 # ZB202 Twin Theme Design QA
 
+> Archived implementation QA notes.
+
 ## Evidence
 
 - Source visual truth (day): `C:\Users\lyuml\.codex\generated_images\019f7506-4c11-7dc2-b453-b71b5414e62e\call_q6ddsSbGrRclRa5iI99MuCe6.png`
