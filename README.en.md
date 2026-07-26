@@ -2,6 +2,8 @@
 
 [中文](README.md) | [English](README.en.md)
 
+**Live demo: [Open ZB202 Web Digital Twin](https://lyuml.github.io/ZB202_DT/)**
+
 A lightweight web digital-twin PoC for equipment monitoring in laboratory ZB202. The current implementation follows Route A: a Vite multi-page frontend with Three.js/WebGL and an FBX room model.
 
 ## Technical Path
