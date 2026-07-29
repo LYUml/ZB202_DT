@@ -56,14 +56,19 @@ const I18N = {
     preparingScene: "正在准备三维场景", initializingRenderer: "初始化渲染器…", loadFailed: "模型加载失败",
     loadRetryHint: "请检查模型文件后重试。", reload: "重新加载", rotateHint: "左键旋转", panHint: "右键平移",
     zoomHint: "滚轮缩放", components: "构件", copy: "复制", copied: "已复制", sidebarAria: "设备实时信息",
-    deviceStatus: "设备状态", deviceListAria: "测试设备列表", last48Seconds: "最近 48 秒", trendAria: "实时数据趋势图",
+    deviceStatus: "设备状态", deviceListAria: "IFC 设备列表", last48Seconds: "最近 48 秒", trendAria: "实时数据趋势图",
     openDevicePanel: "设备面板", closeDevicePanel: "关闭设备面板", statusLegendAria: "设备状态图例",
     lastUpdated: "最后更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未绑定",
     noBinding: "当前模型无绑定", objectBinding: "BIM 构件绑定", markerBinding: "空间坐标绑定",
     restoreNormal: "恢复设备正常", simulateFault: "模拟设备故障", readingModel: "读取模型文件…",
     loadingModel: "正在加载 {model}", modelReady: "{count} 个构件 · 模型准备完成",
     loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 Fragments 模型文件存在。",
-    supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
+    supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", damperPosition: "风阀开度",
+    ifcProperties: "IFC 属性", ifcCategory: "IFC 类型", globalId: "GlobalId", expressId: "Express ID",
+    allEquipment: "全部", fans: "风机", coils: "盘管", dampers: "风阀", airTerminals: "风口",
+    noProperties: "没有可显示的 IFC 属性", staticBimItem: "静态 BIM 构件", scannedEquipment: "自动扫描设备",
+    searchEquipmentPlaceholder: "搜索名称、类型或 ID", searchEquipmentAria: "搜索 IFC 设备", noSearchResults: "没有匹配的 IFC 设备",
+    temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
   },
   "zh-Hant": {
     backAria: "返回設備總覽", title: "ZB202 空間設備監控", connectionAria: "資料連線狀態",
@@ -72,14 +77,19 @@ const I18N = {
     preparingScene: "正在準備三維場景", initializingRenderer: "初始化渲染器…", loadFailed: "模型載入失敗",
     loadRetryHint: "請檢查模型檔案後重試。", reload: "重新載入", rotateHint: "左鍵旋轉", panHint: "右鍵平移",
     zoomHint: "滾輪縮放", components: "構件", copy: "複製", copied: "已複製", sidebarAria: "設備即時資訊",
-    deviceStatus: "設備狀態", deviceListAria: "測試設備列表", last48Seconds: "最近 48 秒", trendAria: "即時資料趨勢圖",
+    deviceStatus: "設備狀態", deviceListAria: "IFC 設備列表", last48Seconds: "最近 48 秒", trendAria: "即時資料趨勢圖",
     openDevicePanel: "設備面板", closeDevicePanel: "關閉設備面板", statusLegendAria: "設備狀態圖例",
     lastUpdated: "最後更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未綁定",
     noBinding: "目前模型未綁定", objectBinding: "BIM 構件綁定", markerBinding: "空間座標綁定",
     restoreNormal: "恢復設備正常", simulateFault: "模擬設備故障", readingModel: "讀取模型檔案…",
     loadingModel: "正在載入 {model}", modelReady: "{count} 個構件 · 模型準備完成",
     loadError: "無法讀取 {model}。請透過 npm run dev 啟動專案，並確認 Fragments 模型檔案存在。",
-    supplyTemperature: "送風溫度", fanPower: "風機功率", airflow: "送風量", temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
+    supplyTemperature: "送風溫度", fanPower: "風機功率", airflow: "送風量", damperPosition: "風閥開度",
+    ifcProperties: "IFC 屬性", ifcCategory: "IFC 類型", globalId: "GlobalId", expressId: "Express ID",
+    allEquipment: "全部", fans: "風機", coils: "盤管", dampers: "風閥", airTerminals: "風口",
+    noProperties: "沒有可顯示的 IFC 屬性", staticBimItem: "靜態 BIM 構件", scannedEquipment: "自動掃描設備",
+    searchEquipmentPlaceholder: "搜尋名稱、類型或 ID", searchEquipmentAria: "搜尋 IFC 設備", noSearchResults: "沒有符合的 IFC 設備",
+    temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
   },
   en: {
     backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
@@ -88,14 +98,19 @@ const I18N = {
     preparingScene: "Preparing 3D scene", initializingRenderer: "Initializing renderer…", loadFailed: "Model loading failed",
     loadRetryHint: "Check the model file and try again.", reload: "Reload", rotateHint: "Left-drag to rotate", panHint: "Right-drag to pan",
     zoomHint: "Scroll to zoom", components: "components", copy: "Copy", copied: "Copied", sidebarAria: "Live device information",
-    deviceStatus: "Device Status", deviceListAria: "Demo device list", last48Seconds: "Last 48 seconds", trendAria: "Live data trend chart",
+    deviceStatus: "Device Status", deviceListAria: "IFC equipment list", last48Seconds: "Last 48 seconds", trendAria: "Live data trend chart",
     openDevicePanel: "Device Panel", closeDevicePanel: "Close device panel", statusLegendAria: "Device status legend",
     lastUpdated: "Last updated", normal: "Normal", warning: "Warning", fault: "Fault", unavailable: "Unbound",
     noBinding: "Not bound in this model", objectBinding: "BIM Component Binding", markerBinding: "Spatial Coordinate Binding",
     restoreNormal: "Restore Normal Status", simulateFault: "Simulate Device Fault", readingModel: "Reading model file…",
     loadingModel: "Loading {model}", modelReady: "{count} components · Model ready",
     loadError: "Unable to load {model}. Start the project with npm run dev and confirm the Fragments model file exists.",
-    supplyTemperature: "Supply Air Temperature", fanPower: "Fan Power", airflow: "Airflow", temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
+    supplyTemperature: "Supply Air Temperature", fanPower: "Fan Power", airflow: "Airflow", damperPosition: "Damper Position",
+    ifcProperties: "IFC Properties", ifcCategory: "IFC Type", globalId: "GlobalId", expressId: "Express ID",
+    allEquipment: "All", fans: "Fans", coils: "Coils", dampers: "Dampers", airTerminals: "Air Terminals",
+    noProperties: "No IFC properties available", staticBimItem: "Static BIM Component", scannedEquipment: "Auto-scanned equipment",
+    searchEquipmentPlaceholder: "Search name, type, or ID", searchEquipmentAria: "Search IFC equipment", noSearchResults: "No matching IFC equipment",
+    temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
   },
 };
 
@@ -161,54 +176,15 @@ const STATUS = {
   unavailable: { color: 0x8b94a6 },
 };
 
-const IFC_DEVICES = [
-  {
-    id: "IFC-FAN-7601047",
-    name: { zh: "送风机", "zh-Hant": "送風機", en: "Supply Air Fan" },
-    subtitle: { zh: "IFC 风机 · 模拟遥测", "zh-Hant": "IFC 風機 · 模擬遙測", en: "IFC Fan · Simulated telemetry" },
-    binding: { kind: "object", globalId: "03Vo9IXXn9pPeCD9ZrAaif" },
-    metrics: [
-      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 328, variance: 5.5 },
-      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
-      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 18.4, variance: 0.22 },
-    ],
-  },
-  {
-    id: "IFC-FAN-7636194",
-    name: { zh: "离心排风机", "zh-Hant": "離心排風機", en: "Centrifugal Extract Fan" },
-    subtitle: { zh: "IFC 风机 · 模拟遥测", "zh-Hant": "IFC 風機 · 模擬遙測", en: "IFC Fan · Simulated telemetry" },
-    binding: { kind: "object", globalId: "1nSyvCoUP9XfITB7TrLCuo" },
-    metrics: [
-      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 412, variance: 6.5 },
-      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 208, variance: 2.8 },
-      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 19.2, variance: 0.2 },
-    ],
-  },
-  {
-    id: "IFC-COIL-7271705",
-    name: { zh: "热水加热盘管", "zh-Hant": "熱水加熱盤管", en: "Water Heating Coil" },
-    subtitle: { zh: "IFC 盘管 · 模拟遥测", "zh-Hant": "IFC 盤管 · 模擬遙測", en: "IFC Coil · Simulated telemetry" },
-    binding: { kind: "object", globalId: "2jfPwJ7fP3WfBkHCTOoj1S" },
-    metrics: [
-      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 31.5, variance: 0.3 },
-      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 0, variance: 0 },
-      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
-    ],
-  },
-  {
-    id: "IFC-COIL-7271857",
-    name: { zh: "冷水冷却盘管", "zh-Hant": "冷水冷卻盤管", en: "Water Cooling Coil" },
-    subtitle: { zh: "IFC 盘管 · 模拟遥测", "zh-Hant": "IFC 盤管 · 模擬遙測", en: "IFC Coil · Simulated telemetry" },
-    binding: { kind: "object", globalId: "2jfPwJ7fP3WfBkHCTOoj3q" },
-    metrics: [
-      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 14.2, variance: 0.18 },
-      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 0, variance: 0 },
-      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
-    ],
-  },
+const EQUIPMENT_GROUPS = [
+  { key: "fans", category: "IFCFAN", label: { zh: "风机", "zh-Hant": "風機", en: "Fan" } },
+  { key: "coils", category: "IFCCOIL", label: { zh: "盘管", "zh-Hant": "盤管", en: "Coil" } },
+  { key: "dampers", category: "IFCDAMPER", label: { zh: "风阀", "zh-Hant": "風閥", en: "Damper" } },
+  { key: "airTerminals", category: "IFCAIRTERMINAL", label: { zh: "风口", "zh-Hant": "風口", en: "Air Terminal" } },
+  { key: "airTerminals", category: "IFCAIRTERMINALBOX", label: { zh: "风口箱", "zh-Hant": "風口箱", en: "Air Terminal Box" } },
 ];
 
-const DEVICES = IFC_DEVICES;
+let DEVICES = [];
 
 function deviceText(device, field) {
   const localized = device[field];
@@ -241,17 +217,25 @@ const elements = {
   deviceCount: document.getElementById("device-count"),
   viewerCard: document.querySelector(".dt-viewer-card"),
   technologyLabel: document.querySelector(".dt-side-footer span"),
+  equipmentSearch: document.getElementById("equipment-search"),
+  equipmentSearchCount: document.getElementById("equipment-search-count"),
+  equipmentFilters: document.getElementById("equipment-filters"),
   deviceList: document.getElementById("device-list"),
   bindingLabel: document.getElementById("binding-label"),
   deviceName: document.getElementById("device-name"),
   deviceId: document.getElementById("device-id"),
   statusBadge: document.getElementById("status-badge"),
+  ifcProperties: document.getElementById("ifc-properties"),
+  ifcPropertyCount: document.getElementById("ifc-property-count"),
+  ifcPropertyList: document.getElementById("ifc-property-list"),
   metricGrid: document.getElementById("metric-grid"),
+  trendCard: document.getElementById("trend-card"),
   trendLabel: document.getElementById("trend-label"),
   trendValue: document.getElementById("trend-value"),
   trendLine: document.getElementById("trend-line"),
   trendArea: document.getElementById("trend-area"),
   updatedAt: document.getElementById("updated-at"),
+  updateRow: document.getElementById("update-row"),
   faultToggle: document.getElementById("fault-toggle"),
   faultButtonText: document.getElementById("fault-button-text"),
   clock: document.getElementById("dt-clock"),
@@ -267,7 +251,10 @@ const state = {
   modelBox: new THREE.Box3(),
   modelCenter: new THREE.Vector3(),
   modelRadius: 1,
-  selectedDeviceId: DEVICES[0].id,
+  selectedDeviceId: null,
+  selectedItem: null,
+  equipmentFilter: "allEquipment",
+  equipmentQuery: "",
   calibrating: false,
   boundObjects: new Map(),
   markerObjects: new Map(),
@@ -276,15 +263,18 @@ const state = {
   fragmentsModel: null,
 };
 
-for (const device of DEVICES) {
+function initializeDeviceSnapshots() {
+  state.snapshots.clear();
+  for (const device of DEVICES) {
   const values = Object.fromEntries(device.metrics.map((metric) => [metric.key, metric.value]));
-  state.snapshots.set(device.id, {
-    deviceId: device.id,
-    status: "normal",
-    updatedAt: new Date(),
-    values,
-    trends: Object.fromEntries(device.metrics.map((metric) => [metric.key, Array(24).fill(metric.value)])),
-  });
+    state.snapshots.set(device.id, {
+      deviceId: device.id,
+      status: "normal",
+      updatedAt: new Date(),
+      values,
+      trends: Object.fromEntries(device.metrics.map((metric) => [metric.key, Array(24).fill(metric.value)])),
+    });
+  }
 }
 
 const scene = new THREE.Scene();
@@ -353,6 +343,143 @@ function statusFor(deviceId) {
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
+function unwrapIfcValue(value) {
+  if (value && typeof value === "object" && !Array.isArray(value) && "value" in value) {
+    return unwrapIfcValue(value.value);
+  }
+  return value;
+}
+
+function readableIfcValue(value) {
+  const unwrapped = unwrapIfcValue(value);
+  if (unwrapped === null || unwrapped === undefined || unwrapped === "") return null;
+  if (typeof unwrapped === "boolean") return unwrapped ? "True" : "False";
+  if (typeof unwrapped === "number" || typeof unwrapped === "string") return String(unwrapped);
+  return null;
+}
+
+function equipmentGroupForCategory(category) {
+  return EQUIPMENT_GROUPS.find((group) => group.category === category);
+}
+
+function localizedGroupLabel(group) {
+  return group?.label[activeLang] || group?.label.zh || group?.label.en || "IFC";
+}
+
+function metricsForCategory(category, localId) {
+  const seed = localId % 97;
+  if (category === "IFCFAN") {
+    return [
+      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 280 + seed * 2.4, variance: 5.5 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 170 + seed * 0.8, variance: 2.2 },
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 17 + (seed % 20) * 0.1, variance: 0.22 },
+    ];
+  }
+  if (category === "IFCDAMPER") {
+    return [
+      { key: "damperPosition", labelKey: "damperPosition", unit: "%", value: 45 + (seed % 45), variance: 0.8 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 120 + seed * 0.7, variance: 2.2 },
+    ];
+  }
+  return [
+    { key: "airflow", labelKey: "airflow", unit: "L/s", value: 130 + seed * 0.7, variance: 2.2 },
+    { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 14 + (seed % 60) * 0.1, variance: 0.2 },
+  ];
+}
+
+function flattenIfcData(value, prefix = "", rows = [], seen = new WeakSet()) {
+  if (rows.length >= 60 || value === null || value === undefined) return rows;
+  const readable = readableIfcValue(value);
+  if (readable !== null) {
+    if (prefix) rows.push({ label: prefix, value: readable });
+    return rows;
+  }
+  if (typeof value !== "object" || seen.has(value)) return rows;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      const name = readableIfcValue(entry?.Name);
+      flattenIfcData(entry, name ? `${prefix}.${name}` : `${prefix}.${index + 1}`, rows, seen);
+    });
+    return rows;
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    if (key === "type" || key === "localId" || key.startsWith("_")) continue;
+    flattenIfcData(entry, prefix ? `${prefix}.${key}` : key, rows, seen);
+    if (rows.length >= 60) break;
+  }
+  return rows;
+}
+
+async function loadIfcItemDetails(localId, categoryHint = null) {
+  if (!state.fragmentsModel) return null;
+  const item = state.fragmentsModel.getItem(localId);
+  const [attributes, category, guid, data] = await Promise.all([
+    item.getAttributes(),
+    categoryHint ? Promise.resolve(categoryHint) : item.getCategory(),
+    item.getGuid(),
+    state.fragmentsModel.getItemsData([localId], {
+      attributesDefault: true,
+      relations: {
+        ContainedInStructure: { attributes: true, relations: false },
+        HasAssignments: { attributes: true, relations: false },
+        IsDefinedBy: { attributes: true, relations: true },
+        DefinesOccurrence: { attributes: true, relations: true },
+      },
+    }),
+  ]);
+  const attributeObject = attributes?.object || {};
+  const itemData = data[0] || attributeObject;
+  return {
+    localId,
+    category: category || categoryHint || "IFC",
+    guid: guid || readableIfcValue(attributeObject.GlobalId),
+    name: readableIfcValue(attributeObject.Name) || readableIfcValue(itemData.Name) || `${category || categoryHint || "IFC"} #${localId}`,
+    data: itemData,
+  };
+}
+
+async function scanIfcEquipment(model) {
+  const categories = await model.getItemsOfCategories(
+    EQUIPMENT_GROUPS.map((group) => new RegExp(`^${group.category}$`)),
+  );
+  const records = [];
+  for (const group of EQUIPMENT_GROUPS) {
+    for (const localId of categories[group.category] || []) {
+      records.push({ localId, group });
+    }
+  }
+
+  const devices = await Promise.all(records.map(async ({ localId, group }) => {
+    const item = model.getItem(localId);
+    const [attributes, guid] = await Promise.all([item.getAttributes(), item.getGuid()]);
+    const attributeObject = attributes?.object || {};
+    const name = readableIfcValue(attributeObject.Name)
+      || readableIfcValue(attributeObject.ObjectType)
+      || `${localizedGroupLabel(group)} #${localId}`;
+    return {
+      id: guid || `${group.category}-${localId}`,
+      name: { zh: name, "zh-Hant": name, en: name },
+      subtitle: {
+        zh: `${group.label.zh} · IFC 自动扫描 · 模拟遥测`,
+        "zh-Hant": `${group.label["zh-Hant"]} · IFC 自動掃描 · 模擬遙測`,
+        en: `${group.label.en} · IFC auto-scan · Simulated telemetry`,
+      },
+      category: group.category,
+      groupKey: group.key,
+      binding: { kind: "object", globalId: guid, localId },
+      metrics: metricsForCategory(group.category, localId),
+      ifc: { localId, category: group.category, guid, name, data: attributeObject },
+    };
+  }));
+
+  return devices.sort((a, b) => {
+    const categoryOrder = EQUIPMENT_GROUPS.findIndex((group) => group.category === a.category)
+      - EQUIPMENT_GROUPS.findIndex((group) => group.category === b.category);
+    return categoryOrder || deviceText(a, "name").localeCompare(deviceText(b, "name"), activeLocale());
+  });
+}
+
 function showLoading(model, percent = 0, meta = t("readingModel")) {
   elements.error.classList.add("hidden");
   elements.loading.classList.remove("hidden");
@@ -376,6 +503,8 @@ async function clearCurrentModel() {
     state.model = null;
   }
   state.fragmentsModel = null;
+  state.selectedItem = null;
+  state.selectedDeviceId = null;
   helpersGroup.clear();
   state.boundObjects.clear();
   state.markerObjects.clear();
@@ -419,6 +548,7 @@ function animateCamera(destination, target) {
 
 async function findBindingObject(device) {
   if (!state.model || device.binding.kind !== "object") return null;
+  if (Number.isInteger(device.binding.localId)) return device.binding.localId;
   if (!device.binding.globalId || !state.fragmentsModel) return null;
   const [localId] = await state.fragmentsModel.getLocalIdsByGuids([device.binding.globalId]);
   return localId ?? null;
@@ -458,7 +588,7 @@ async function bindDevices() {
     if (target === null) continue;
     state.boundObjects.set(device.id, target);
   }
-  updateAllVisualStates();
+  await updateAllVisualStates();
 }
 
 async function styleBoundObject(deviceId) {
@@ -469,7 +599,6 @@ async function styleBoundObject(deviceId) {
   const statusColor = new THREE.Color(STATUS[status].color);
 
   if (!state.fragmentsModel) return;
-  await state.fragmentsModel.resetHighlight([target]);
   if (selected || status !== "normal") {
     await state.fragmentsModel.highlight([target], {
       color: status === "normal" ? new THREE.Color(0x2f7df4) : statusColor,
@@ -480,9 +609,15 @@ async function styleBoundObject(deviceId) {
   }
 }
 
-function updateAllVisualStates() {
+async function updateAllVisualStates() {
+  if (state.fragmentsModel) {
+    const localIds = [...state.boundObjects.values()];
+    if (localIds.length) await state.fragmentsModel.resetHighlight(localIds);
+  }
   for (const device of DEVICES) {
-    styleBoundObject(device.id).catch((error) => console.error("Failed to style BIM component", error));
+    if (state.selectedDeviceId === device.id || statusFor(device.id) !== "normal") {
+      await styleBoundObject(device.id);
+    }
     const marker = state.markerObjects.get(device.id);
     if (marker) {
       marker.element.className = `dt-model-marker ${statusFor(device.id)}${state.selectedDeviceId === device.id ? " selected" : ""}`;
@@ -513,9 +648,41 @@ async function focusDevice(device) {
   animateCamera(destination, center);
 }
 
+function normalizedSearchText(value) {
+  return String(value || "").normalize("NFKD").toLocaleLowerCase(activeLocale()).trim();
+}
+
+function visibleDevices() {
+  const categoryDevices = state.equipmentFilter === "allEquipment"
+    ? DEVICES
+    : DEVICES.filter((device) => device.groupKey === state.equipmentFilter);
+  const queryText = normalizedSearchText(state.equipmentQuery);
+  if (!queryText) return categoryDevices;
+  return categoryDevices.filter((device) => {
+    const searchable = [
+      deviceText(device, "name"),
+      deviceText(device, "subtitle"),
+      device.id,
+      device.category,
+      device.binding.globalId,
+      device.binding.localId,
+    ].map(normalizedSearchText).join(" ");
+    return searchable.includes(queryText);
+  });
+}
+
 function renderDeviceList() {
   elements.deviceList.innerHTML = "";
-  for (const device of DEVICES) {
+  const matchedDevices = visibleDevices();
+  elements.equipmentSearchCount.textContent = `${matchedDevices.length}/${DEVICES.length}`;
+  if (!matchedDevices.length) {
+    const empty = document.createElement("p");
+    empty.className = "dt-device-empty";
+    empty.textContent = t("noSearchResults");
+    elements.deviceList.appendChild(empty);
+    return;
+  }
+  for (const device of matchedDevices) {
     const snapshot = state.snapshots.get(device.id);
     const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
     const status = bound ? snapshot.status : "unavailable";
@@ -532,6 +699,60 @@ function renderDeviceList() {
     `;
     button.addEventListener("click", () => selectDevice(device.id, true));
     elements.deviceList.appendChild(button);
+  }
+}
+
+function renderEquipmentFilters() {
+  const filters = [
+    { key: "allEquipment", count: DEVICES.length },
+    ...["fans", "coils", "dampers", "airTerminals"].map((key) => ({
+      key,
+      count: DEVICES.filter((device) => device.groupKey === key).length,
+    })),
+  ];
+  elements.equipmentFilters.innerHTML = "";
+  for (const filter of filters) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = state.equipmentFilter === filter.key ? "active" : "";
+    button.textContent = `${t(filter.key)} ${filter.count}`;
+    button.addEventListener("click", () => {
+      state.equipmentFilter = filter.key;
+      renderEquipmentFilters();
+      renderDeviceList();
+    });
+    elements.equipmentFilters.appendChild(button);
+  }
+}
+
+function renderIfcProperties(item) {
+  elements.ifcPropertyList.innerHTML = "";
+  if (!item) {
+    elements.ifcPropertyCount.textContent = "0";
+    return;
+  }
+  const rows = [
+    { label: t("ifcCategory"), value: item.category },
+    { label: t("globalId"), value: item.guid || "—" },
+    { label: t("expressId"), value: String(item.localId) },
+  ];
+  const seen = new Set(rows.map((row) => `${row.label}:${row.value}`));
+  for (const row of flattenIfcData(item.data)) {
+    const label = row.label.split(".").slice(-2).join(" · ");
+    const signature = `${label}:${row.value}`;
+    if (!row.value || seen.has(signature) || rows.length >= 36) continue;
+    seen.add(signature);
+    rows.push({ label, value: row.value });
+  }
+  elements.ifcPropertyCount.textContent = String(rows.length);
+  for (const row of rows) {
+    const wrapper = document.createElement("div");
+    const term = document.createElement("dt");
+    const description = document.createElement("dd");
+    term.textContent = row.label;
+    description.textContent = row.value;
+    wrapper.append(term, description);
+    elements.ifcPropertyList.appendChild(wrapper);
   }
 }
 
@@ -553,7 +774,21 @@ function sparklinePath(values) {
 }
 
 function renderSelectedDevice() {
-  const device = DEVICES.find((item) => item.id === state.selectedDeviceId) || DEVICES[0];
+  const device = DEVICES.find((item) => item.id === state.selectedDeviceId);
+  if (!device) {
+    const item = state.selectedItem;
+    elements.bindingLabel.textContent = t("staticBimItem");
+    elements.deviceName.textContent = item?.name || t("noProperties");
+    elements.deviceId.textContent = item?.guid || (item ? `${t("expressId")} ${item.localId}` : "—");
+    elements.statusBadge.textContent = "IFC";
+    elements.statusBadge.className = "dt-status-badge normal";
+    elements.metricGrid.hidden = true;
+    elements.trendCard.hidden = true;
+    elements.updateRow.hidden = true;
+    elements.faultToggle.hidden = true;
+    renderIfcProperties(item);
+    return;
+  }
   const snapshot = state.snapshots.get(device.id);
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
   const displayStatus = bound ? snapshot.status : "unavailable";
@@ -563,6 +798,11 @@ function renderSelectedDevice() {
   elements.deviceId.textContent = device.id;
   elements.statusBadge.textContent = t(displayStatus);
   elements.statusBadge.className = `dt-status-badge ${displayStatus}`;
+  elements.metricGrid.hidden = false;
+  elements.trendCard.hidden = false;
+  elements.updateRow.hidden = false;
+  elements.faultToggle.hidden = false;
+  renderIfcProperties(state.selectedItem || device.ifc);
 
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
     <div class="dt-metric">
@@ -585,9 +825,10 @@ function renderSelectedDevice() {
 }
 
 function renderUI() {
+  renderEquipmentFilters();
   renderDeviceList();
   renderSelectedDevice();
-  updateAllVisualStates();
+  updateAllVisualStates().catch((error) => console.error("Failed to style BIM components", error));
 }
 
 function applyLanguage(lang) {
@@ -602,6 +843,9 @@ function applyLanguage(lang) {
   });
   document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
     element.setAttribute("aria-label", t(element.dataset.i18nAria));
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+    element.setAttribute("placeholder", t(element.dataset.i18nPlaceholder));
   });
   elements.viewerCard.setAttribute("aria-label", t("viewerAria"));
   elements.overviewLink.href = `overview.html?lang=${activeLang}`;
@@ -621,12 +865,52 @@ function setDevicePanelOpen(open) {
   else elements.devicePanelButton.focus({ preventScroll: true });
 }
 
-function selectDevice(deviceId, focus = false) {
+async function selectDevice(deviceId, focus = false) {
+  const device = DEVICES.find((item) => item.id === deviceId);
+  if (!device) return;
   state.selectedDeviceId = deviceId;
+  state.selectedItem = device.ifc;
   renderUI();
   if (focus) {
-    const device = DEVICES.find((item) => item.id === deviceId);
-    if (device) focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
+    focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
+  }
+  try {
+    const details = await loadIfcItemDetails(device.binding.localId, device.category);
+    if (state.selectedDeviceId === deviceId && details) {
+      state.selectedItem = details;
+      renderSelectedDevice();
+    }
+  } catch (error) {
+    console.error("Failed to load IFC properties", error);
+  }
+}
+
+async function selectIfcItem(localId) {
+  state.selectedDeviceId = null;
+  state.selectedItem = {
+    localId,
+    category: "IFC",
+    guid: null,
+    name: `IFC #${localId}`,
+    data: {},
+  };
+  setDevicePanelOpen(true);
+  renderUI();
+  try {
+    const details = await loadIfcItemDetails(localId);
+    if (!state.selectedDeviceId && state.selectedItem?.localId === localId && details) {
+      state.selectedItem = details;
+      renderSelectedDevice();
+      await state.fragmentsModel.resetHighlight();
+      await state.fragmentsModel.highlight([localId], {
+        color: new THREE.Color(0x2f7df4),
+        opacity: 0.72,
+        transparent: true,
+        renderedFaces: renderedFaces.TWO,
+      });
+    }
+  } catch (error) {
+    console.error("Failed to inspect IFC component", error);
   }
 }
 
@@ -705,10 +989,17 @@ async function loadFragmentsModel(model, requestId) {
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   const componentCount = (await fragmentsModel.getGuids()).length;
+  showLoading(model, 94, t("scannedEquipment"));
+  DEVICES = await scanIfcEquipment(fragmentsModel);
+  initializeDeviceSnapshots();
+  state.selectedDeviceId = DEVICES[0]?.id || null;
+  state.selectedItem = DEVICES[0]?.ifc || null;
+  elements.deviceCount.textContent = String(DEVICES.length);
   addGrid();
   fitCameraToModel(false);
   await fragments.update(true);
   await bindDevices();
+  if (DEVICES[0]) await selectDevice(DEVICES[0].id);
   elements.meshCount.textContent = componentCount.toLocaleString(activeLocale());
   elements.loadingProgress.style.width = "100%";
   elements.loadingMeta.textContent = t("modelReady", { count: componentCount.toLocaleString(activeLocale()) });
@@ -719,7 +1010,6 @@ async function loadFragmentsModel(model, requestId) {
 async function loadModel() {
   const model = MODEL;
   const requestId = ++state.loadRequest;
-  state.selectedDeviceId = DEVICES[0].id;
   await clearCurrentModel();
   showLoading(model);
   elements.modelName.textContent = model.name;
@@ -755,7 +1045,12 @@ async function handleCanvasSelection(event) {
     return;
   }
   const device = DEVICES.find((item) => state.boundObjects.get(item.id) === result.localId);
-  if (device) selectDevice(device.id, true);
+  if (device) {
+    selectDevice(device.id, true);
+    setDevicePanelOpen(true);
+  } else {
+    selectIfcItem(result.localId);
+  }
 }
 
 function resizeRenderer() {
@@ -782,12 +1077,17 @@ window.addEventListener("storage", (event) => {
 });
 elements.devicePanelButton.addEventListener("click", () => setDevicePanelOpen(true));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
+elements.equipmentSearch.addEventListener("input", () => {
+  state.equipmentQuery = elements.equipmentSearch.value;
+  renderDeviceList();
+});
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
 });
 elements.resetViewButton.addEventListener("click", () => fitCameraToModel(true));
 elements.faultToggle.addEventListener("click", () => {
   const snapshot = state.snapshots.get(state.selectedDeviceId);
+  if (!snapshot) return;
   setFault(state.selectedDeviceId, snapshot.status !== "fault");
 });
 elements.calibrateButton.addEventListener("click", () => {

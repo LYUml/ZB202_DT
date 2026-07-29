@@ -120,28 +120,52 @@
             <h2 data-i18n="deviceStatus">设备状态</h2>
           </div>
           <div class="dt-panel-header-actions">
-            <span class="dt-count" id="device-count">2</span>
+            <span class="dt-count" id="device-count">0</span>
             <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭设备面板" data-i18n-aria="closeDevicePanel">
               <i class="ph ph-x" aria-hidden="true"></i>
             </button>
           </div>
         </section>
 
-        <section class="dt-device-list" id="device-list" aria-label="测试设备列表" data-i18n-aria="deviceListAria"></section>
+        <div class="dt-equipment-search">
+          <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+          <input
+            id="equipment-search"
+            type="search"
+            autocomplete="off"
+            placeholder="搜索名称、类型或 ID"
+            aria-label="搜索 IFC 设备"
+            data-i18n-placeholder="searchEquipmentPlaceholder"
+            data-i18n-aria="searchEquipmentAria"
+          />
+          <span id="equipment-search-count" aria-live="polite"></span>
+        </div>
+
+        <nav class="dt-equipment-filters" id="equipment-filters" aria-label="IFC 设备分类"></nav>
+
+        <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
 
         <section class="dt-detail" id="device-detail">
           <div class="dt-detail-heading">
             <div>
               <p class="dt-binding-label" id="binding-label">BIM 构件绑定</p>
-              <h2 id="device-name">风机盘管 FCU-01</h2>
-              <p id="device-id">FCU-738100</p>
+              <h2 id="device-name">IFC BIM</h2>
+              <p id="device-id">—</p>
             </div>
             <span class="dt-status-badge normal" id="status-badge">正常</span>
           </div>
 
+          <section class="dt-ifc-properties" id="ifc-properties">
+            <div class="dt-ifc-properties-heading">
+              <h3 data-i18n="ifcProperties">IFC 属性</h3>
+              <span id="ifc-property-count">0</span>
+            </div>
+            <dl id="ifc-property-list"></dl>
+          </section>
+
           <div class="dt-metrics" id="metric-grid"></div>
 
-          <div class="dt-trend-card">
+          <div class="dt-trend-card" id="trend-card">
             <div class="dt-trend-heading">
               <div>
                 <span id="trend-label">送风温度</span>
@@ -161,7 +185,7 @@
             </svg>
           </div>
 
-          <div class="dt-update-row">
+          <div class="dt-update-row" id="update-row">
             <span data-i18n="lastUpdated">最后更新</span>
             <time id="updated-at">—</time>
           </div>

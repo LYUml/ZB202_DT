@@ -437,6 +437,7 @@ body[data-page="twin"] *::after {
   color: var(--dt-text);
   background: var(--dt-panel);
   box-shadow: var(--dt-shadow);
+  overflow: hidden;
 }
 
 .dt-side-section {
@@ -463,10 +464,91 @@ body[data-page="twin"] *::after {
   font-size: 1rem;
 }
 
+.dt-equipment-search {
+  position: relative;
+  margin: 9px 21px 0 12px;
+  flex: 0 0 auto;
+}
+
+.dt-equipment-search > i {
+  position: absolute;
+  top: 50%;
+  left: 10px;
+  z-index: 1;
+  color: var(--dt-text-muted);
+  font-size: 0.82rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dt-equipment-search input {
+  width: 100%;
+  height: 32px;
+  padding: 0 47px 0 30px;
+  border: 1px solid var(--dt-border);
+  border-radius: 8px;
+  outline: 0;
+  color: var(--dt-text);
+  background: var(--dt-panel-raised);
+  font: inherit;
+  font-size: 0.68rem;
+}
+
+.dt-equipment-search input::placeholder {
+  color: var(--dt-text-muted);
+}
+
+.dt-equipment-search input:focus {
+  border-color: var(--dt-accent-border);
+  box-shadow: 0 0 0 2px var(--dt-accent-soft);
+}
+
+.dt-equipment-search span {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  color: var(--dt-text-muted);
+  font-size: 0.6rem;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.dt-equipment-filters {
+  padding: 9px 12px 3px;
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.dt-equipment-filters button {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--dt-border);
+  border-radius: 999px;
+  color: var(--dt-text-muted);
+  background: var(--dt-panel-raised);
+  font: inherit;
+  font-size: 0.62rem;
+  cursor: pointer;
+}
+
+.dt-equipment-filters button.active {
+  border-color: var(--dt-accent-border);
+  color: var(--dt-accent);
+  background: var(--dt-accent-soft);
+}
+
 .dt-device-list {
+  flex: 1 1 30%;
+  min-height: 110px;
+  max-height: 34%;
   padding: 11px 12px 13px;
   gap: 7px;
   border-bottom-color: var(--dt-border);
+  overflow-y: auto;
+  scrollbar-color: var(--dt-border-strong) transparent;
+  scrollbar-width: thin;
 }
 
 .dt-device-item {
@@ -485,6 +567,14 @@ body[data-page="twin"] *::after {
   border-color: var(--dt-accent-border);
   background: var(--dt-accent-soft);
   box-shadow: inset 3px 0 var(--dt-accent);
+}
+
+.dt-device-empty {
+  margin: auto;
+  padding: 18px 10px;
+  color: var(--dt-text-muted);
+  font-size: 0.68rem;
+  text-align: center;
 }
 
 .dt-device-status {
@@ -509,10 +599,14 @@ body[data-page="twin"] *::after {
 }
 
 .dt-detail {
-  flex: 1 1 auto;
+  flex: 2 1 62%;
   min-height: 0;
   padding: 17px 16px 16px;
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  scrollbar-color: var(--dt-border-strong) transparent;
+  scrollbar-width: thin;
 }
 
 .dt-status-badge {
@@ -533,7 +627,103 @@ body[data-page="twin"] *::after {
   background: color-mix(in srgb, var(--dt-warning) 10%, var(--dt-panel));
 }
 
+.dt-ifc-properties {
+  flex: 1 1 170px;
+  min-height: 118px;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--dt-border);
+  border-radius: 9px;
+  background: var(--dt-panel-raised);
+}
+
+.dt-ifc-properties-heading {
+  padding: 9px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--dt-border);
+}
+
+.dt-ifc-properties-heading h3 {
+  margin: 0;
+  color: var(--dt-text);
+  font-size: 0.72rem;
+  font-weight: 650;
+}
+
+.dt-ifc-properties-heading span {
+  color: var(--dt-text-muted);
+  font-size: 0.62rem;
+}
+
+.dt-ifc-properties dl {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  overflow-y: auto;
+  scrollbar-color: var(--dt-border-strong) transparent;
+  scrollbar-width: thin;
+}
+
+.dt-device-list::-webkit-scrollbar,
+.dt-detail::-webkit-scrollbar,
+.dt-ifc-properties dl::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dt-device-list::-webkit-scrollbar-track,
+.dt-detail::-webkit-scrollbar-track,
+.dt-ifc-properties dl::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dt-device-list::-webkit-scrollbar-thumb,
+.dt-detail::-webkit-scrollbar-thumb,
+.dt-ifc-properties dl::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--dt-border-strong);
+}
+
+.dt-device-list::-webkit-scrollbar-thumb:hover,
+.dt-detail::-webkit-scrollbar-thumb:hover,
+.dt-ifc-properties dl::-webkit-scrollbar-thumb:hover {
+  background: var(--dt-text-muted);
+}
+
+.dt-ifc-properties dl > div {
+  padding: 7px 10px;
+  display: grid;
+  grid-template-columns: minmax(90px, 0.8fr) minmax(0, 1.2fr);
+  gap: 10px;
+  border-bottom: 1px solid var(--dt-border);
+}
+
+.dt-ifc-properties dl > div:last-child {
+  border-bottom: 0;
+}
+
+.dt-ifc-properties dt,
+.dt-ifc-properties dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+.dt-ifc-properties dt {
+  color: var(--dt-text-muted);
+}
+
+.dt-ifc-properties dd {
+  color: var(--dt-text-soft);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
 .dt-metrics {
+  flex: 0 0 auto;
   margin-top: 15px;
   gap: 7px;
 }
@@ -550,6 +740,7 @@ body[data-page="twin"] *::after {
 }
 
 .dt-trend-card {
+  flex: 0 0 auto;
   margin-top: 10px;
 }
 
@@ -598,6 +789,55 @@ body[data-page="twin"] *::after {
   border-top-color: var(--dt-border);
   color: var(--dt-text-muted);
   background: var(--dt-panel-raised);
+}
+
+@media (max-height: 760px) {
+  .dt-side-section {
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .dt-equipment-filters {
+    padding-top: 6px;
+  }
+
+  .dt-equipment-search {
+    margin-top: 6px;
+  }
+
+  .dt-equipment-search input {
+    height: 29px;
+  }
+
+  .dt-device-list {
+    flex-basis: 25%;
+    min-height: 92px;
+    max-height: 28%;
+  }
+
+  .dt-detail {
+    flex-basis: 67%;
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .dt-ifc-properties {
+    flex-basis: 125px;
+    min-height: 96px;
+  }
+
+  .dt-ifc-properties dl > div {
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .dt-metrics {
+    margin-top: 9px;
+  }
+
+  .dt-trend-card {
+    margin-top: 7px;
+  }
 }
 
 .dt-app button:focus-visible,
