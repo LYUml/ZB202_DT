@@ -25,7 +25,7 @@
 - Fonts and typography: blocked pending browser capture.
 - Spacing and layout rhythm: blocked pending browser capture.
 - Colors and visual tokens: source palettes reviewed; implementation comparison blocked pending browser capture.
-- Image and asset fidelity: existing FBX model retained and Phosphor icon font bundled; rendered comparison blocked.
+- Image and asset fidelity: the room-view model has since been replaced by IFC/Fragments; the Phosphor icon font remains bundled.
 - Copy and content: source strings and bilingual bindings are present in the implementation; visual wrapping and truncation remain blocked.
 
 ## Interaction Checks

@@ -23,6 +23,10 @@ html[data-theme="dark"] body:not([data-page="twin"]) {
     linear-gradient(180deg, #07090c 0%, #0b0e12 48%, #080a0d 100%);
 }
 
+html[data-theme="dark"] body[data-page="overview"] {
+  background: #080a0d;
+}
+
 html[data-theme="dark"] .bg-orb-a {
   background: #27313d;
   opacity: 0.2;

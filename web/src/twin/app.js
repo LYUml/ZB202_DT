@@ -1,11 +1,10 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
-import modelUrl from "../../../models/fbx/ZN1001v2.fbx?url";
 
 const THEME_STORAGE_KEY = "zb202-theme";
+const query = new URLSearchParams(window.location.search);
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 
@@ -43,15 +42,16 @@ const THEME_PRESETS = {
 };
 
 const MODEL = {
-  name: "ZN1001v2.fbx",
-  url: modelUrl,
-  label: "ZN1001",
+  name: "DigitalHub_FM-LFT_v2.frag",
+  url: "./models/fragments/DigitalHub_FM-LFT_v2.frag",
+  label: "DigitalHub HVAC",
+  format: "fragments",
 };
 
 const I18N = {
   zh: {
     backAria: "返回设备总览", title: "ZB202 空间设备监控", connectionAria: "数据连接状态",
-    mockRunning: "模拟数据运行中", viewerAria: "FBX 三维模型", model: "模型",
+    mockRunning: "模拟数据运行中", viewerAria: "IFC / Fragments 三维模型", model: "模型",
     calibrate: "校准点位", calibrateTitle: "在模型表面拾取世界坐标", resetView: "重置视角", resetTitle: "重置模型视角",
     preparingScene: "正在准备三维场景", initializingRenderer: "初始化渲染器…", loadFailed: "模型加载失败",
     loadRetryHint: "请检查模型文件后重试。", reload: "重新加载", rotateHint: "左键旋转", panHint: "右键平移",
@@ -62,13 +62,12 @@ const I18N = {
     noBinding: "当前模型无绑定", objectBinding: "BIM 构件绑定", markerBinding: "空间坐标绑定",
     restoreNormal: "恢复设备正常", simulateFault: "模拟设备故障", readingModel: "读取模型文件…",
     loadingModel: "正在加载 {model}", modelReady: "{count} 个构件 · 模型准备完成",
-    loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 fbx 文件夹中存在该文件。",
-    fcuName: "风机盘管 FCU-01", fcuSubtitle: "BIM 构件", sensorName: "环境传感器 AM103", sensorSubtitle: "空间点位",
+    loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 Fragments 模型文件存在。",
     supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
   },
   "zh-Hant": {
     backAria: "返回設備總覽", title: "ZB202 空間設備監控", connectionAria: "資料連線狀態",
-    mockRunning: "模擬資料運行中", viewerAria: "FBX 三維模型", model: "模型",
+    mockRunning: "模擬資料運行中", viewerAria: "IFC / Fragments 三維模型", model: "模型",
     calibrate: "校準點位", calibrateTitle: "在模型表面擷取世界座標", resetView: "重設視角", resetTitle: "重設模型視角",
     preparingScene: "正在準備三維場景", initializingRenderer: "初始化渲染器…", loadFailed: "模型載入失敗",
     loadRetryHint: "請檢查模型檔案後重試。", reload: "重新載入", rotateHint: "左鍵旋轉", panHint: "右鍵平移",
@@ -79,13 +78,12 @@ const I18N = {
     noBinding: "目前模型未綁定", objectBinding: "BIM 構件綁定", markerBinding: "空間座標綁定",
     restoreNormal: "恢復設備正常", simulateFault: "模擬設備故障", readingModel: "讀取模型檔案…",
     loadingModel: "正在載入 {model}", modelReady: "{count} 個構件 · 模型準備完成",
-    loadError: "無法讀取 {model}。請透過 npm run dev 啟動專案，並確認 fbx 資料夾中存在此檔案。",
-    fcuName: "風機盤管 FCU-01", fcuSubtitle: "BIM 構件", sensorName: "環境感測器 AM103", sensorSubtitle: "空間點位",
+    loadError: "無法讀取 {model}。請透過 npm run dev 啟動專案，並確認 Fragments 模型檔案存在。",
     supplyTemperature: "送風溫度", fanPower: "風機功率", airflow: "送風量", temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
   },
   en: {
     backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
-    mockRunning: "Mock data running", viewerAria: "FBX 3D model", model: "Model",
+    mockRunning: "Mock data running", viewerAria: "IFC / Fragments 3D model", model: "Model",
     calibrate: "Calibrate Point", calibrateTitle: "Pick world coordinates on the model surface", resetView: "Reset View", resetTitle: "Reset model view",
     preparingScene: "Preparing 3D scene", initializingRenderer: "Initializing renderer…", loadFailed: "Model loading failed",
     loadRetryHint: "Check the model file and try again.", reload: "Reload", rotateHint: "Left-drag to rotate", panHint: "Right-drag to pan",
@@ -96,13 +94,11 @@ const I18N = {
     noBinding: "Not bound in this model", objectBinding: "BIM Component Binding", markerBinding: "Spatial Coordinate Binding",
     restoreNormal: "Restore Normal Status", simulateFault: "Simulate Device Fault", readingModel: "Reading model file…",
     loadingModel: "Loading {model}", modelReady: "{count} components · Model ready",
-    loadError: "Unable to load {model}. Start the project with npm run dev and confirm the file exists in the fbx folder.",
-    fcuName: "Fan Coil Unit FCU-01", fcuSubtitle: "BIM Component", sensorName: "Environmental Sensor AM103", sensorSubtitle: "Spatial Point",
+    loadError: "Unable to load {model}. Start the project with npm run dev and confirm the Fragments model file exists.",
     supplyTemperature: "Supply Air Temperature", fanPower: "Fan Power", airflow: "Airflow", temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
   },
 };
 
-const query = new URLSearchParams(window.location.search);
 let activeLang = normalizeLanguage(query.get("lang") || localStorage.getItem("lang") || "zh");
 
 function normalizeLanguage(lang) {
@@ -165,34 +161,60 @@ const STATUS = {
   unavailable: { color: 0x8b94a6 },
 };
 
-const DEVICES = [
+const IFC_DEVICES = [
   {
-    id: "FCU-738100",
-    nameKey: "fcuName",
-    subtitleKey: "fcuSubtitle",
-    binding: {
-      kind: "object",
-      exactToken: "[738100]",
-      fallbackTerms: ["带回风箱的风机盘管机组", "风机盘管"],
-    },
+    id: "IFC-FAN-7601047",
+    name: { zh: "送风机", "zh-Hant": "送風機", en: "Supply Air Fan" },
+    subtitle: { zh: "IFC 风机 · 模拟遥测", "zh-Hant": "IFC 風機 · 模擬遙測", en: "IFC Fan · Simulated telemetry" },
+    binding: { kind: "object", globalId: "03Vo9IXXn9pPeCD9ZrAaif" },
     metrics: [
-      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 18.4, variance: 0.22 },
       { key: "fanPower", labelKey: "fanPower", unit: "W", value: 328, variance: 5.5 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 18.4, variance: 0.22 },
+    ],
+  },
+  {
+    id: "IFC-FAN-7636194",
+    name: { zh: "离心排风机", "zh-Hant": "離心排風機", en: "Centrifugal Extract Fan" },
+    subtitle: { zh: "IFC 风机 · 模拟遥测", "zh-Hant": "IFC 風機 · 模擬遙測", en: "IFC Fan · Simulated telemetry" },
+    binding: { kind: "object", globalId: "1nSyvCoUP9XfITB7TrLCuo" },
+    metrics: [
+      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 412, variance: 6.5 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 208, variance: 2.8 },
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 19.2, variance: 0.2 },
+    ],
+  },
+  {
+    id: "IFC-COIL-7271705",
+    name: { zh: "热水加热盘管", "zh-Hant": "熱水加熱盤管", en: "Water Heating Coil" },
+    subtitle: { zh: "IFC 盘管 · 模拟遥测", "zh-Hant": "IFC 盤管 · 模擬遙測", en: "IFC Coil · Simulated telemetry" },
+    binding: { kind: "object", globalId: "2jfPwJ7fP3WfBkHCTOoj1S" },
+    metrics: [
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 31.5, variance: 0.3 },
+      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 0, variance: 0 },
       { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
     ],
   },
   {
-    id: "AM103-DEMO",
-    nameKey: "sensorName",
-    subtitleKey: "sensorSubtitle",
-    binding: { kind: "marker", normalizedPosition: [0.58, 0.52, 0.56] },
+    id: "IFC-COIL-7271857",
+    name: { zh: "冷水冷却盘管", "zh-Hant": "冷水冷卻盤管", en: "Water Cooling Coil" },
+    subtitle: { zh: "IFC 盘管 · 模拟遥测", "zh-Hant": "IFC 盤管 · 模擬遙測", en: "IFC Coil · Simulated telemetry" },
+    binding: { kind: "object", globalId: "2jfPwJ7fP3WfBkHCTOoj3q" },
     metrics: [
-      { key: "temperature", labelKey: "temperature", unit: "°C", value: 24.6, variance: 0.14 },
-      { key: "humidity", labelKey: "humidity", unit: "%", value: 61, variance: 0.45 },
-      { key: "co2", labelKey: "co2", unit: "ppm", value: 760, variance: 8 },
+      { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 14.2, variance: 0.18 },
+      { key: "fanPower", labelKey: "fanPower", unit: "W", value: 0, variance: 0 },
+      { key: "airflow", labelKey: "airflow", unit: "L/s", value: 186, variance: 2.2 },
     ],
   },
 ];
+
+const DEVICES = IFC_DEVICES;
+
+function deviceText(device, field) {
+  const localized = device[field];
+  if (localized) return localized[activeLang] || localized.zh || localized.en;
+  return t(device[`${field}Key`]);
+}
 
 const elements = {
   overviewLink: document.getElementById("overview-link"),
@@ -214,7 +236,11 @@ const elements = {
   coordinateValue: document.getElementById("coordinate-value"),
   copyCoordinateButton: document.getElementById("copy-coordinate-btn"),
   modelName: document.getElementById("model-name"),
+  modelLabel: document.querySelector(".dt-model-name"),
   meshCount: document.getElementById("mesh-count"),
+  deviceCount: document.getElementById("device-count"),
+  viewerCard: document.querySelector(".dt-viewer-card"),
+  technologyLabel: document.querySelector(".dt-side-footer span"),
   deviceList: document.getElementById("device-list"),
   bindingLabel: document.getElementById("binding-label"),
   deviceName: document.getElementById("device-name"),
@@ -231,6 +257,11 @@ const elements = {
   clock: document.getElementById("dt-clock"),
 };
 
+elements.modelLabel.textContent = MODEL.label;
+elements.deviceCount.textContent = String(DEVICES.length);
+elements.viewerCard.setAttribute("aria-label", "IFC / Fragments 三维模型");
+elements.technologyLabel.textContent = "WebGL / Three.js / IFC / Fragments";
+
 const state = {
   model: null,
   modelBox: new THREE.Box3(),
@@ -239,10 +270,10 @@ const state = {
   selectedDeviceId: DEVICES[0].id,
   calibrating: false,
   boundObjects: new Map(),
-  meshDeviceIds: new WeakMap(),
   markerObjects: new Map(),
   snapshots: new Map(),
   loadRequest: 0,
+  fragmentsModel: null,
 };
 
 for (const device of DEVICES) {
@@ -292,12 +323,24 @@ const modelGroup = new THREE.Group();
 modelGroup.name = "loaded-model";
 scene.add(modelGroup);
 
+let fragments = null;
+let renderedFaces = null;
+
+async function ensureFragments() {
+  if (fragments) return fragments;
+  const [fragmentModule, workerModule] = await Promise.all([
+    import("@thatopen/fragments"),
+    import("@thatopen/fragments/worker?url"),
+  ]);
+  renderedFaces = fragmentModule.RenderedFaces;
+  fragments = new fragmentModule.FragmentsModels(workerModule.default);
+  return fragments;
+}
+
 const helpersGroup = new THREE.Group();
 helpersGroup.name = "digital-twin-overlays";
 scene.add(helpersGroup);
 
-const raycaster = new THREE.Raycaster();
-const pointer = new THREE.Vector2();
 let pointerDownPosition = null;
 let gridHelper = null;
 
@@ -324,29 +367,17 @@ function showError(message) {
   elements.errorMessage.textContent = message;
 }
 
-function disposeObject(root) {
-  root.traverse((object) => {
-    if (!object.isMesh) return;
-    object.geometry?.dispose();
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    materials.filter(Boolean).forEach((material) => {
-      Object.values(material).forEach((value) => {
-        if (value?.isTexture) value.dispose();
-      });
-      material.dispose();
-    });
-  });
-}
-
-function clearCurrentModel() {
+async function clearCurrentModel() {
   if (state.model) {
     modelGroup.remove(state.model);
-    disposeObject(state.model);
+    if (state.fragmentsModel) {
+      await fragments.disposeModel(state.fragmentsModel.modelId);
+    }
     state.model = null;
   }
+  state.fragmentsModel = null;
   helpersGroup.clear();
   state.boundObjects.clear();
-  state.meshDeviceIds = new WeakMap();
   state.markerObjects.clear();
   if (gridHelper) {
     scene.remove(gridHelper);
@@ -354,42 +385,6 @@ function clearCurrentModel() {
     gridHelper.material.dispose();
     gridHelper = null;
   }
-}
-
-function prepareMaterials(root) {
-  let meshCount = 0;
-  const exportedHelperLines = [];
-  root.traverse((object) => {
-    if ((object.isLine || object.isLineSegments) && !object.isMesh) {
-      exportedHelperLines.push(object);
-      return;
-    }
-    if (!object.isMesh) return;
-    meshCount += 1;
-    object.frustumCulled = true;
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    const clones = materials.map((material) => {
-      const clone = material?.clone() || new THREE.MeshStandardMaterial({ color: 0xcbd3dd });
-      clone.side = THREE.DoubleSide;
-      clone.transparent = Boolean(clone.transparent);
-      if (clone.color && clone.color.r > 0.82 && clone.color.g > 0.82 && clone.color.b > 0.82) {
-        clone.color.set(0xb7c2cf);
-      }
-      clone.userData.baseColor = clone.color?.clone();
-      clone.userData.baseEmissive = clone.emissive?.clone();
-      clone.userData.baseEmissiveIntensity = clone.emissiveIntensity || 0;
-      return clone;
-    });
-    object.material = Array.isArray(object.material) ? clones : clones[0];
-  });
-
-  exportedHelperLines.forEach((line) => {
-    line.parent?.remove(line);
-    line.geometry?.dispose();
-    const materials = Array.isArray(line.material) ? line.material : [line.material];
-    materials.filter(Boolean).forEach((material) => material.dispose());
-  });
-  return meshCount;
 }
 
 function fitCameraToModel(animate = false) {
@@ -422,19 +417,11 @@ function animateCamera(destination, target) {
   controls.update();
 }
 
-function findBindingObject(device) {
+async function findBindingObject(device) {
   if (!state.model || device.binding.kind !== "object") return null;
-  const allObjects = [];
-  state.model.traverse((object) => allObjects.push(object));
-
-  const exact = allObjects.find((object) => object.name?.includes(device.binding.exactToken));
-  if (exact) return exact;
-
-  for (const term of device.binding.fallbackTerms) {
-    const match = allObjects.find((object) => object.name?.includes(term));
-    if (match) return match;
-  }
-  return null;
+  if (!device.binding.globalId || !state.fragmentsModel) return null;
+  const [localId] = await state.fragmentsModel.getLocalIdsByGuids([device.binding.globalId]);
+  return localId ?? null;
 }
 
 function createMarker(device) {
@@ -460,56 +447,42 @@ function createMarker(device) {
   state.markerObjects.set(device.id, { label, element });
 }
 
-function bindDevices() {
+async function bindDevices() {
   for (const device of DEVICES) {
     if (device.binding.kind === "marker") {
       createMarker(device);
       continue;
     }
 
-    const target = findBindingObject(device);
-    if (!target) continue;
+    const target = await findBindingObject(device);
+    if (target === null) continue;
     state.boundObjects.set(device.id, target);
-    target.traverse((object) => {
-      if (object.isMesh) state.meshDeviceIds.set(object, device.id);
-    });
   }
   updateAllVisualStates();
 }
 
-function restoreMaterial(material) {
-  if (material.color && material.userData.baseColor) material.color.copy(material.userData.baseColor);
-  if (material.emissive) {
-    material.emissive.copy(material.userData.baseEmissive || new THREE.Color(0x000000));
-    material.emissiveIntensity = material.userData.baseEmissiveIntensity || 0;
-  }
-  material.opacity = 1;
-}
-
-function styleBoundObject(deviceId) {
+async function styleBoundObject(deviceId) {
   const target = state.boundObjects.get(deviceId);
-  if (!target) return;
+  if (target === undefined) return;
   const selected = state.selectedDeviceId === deviceId;
   const status = statusFor(deviceId);
   const statusColor = new THREE.Color(STATUS[status].color);
 
-  target.traverse((object) => {
-    if (!object.isMesh) return;
-    const materials = Array.isArray(object.material) ? object.material : [object.material];
-    materials.forEach((material) => {
-      restoreMaterial(material);
-      if (material.emissive && (selected || status !== "normal")) {
-        material.emissive.copy(status === "normal" ? new THREE.Color(0x2f7df4) : statusColor);
-        material.emissiveIntensity = status === "fault" ? 0.75 : 0.38;
-      }
-      if (status === "fault" && material.color) material.color.lerp(statusColor, 0.42);
+  if (!state.fragmentsModel) return;
+  await state.fragmentsModel.resetHighlight([target]);
+  if (selected || status !== "normal") {
+    await state.fragmentsModel.highlight([target], {
+      color: status === "normal" ? new THREE.Color(0x2f7df4) : statusColor,
+      opacity: status === "fault" ? 0.88 : 0.72,
+      transparent: true,
+      renderedFaces: renderedFaces.TWO,
     });
-  });
+  }
 }
 
 function updateAllVisualStates() {
   for (const device of DEVICES) {
-    styleBoundObject(device.id);
+    styleBoundObject(device.id).catch((error) => console.error("Failed to style BIM component", error));
     const marker = state.markerObjects.get(device.id);
     if (marker) {
       marker.element.className = `dt-model-marker ${statusFor(device.id)}${state.selectedDeviceId === device.id ? " selected" : ""}`;
@@ -517,12 +490,15 @@ function updateAllVisualStates() {
   }
 }
 
-function focusDevice(device) {
+async function focusDevice(device) {
   let box = null;
   const target = state.boundObjects.get(device.id);
   const marker = state.markerObjects.get(device.id);
 
-  if (target) box = new THREE.Box3().setFromObject(target);
+  if (target !== undefined && state.fragmentsModel) {
+    const boxes = await state.fragmentsModel.getBoxes([target]);
+    if (boxes.length) box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
+  }
   if (marker) {
     const position = marker.label.position.clone();
     box = new THREE.Box3(position.clone(), position.clone());
@@ -549,8 +525,8 @@ function renderDeviceList() {
     button.innerHTML = `
       <span class="dt-device-status"></span>
       <span class="dt-device-copy">
-        <strong>${t(device.nameKey)}</strong>
-        <small>${t(device.subtitleKey)} · ${bound ? t(snapshot.status) : t("noBinding")}</small>
+        <strong>${deviceText(device, "name")}</strong>
+        <small>${deviceText(device, "subtitle")} · ${bound ? t(snapshot.status) : t("noBinding")}</small>
       </span>
       <i class="ph ph-caret-right dt-device-chevron" aria-hidden="true"></i>
     `;
@@ -583,7 +559,7 @@ function renderSelectedDevice() {
   const displayStatus = bound ? snapshot.status : "unavailable";
 
   elements.bindingLabel.textContent = device.binding.kind === "object" ? t("objectBinding") : t("markerBinding");
-  elements.deviceName.textContent = t(device.nameKey);
+  elements.deviceName.textContent = deviceText(device, "name");
   elements.deviceId.textContent = device.id;
   elements.statusBadge.textContent = t(displayStatus);
   elements.statusBadge.className = `dt-status-badge ${displayStatus}`;
@@ -627,6 +603,7 @@ function applyLanguage(lang) {
   document.querySelectorAll("[data-i18n-aria]").forEach((element) => {
     element.setAttribute("aria-label", t(element.dataset.i18nAria));
   });
+  elements.viewerCard.setAttribute("aria-label", t("viewerAria"));
   elements.overviewLink.href = `overview.html?lang=${activeLang}`;
   if (!elements.error.classList.contains("hidden")) {
     elements.errorMessage.textContent = t("loadError", { model: MODEL.name });
@@ -649,7 +626,7 @@ function selectDevice(deviceId, focus = false) {
   renderUI();
   if (focus) {
     const device = DEVICES.find((item) => item.id === deviceId);
-    if (device) focusDevice(device);
+    if (device) focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
   }
 }
 
@@ -699,76 +676,76 @@ function addGrid() {
   scene.add(gridHelper);
 }
 
-function loadModel() {
+async function loadFragmentsModel(model, requestId) {
+  await ensureFragments();
+  const response = await fetch(model.url);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  const buffer = await response.arrayBuffer();
+  if (requestId !== state.loadRequest) return;
+
+  const fragmentsModel = await fragments.load(buffer, {
+    modelId: `${model.label}-${requestId}`,
+    camera,
+    onProgress(event) {
+      if (requestId !== state.loadRequest) return;
+      const percent = Math.round(event.progress * 100);
+      showLoading(model, percent, `${event.stage} · ${percent}%`);
+    },
+  });
+  if (requestId !== state.loadRequest) {
+    await fragments.disposeModel(fragmentsModel.modelId);
+    return;
+  }
+
+  state.fragmentsModel = fragmentsModel;
+  state.model = fragmentsModel.object;
+  modelGroup.add(state.model);
+  fragmentsModel.useCamera(camera);
+  state.modelBox.copy(fragmentsModel.box);
+  state.modelBox.getCenter(state.modelCenter);
+  state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
+  const componentCount = (await fragmentsModel.getGuids()).length;
+  addGrid();
+  fitCameraToModel(false);
+  await fragments.update(true);
+  await bindDevices();
+  elements.meshCount.textContent = componentCount.toLocaleString(activeLocale());
+  elements.loadingProgress.style.width = "100%";
+  elements.loadingMeta.textContent = t("modelReady", { count: componentCount.toLocaleString(activeLocale()) });
+  elements.loading.classList.add("hidden");
+  renderUI();
+}
+
+async function loadModel() {
   const model = MODEL;
   const requestId = ++state.loadRequest;
   state.selectedDeviceId = DEVICES[0].id;
-  clearCurrentModel();
+  await clearCurrentModel();
   showLoading(model);
   elements.modelName.textContent = model.name;
   elements.meshCount.textContent = "0";
 
-  const loader = new FBXLoader();
-  loader.load(
-    model.url,
-    (root) => {
-      if (requestId !== state.loadRequest) {
-        disposeObject(root);
-        return;
-      }
-
-      root.name = model.name;
-      const meshCount = prepareMaterials(root);
-      state.model = root;
-      modelGroup.add(root);
-      state.modelBox.setFromObject(root);
-      state.modelBox.getCenter(state.modelCenter);
-      state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
-      addGrid();
-      fitCameraToModel(false);
-      bindDevices();
-      elements.meshCount.textContent = meshCount.toLocaleString(activeLocale());
-      elements.loadingProgress.style.width = "100%";
-      elements.loadingMeta.textContent = t("modelReady", { count: meshCount.toLocaleString(activeLocale()) });
-      elements.loading.classList.add("hidden");
-      renderUI();
-    },
-    (event) => {
-      if (requestId !== state.loadRequest) return;
-      const percent = event.total ? Math.round((event.loaded / event.total) * 100) : 18;
-      const loadedMb = (event.loaded / 1024 / 1024).toFixed(1);
-      const totalText = event.total ? ` / ${(event.total / 1024 / 1024).toFixed(1)} MB` : " MB";
-      showLoading(model, percent, `${loadedMb}${totalText} · ${percent}%`);
-    },
-    (error) => {
-      if (requestId !== state.loadRequest) return;
-      console.error("FBX loading failed", error);
-      showError(t("loadError", { model: model.name }));
-      renderUI();
-    },
-  );
+  try {
+    await loadFragmentsModel(model, requestId);
+  } catch (error) {
+    if (requestId !== state.loadRequest) return;
+    console.error("Fragments loading failed", error);
+    showError(t("loadError", { model: model.name }));
+    renderUI();
+  }
 }
 
-function setPointerFromEvent(event) {
-  const rect = elements.canvas.getBoundingClientRect();
-  pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-}
-
-function handleCanvasSelection(event) {
+async function handleCanvasSelection(event) {
   if (!state.model) return;
-  setPointerFromEvent(event);
-  raycaster.setFromCamera(pointer, camera);
-  const meshes = [];
-  state.model.traverse((object) => {
-    if (object.isMesh) meshes.push(object);
+  if (!state.fragmentsModel) return;
+  const result = await state.fragmentsModel.raycast({
+    camera,
+    mouse: new THREE.Vector2(event.clientX, event.clientY),
+    dom: elements.canvas,
   });
-  const intersections = raycaster.intersectObjects(meshes, false);
-  if (!intersections.length) return;
-
-  const intersection = intersections[0];
+  if (!result) return;
   if (state.calibrating) {
-    const point = intersection.point;
+    const point = result.point;
     const value = `[${point.x.toFixed(3)}, ${point.y.toFixed(3)}, ${point.z.toFixed(3)}]`;
     elements.coordinateValue.textContent = value;
     elements.coordinateToast.classList.remove("hidden");
@@ -777,16 +754,8 @@ function handleCanvasSelection(event) {
     elements.wrap.classList.remove("is-calibrating");
     return;
   }
-
-  let object = intersection.object;
-  while (object && object !== state.model) {
-    const deviceId = state.meshDeviceIds.get(object);
-    if (deviceId) {
-      selectDevice(deviceId, true);
-      return;
-    }
-    object = object.parent;
-  }
+  const device = DEVICES.find((item) => state.boundObjects.get(item.id) === result.localId);
+  if (device) selectDevice(device.id, true);
 }
 
 function resizeRenderer() {
@@ -839,7 +808,13 @@ elements.canvas.addEventListener("pointerup", (event) => {
   if (!pointerDownPosition) return;
   const distance = Math.hypot(event.clientX - pointerDownPosition.x, event.clientY - pointerDownPosition.y);
   pointerDownPosition = null;
-  if (distance < 5) handleCanvasSelection(event);
+  if (distance < 5) handleCanvasSelection(event).catch((error) => console.error("BIM selection failed", error));
+});
+controls.addEventListener("change", () => {
+  if (state.fragmentsModel) fragments.update();
+});
+window.addEventListener("beforeunload", () => {
+  fragments?.dispose();
 });
 
 const resizeObserver = new ResizeObserver(resizeRenderer);

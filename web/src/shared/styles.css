@@ -38,6 +38,10 @@ body {
   overflow-x: hidden;
 }
 
+body[data-page="overview"] {
+  background: #f5f5f7;
+}
+
 .bg-orb {
   position: fixed;
   pointer-events: none;
@@ -698,7 +702,7 @@ h2 {
   }
 }
 
-/* WebGL + FBX digital twin */
+/* WebGL + IFC / Fragments digital twin */
 .dt-app .hidden {
   display: none !important;
 }
@@ -768,20 +772,6 @@ body[data-page="twin"] {
   border-color: #aab9cc;
   color: #1d65cc;
   transform: translateX(-2px);
-}
-
-.dt-brand-mark {
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  color: #fff;
-  background: linear-gradient(145deg, #377fdc, #205bb2);
-  box-shadow: 0 7px 16px rgba(31, 100, 198, 0.22);
-  font-size: 0.8rem;
-  font-weight: 750;
-  letter-spacing: -0.04em;
 }
 
 .dt-overline {
@@ -1574,7 +1564,6 @@ body[data-page="twin"] {
 
 @media (max-width: 560px) {
   .dt-topbar { padding: 0 12px; }
-  .dt-brand-mark { display: none; }
   .dt-brand h1 { font-size: 0.92rem; }
   .dt-overline { font-size: 0.52rem; }
   .dt-live-status > span:not(.dt-live-dot) { display: none; }

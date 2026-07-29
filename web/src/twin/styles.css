@@ -118,15 +118,6 @@ body[data-page="twin"] *::after {
   transform: none;
 }
 
-.dt-brand-mark {
-  width: 42px;
-  height: 42px;
-  border-radius: 10px;
-  background: #176fd6;
-  box-shadow: 0 8px 20px rgba(23, 111, 214, 0.28);
-  font-size: 0.85rem;
-}
-
 .dt-overline {
   margin-bottom: 2px;
   color: var(--dt-text-muted);
@@ -690,7 +681,6 @@ body[data-page="twin"] *::after {
     gap: 8px;
   }
 
-  .dt-brand-mark,
   .dt-overline,
   .dt-live-status > span:not(.dt-live-dot) {
     display: none;

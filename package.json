@@ -6,11 +6,14 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "bim:convert": "node scripts/ifc-to-fragments.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "@phosphor-icons/web": "^2.1.2",
-    "three": "0.185.1"
+    "@thatopen/fragments": "^3.4.7",
+    "three": "0.185.1",
+    "web-ifc": "^0.0.77"
   },
   "devDependencies": {
     "vite": "8.1.5"
