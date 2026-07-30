@@ -520,7 +520,7 @@ function fitCameraToModel(animate = false) {
   if (!state.model) return;
   const center = state.modelCenter.clone();
   const radius = Math.max(state.modelRadius, 0.1);
-  const direction = new THREE.Vector3(1.05, 0.72, 1.05).normalize();
+  const direction = new THREE.Vector3(-1.05, 0.72, -1.05).normalize();
   const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov * 0.5)) * 0.94;
   const targetPosition = center.clone().add(direction.multiplyScalar(distance));
 
