@@ -2,8 +2,9 @@
 
 Export coordinated BIM models from Revit to this folder as IFC. IFC files are the semantic source of truth and should preserve stable `GlobalId` values between revisions.
 
-The current repository does not yet contain an IFC export. Convert one with:
+The formal federated model consists of `Lab archi.ifc` and `Lab mep.ifc`. Convert both with:
 
 ```powershell
-npm run bim:convert -- .\models\ifc\ZN1001.ifc .\web\public\models\fragments\ZN1001.frag
+npm run bim:convert -- ".\models\ifc\Lab archi.ifc" .\web\public\models\fragments\Lab-archi.frag
+npm run bim:convert -- ".\models\ifc\Lab mep.ifc" .\web\public\models\fragments\Lab-mep.frag
 ```

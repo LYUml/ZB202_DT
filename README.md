@@ -21,7 +21,7 @@ flowchart LR
   BIND --> UI
 ```
 
-- **模型链路**：`models/ifc/` 保存开放 BIM 源文件；`npm run bim:convert` 预转换为 `.frag`，房间视图通过 That Open Fragments 与 Three.js/WebGL 渲染。
+- **模型链路**：`models/ifc/` 保存正式的 Lab Architecture 与 Lab MEP IFC；两者预转换为独立 `.frag` 后在同一房间视图中叠加渲染，并可分别控制可见性。
 - **设备绑定**：BIM 设备使用 IFC `GlobalId` 稳定绑定；未建模传感器可继续使用世界坐标 marker。
 - **数据状态**：设备清单、趋势、告警和故障模拟目前均来自前端 Mock 数据，不代表真实 MQTT 已接通。
 - **页面形态**：`overview.html` 管理设备总览与全局语言/主题；`device.html` 展示单台设备；`twin.html` 展示 3D 房间与设备面板。
@@ -58,7 +58,8 @@ ZB202_DT/
 │   └── zb202_device_backup.xlsx
 ├── models/
 │   ├── ifc/                       # IFC BIM 源模型与来源说明
-│   │   └── DigitalHub_FM-LFT_v2.ifc
+│   │   ├── Lab archi.ifc
+│   │   └── Lab mep.ifc
 │   └── rvt/                       # Revit 母模型
 │       ├── Lab Architecture Model.rvt
 │       └── Lab MEP Model.rvt
@@ -67,6 +68,7 @@ ZB202_DT/
 │   ├── overview.html              # 设备总览
 │   ├── device.html                # 设备详情
 │   ├── twin.html                  # Three.js 房间视图
+│   ├── public/models/fragments/   # 建筑与 MEP 浏览器运行模型
 │   └── src/
 │       ├── dashboard/
 │       │   ├── app.js             # 总览与详情逻辑

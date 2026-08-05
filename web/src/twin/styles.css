@@ -238,6 +238,31 @@ body[data-page="twin"] *::after {
   font-size: 0.75rem;
 }
 
+.dt-layer-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+  border-left: 1px solid var(--dt-border);
+}
+
+.dt-layer-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dt-text-soft);
+  font-size: 0.68rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.dt-layer-controls input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--dt-accent);
+}
+
 .dt-tool-actions {
   gap: 4px;
 }
@@ -962,6 +987,20 @@ body[data-page="twin"] *::after {
   .dt-model-label,
   .dt-icon-btn span {
     display: none;
+  }
+
+  .dt-model-name {
+    display: none;
+  }
+
+  .dt-layer-controls {
+    padding-left: 0;
+    border-left: 0;
+    gap: 7px;
+  }
+
+  .dt-layer-controls label {
+    font-size: 0.62rem;
   }
 
   .dt-model-control {

@@ -43,6 +43,6 @@ The room-view entry loads IFC/Fragments by default and retains the existing HTML
 - Keep the Fragments worker self-hosted in the Vite build.
 - Benchmark first-visible time, peak memory, navigation FPS, selection latency, and property-query latency with the real project model.
 
-## Current limit
+## Current model
 
-The current runtime uses the open-source DigitalHub HVAC IFC model and its generated `.frag` asset. Replace it with the exported ZB202 IFC and update device `GlobalId` bindings when the real project model is available.
+The runtime federates the formal `Lab archi.ifc` and `Lab mep.ifc` exports as independent Architecture and MEP Fragments layers. Both are visible by default and can be toggled independently. Non-MEP `IFCCOVERING` elements exported inside the MEP file are hidden at runtime so its ceiling platform does not duplicate the Architecture layer. Equipment discovery currently uses the MEP layer; production telemetry bindings should use its stable IFC `GlobalId` values.

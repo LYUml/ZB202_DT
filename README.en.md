@@ -21,7 +21,7 @@ flowchart LR
   BIND --> UI
 ```
 
-- **Model path**: `models/ifc/` stores the open BIM source. `npm run bim:convert` preprocesses it to `.frag`, and the room view renders it through That Open Fragments with Three.js/WebGL.
+- **Model path**: `models/ifc/` stores the formal Lab Architecture and Lab MEP IFC files. They are preprocessed into separate `.frag` assets, federated in one room view, and can be shown or hidden independently.
 - **Device binding**: BIM equipment uses stable IFC `GlobalId` bindings; sensors without model elements can continue to use world-coordinate markers.
 - **Data status**: device records, trends, alarms, and fault simulation currently use frontend mock data. A live MQTT connection is not implemented.
 - **Pages**: `overview.html` provides the device directory and global language/theme controls; `device.html` shows one device; `twin.html` provides the 3D room and device panel.
@@ -58,7 +58,8 @@ ZB202_DT/
 │   └── zb202_device_backup.xlsx
 ├── models/
 │   ├── ifc/                       # IFC BIM source and provenance
-│   │   └── DigitalHub_FM-LFT_v2.ifc
+│   │   ├── Lab archi.ifc
+│   │   └── Lab mep.ifc
 │   └── rvt/                       # Revit source models
 │       ├── Lab Architecture Model.rvt
 │       └── Lab MEP Model.rvt
@@ -67,6 +68,7 @@ ZB202_DT/
 │   ├── overview.html              # Device overview
 │   ├── device.html                # Device detail
 │   ├── twin.html                  # Three.js room view
+│   ├── public/models/fragments/   # Architecture and MEP runtime models
 │   └── src/
 │       ├── dashboard/
 │       │   ├── app.js             # Overview and detail behavior

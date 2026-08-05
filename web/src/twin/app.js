@@ -41,11 +41,20 @@ const THEME_PRESETS = {
   },
 };
 
+const MODELS = [
+  { id: "archi", name: "Lab-archi.frag", url: "./models/fragments/Lab-archi.frag", label: "Lab Architecture" },
+  {
+    id: "mep",
+    name: "Lab-mep.frag",
+    url: "./models/fragments/Lab-mep.frag",
+    label: "Lab MEP",
+    hiddenCategories: ["IFCCOVERING"],
+  },
+];
+
 const MODEL = {
-  name: "DigitalHub_FM-LFT_v2.frag",
-  url: "./models/fragments/DigitalHub_FM-LFT_v2.frag",
-  label: "DigitalHub HVAC",
-  format: "fragments",
+  name: MODELS.map((model) => model.name).join(" + "),
+  label: "Lab Archi + MEP",
 };
 
 const I18N = {
@@ -213,6 +222,7 @@ const elements = {
   copyCoordinateButton: document.getElementById("copy-coordinate-btn"),
   modelName: document.getElementById("model-name"),
   modelLabel: document.querySelector(".dt-model-name"),
+  layerToggles: [...document.querySelectorAll("[data-model-layer]")],
   meshCount: document.getElementById("mesh-count"),
   deviceCount: document.getElementById("device-count"),
   viewerCard: document.querySelector(".dt-viewer-card"),
@@ -261,6 +271,7 @@ const state = {
   snapshots: new Map(),
   loadRequest: 0,
   fragmentsModel: null,
+  fragmentsModels: new Map(),
 };
 
 function initializeDeviceSnapshots() {
@@ -495,14 +506,13 @@ function showError(message) {
 }
 
 async function clearCurrentModel() {
-  if (state.model) {
-    modelGroup.remove(state.model);
-    if (state.fragmentsModel) {
-      await fragments.disposeModel(state.fragmentsModel.modelId);
-    }
-    state.model = null;
+  for (const fragmentsModel of state.fragmentsModels.values()) {
+    modelGroup.remove(fragmentsModel.object);
+    await fragments.disposeModel(fragmentsModel.modelId);
   }
+  state.model = null;
   state.fragmentsModel = null;
+  state.fragmentsModels.clear();
   state.selectedItem = null;
   state.selectedDeviceId = null;
   helpersGroup.clear();
@@ -960,7 +970,7 @@ function addGrid() {
   scene.add(gridHelper);
 }
 
-async function loadFragmentsModel(model, requestId) {
+async function loadFragmentsModel(model, requestId, modelIndex) {
   await ensureFragments();
   const response = await fetch(model.url);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -972,8 +982,9 @@ async function loadFragmentsModel(model, requestId) {
     camera,
     onProgress(event) {
       if (requestId !== state.loadRequest) return;
-      const percent = Math.round(event.progress * 100);
-      showLoading(model, percent, `${event.stage} · ${percent}%`);
+      const itemPercent = Math.round(event.progress * 100);
+      const percent = Math.round(((modelIndex + event.progress) / MODELS.length) * 100);
+      showLoading(MODEL, percent, `${model.label} · ${event.stage} · ${itemPercent}%`);
     },
   });
   if (requestId !== state.loadRequest) {
@@ -981,16 +992,28 @@ async function loadFragmentsModel(model, requestId) {
     return;
   }
 
-  state.fragmentsModel = fragmentsModel;
-  state.model = fragmentsModel.object;
-  modelGroup.add(state.model);
+  state.fragmentsModels.set(model.id, fragmentsModel);
+  modelGroup.add(fragmentsModel.object);
   fragmentsModel.useCamera(camera);
-  state.modelBox.copy(fragmentsModel.box);
+  if (model.hiddenCategories?.length) {
+    const hiddenItems = await fragmentsModel.getItemsOfCategories(
+      model.hiddenCategories.map((category) => new RegExp(`^${category}$`)),
+    );
+    const hiddenLocalIds = model.hiddenCategories.flatMap((category) => hiddenItems[category] || []);
+    if (hiddenLocalIds.length) await fragmentsModel.setVisible(hiddenLocalIds, false);
+  }
+  return (await fragmentsModel.getGuids()).length;
+}
+
+async function finalizeFederatedModel(componentCount) {
+  state.fragmentsModel = state.fragmentsModels.get("mep") || state.fragmentsModels.values().next().value;
+  state.model = modelGroup;
+  state.modelBox.makeEmpty();
+  for (const fragmentsModel of state.fragmentsModels.values()) state.modelBox.union(fragmentsModel.box);
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
-  const componentCount = (await fragmentsModel.getGuids()).length;
-  showLoading(model, 94, t("scannedEquipment"));
-  DEVICES = await scanIfcEquipment(fragmentsModel);
+  showLoading(MODEL, 94, t("scannedEquipment"));
+  DEVICES = await scanIfcEquipment(state.fragmentsModel);
   initializeDeviceSnapshots();
   state.selectedDeviceId = DEVICES[0]?.id || null;
   state.selectedItem = DEVICES[0]?.ifc || null;
@@ -1016,7 +1039,12 @@ async function loadModel() {
   elements.meshCount.textContent = "0";
 
   try {
-    await loadFragmentsModel(model, requestId);
+    let componentCount = 0;
+    for (const [index, layer] of MODELS.entries()) {
+      componentCount += await loadFragmentsModel(layer, requestId, index);
+      if (requestId !== state.loadRequest) return;
+    }
+    await finalizeFederatedModel(componentCount);
   } catch (error) {
     if (requestId !== state.loadRequest) return;
     console.error("Fragments loading failed", error);
@@ -1064,6 +1092,14 @@ function resizeRenderer() {
 }
 
 elements.retryButton.addEventListener("click", loadModel);
+elements.layerToggles.forEach((toggle) => {
+  toggle.addEventListener("change", async () => {
+    const fragmentsModel = state.fragmentsModels.get(toggle.dataset.modelLayer);
+    if (!fragmentsModel) return;
+    fragmentsModel.object.visible = toggle.checked;
+    await fragments.update(true);
+  });
+});
 systemThemeQuery.addEventListener("change", (event) => {
   if (!getStoredTheme()) applyTheme(event.matches ? "dark" : "light");
 });
@@ -1111,7 +1147,7 @@ elements.canvas.addEventListener("pointerup", (event) => {
   if (distance < 5) handleCanvasSelection(event).catch((error) => console.error("BIM selection failed", error));
 });
 controls.addEventListener("change", () => {
-  if (state.fragmentsModel) fragments.update();
+  if (state.fragmentsModels.size) fragments.update();
 });
 window.addEventListener("beforeunload", () => {
   fragments?.dispose();
