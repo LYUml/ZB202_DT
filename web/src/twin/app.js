@@ -78,6 +78,14 @@ const I18N = {
     noProperties: "没有可显示的 IFC 属性", staticBimItem: "静态 BIM 构件", scannedEquipment: "自动扫描设备",
     searchEquipmentPlaceholder: "搜索名称、类型或 ID", searchEquipmentAria: "搜索 IFC 设备", noSearchResults: "没有匹配的 IFC 设备",
     temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
+    dataPanelAria: "传感器数据面板", closeDataPanel: "关闭数据面板", sensorData: "传感器数据",
+    dataPanelLabel: "数据面板", earlier: "较早", now: "现在",
+    lastUpload: "最后上传", custom: "自定义", mockHistoryNote: "当前仅显示可用的模拟数据窗口",
+    bmsReserved: "AHU 运行数据将在后续版本接入。", aiReserved: "AI 分析模块将在后续版本接入。",
+    reservedCopy: "此模块为后续功能预留。", online: "在线", offline: "离线", maintenance: "维护中",
+    liveSummary: "实时概览", siteOverview: "场地概览", liveAssets: "实时设备", iotSensorsList: "IoT 传感器列表",
+    reservedModule: "预留模块", closeOverviewPanel: "关闭概览面板",
+    siteTemperature: "温度", siteHumidity: "湿度", siteCo2: "CO₂", occupants: "人数",
   },
   "zh-Hant": {
     backAria: "返回設備總覽", title: "ZB202 空間設備監控", connectionAria: "資料連線狀態",
@@ -99,6 +107,14 @@ const I18N = {
     noProperties: "沒有可顯示的 IFC 屬性", staticBimItem: "靜態 BIM 構件", scannedEquipment: "自動掃描設備",
     searchEquipmentPlaceholder: "搜尋名稱、類型或 ID", searchEquipmentAria: "搜尋 IFC 設備", noSearchResults: "沒有符合的 IFC 設備",
     temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
+    dataPanelAria: "感測器資料面板", closeDataPanel: "關閉資料面板", sensorData: "感測器資料",
+    dataPanelLabel: "資料面板", earlier: "較早", now: "現在",
+    lastUpload: "最後上傳", custom: "自訂", mockHistoryNote: "目前僅顯示可用的模擬資料視窗",
+    bmsReserved: "AHU 運行資料將於後續版本接入。", aiReserved: "AI 分析模組將於後續版本接入。",
+    reservedCopy: "此模組為後續功能預留。", online: "在線", offline: "離線", maintenance: "維護中",
+    liveSummary: "即時概覽", siteOverview: "場地概覽", liveAssets: "即時設備", iotSensorsList: "IoT 感測器列表",
+    reservedModule: "預留模組", closeOverviewPanel: "關閉概覽面板",
+    siteTemperature: "溫度", siteHumidity: "濕度", siteCo2: "CO₂", occupants: "人數",
   },
   en: {
     backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
@@ -120,6 +136,14 @@ const I18N = {
     noProperties: "No IFC properties available", staticBimItem: "Static BIM Component", scannedEquipment: "Auto-scanned equipment",
     searchEquipmentPlaceholder: "Search name, type, or ID", searchEquipmentAria: "Search IFC equipment", noSearchResults: "No matching IFC equipment",
     temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
+    dataPanelAria: "Sensor data panel", closeDataPanel: "Close data panel", sensorData: "Sensor Data",
+    dataPanelLabel: "Data Panel", earlier: "Earlier", now: "Now",
+    lastUpload: "Last upload", custom: "Custom", mockHistoryNote: "Showing the available simulated-data window",
+    bmsReserved: "AHU operating data will be connected in a future release.", aiReserved: "AI analytics will be connected in a future release.",
+    reservedCopy: "This space is reserved for a future module.", online: "Online", offline: "Offline", maintenance: "Maintenance",
+    liveSummary: "Live Summary", siteOverview: "Site Overview", liveAssets: "Live Assets", iotSensorsList: "IoT Sensors List",
+    reservedModule: "Reserved Module", closeOverviewPanel: "Close overview panel",
+    siteTemperature: "Temperature", siteHumidity: "Humidity", siteCo2: "CO₂", occupants: "Occupants",
   },
 };
 
@@ -195,6 +219,31 @@ const EQUIPMENT_GROUPS = [
 
 let DEVICES = [];
 
+function fallbackSensorDevices() {
+  const positions = [[0.32, 0.64, 0.38], [0.58, 0.52, 0.56], [0.73, 0.68, 0.36]];
+  return positions.map((normalizedPosition, index) => {
+    const number = String(index + 1).padStart(2, "0");
+    return {
+      id: `AM103-${number}`,
+      name: {
+        zh: `AM-103 室内环境传感器 ${number}`,
+        "zh-Hant": `AM-103 室內環境感測器 ${number}`,
+        en: `AM-103 Indoor Environment Sensor ${number}`,
+      },
+      subtitle: { zh: "空间点位 · 模拟遥测", "zh-Hant": "空間點位 · 模擬遙測", en: "Spatial marker · Simulated telemetry" },
+      category: "IOT_SENSOR",
+      groupKey: "airTerminals",
+      binding: { kind: "marker", normalizedPosition },
+      metrics: [
+        { key: "temperature", labelKey: "temperature", unit: "°C", value: 22.8 + index * 0.4, variance: 0.18 },
+        { key: "humidity", labelKey: "humidity", unit: "%", value: 52 + index * 2, variance: 0.6 },
+        { key: "co2", labelKey: "co2", unit: "ppm", value: 610 + index * 45, variance: 8 },
+      ],
+      ifc: { localId: `MOCK-${number}`, category: "IoT Sensor", guid: null, name: `AM103-${number}`, data: { Source: "Mock data", Binding: "Normalized model coordinate" } },
+    };
+  });
+}
+
 function deviceText(device, field) {
   const localized = device[field];
   if (localized) return localized[activeLang] || localized.zh || localized.en;
@@ -206,6 +255,7 @@ const elements = {
   devicePanelButton: document.getElementById("device-panel-btn"),
   devicePanel: document.getElementById("device-panel"),
   devicePanelClose: document.getElementById("device-panel-close"),
+  overviewRailClose: document.getElementById("overview-rail-close"),
   wrap: document.getElementById("viewer-wrap"),
   canvas: document.getElementById("twin-canvas"),
   loading: document.getElementById("model-loading"),
@@ -235,9 +285,6 @@ const elements = {
   deviceName: document.getElementById("device-name"),
   deviceId: document.getElementById("device-id"),
   statusBadge: document.getElementById("status-badge"),
-  ifcProperties: document.getElementById("ifc-properties"),
-  ifcPropertyCount: document.getElementById("ifc-property-count"),
-  ifcPropertyList: document.getElementById("ifc-property-list"),
   metricGrid: document.getElementById("metric-grid"),
   trendCard: document.getElementById("trend-card"),
   trendLabel: document.getElementById("trend-label"),
@@ -249,12 +296,28 @@ const elements = {
   faultToggle: document.getElementById("fault-toggle"),
   faultButtonText: document.getElementById("fault-button-text"),
   clock: document.getElementById("dt-clock"),
+  siteTemperature: document.getElementById("site-temperature"),
+  siteHumidity: document.getElementById("site-humidity"),
+  siteCo2: document.getElementById("site-co2"),
+  siteOccupants: document.getElementById("site-occupants"),
+  reservedTitle: document.getElementById("reserved-title"),
+  reservedCopy: document.getElementById("reserved-copy"),
+  historyNote: document.getElementById("history-note"),
+  historyRangeButtons: [...document.querySelectorAll("[data-history-range]")],
+  trendGrid: document.getElementById("trend-grid"),
+  trendAxisLabels: document.getElementById("trend-axis-labels"),
+  metricTrendCards: [
+    { key: "temperature", card: document.getElementById("trend-card"), label: document.getElementById("trend-label"), value: document.getElementById("trend-value"), line: document.getElementById("trend-line"), area: document.getElementById("trend-area"), grid: document.getElementById("trend-grid"), axis: document.getElementById("trend-axis-labels") },
+    { key: "humidity", card: document.getElementById("humidity-trend-card"), label: document.getElementById("humidity-trend-label"), value: document.getElementById("humidity-trend-value"), line: document.getElementById("humidity-trend-line"), area: document.getElementById("humidity-trend-area"), grid: document.getElementById("humidity-trend-grid"), axis: document.getElementById("humidity-trend-axis-labels") },
+    { key: "co2", card: document.getElementById("co2-trend-card"), label: document.getElementById("co2-trend-label"), value: document.getElementById("co2-trend-value"), line: document.getElementById("co2-trend-line"), area: document.getElementById("co2-trend-area"), grid: document.getElementById("co2-trend-grid"), axis: document.getElementById("co2-trend-axis-labels") },
+  ],
+  viewButtons: [...document.querySelectorAll("[data-view]")],
 };
 
 elements.modelLabel.textContent = MODEL.label;
 elements.deviceCount.textContent = String(DEVICES.length);
 elements.viewerCard.setAttribute("aria-label", "IFC / Fragments 三维模型");
-elements.technologyLabel.textContent = "WebGL / Three.js / IFC / Fragments";
+if (elements.technologyLabel) elements.technologyLabel.textContent = "WebGL / Three.js / IFC / Fragments";
 
 const state = {
   model: null,
@@ -272,6 +335,7 @@ const state = {
   loadRequest: 0,
   fragmentsModel: null,
   fragmentsModels: new Map(),
+  historyRange: "1h",
 };
 
 function initializeDeviceSnapshots() {
@@ -354,6 +418,13 @@ function statusFor(deviceId) {
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
+function presentationStatus(status) {
+  if (status === "normal") return { key: "online", className: "normal" };
+  if (status === "warning") return { key: "maintenance", className: "warning" };
+  if (status === "unavailable") return { key: "offline", className: "unavailable" };
+  return { key: "fault", className: "fault" };
+}
+
 function unwrapIfcValue(value) {
   if (value && typeof value === "object" && !Array.isArray(value) && "value" in value) {
     return unwrapIfcValue(value.value);
@@ -396,30 +467,6 @@ function metricsForCategory(category, localId) {
     { key: "airflow", labelKey: "airflow", unit: "L/s", value: 130 + seed * 0.7, variance: 2.2 },
     { key: "supplyTemperature", labelKey: "supplyTemperature", unit: "°C", value: 14 + (seed % 60) * 0.1, variance: 0.2 },
   ];
-}
-
-function flattenIfcData(value, prefix = "", rows = [], seen = new WeakSet()) {
-  if (rows.length >= 60 || value === null || value === undefined) return rows;
-  const readable = readableIfcValue(value);
-  if (readable !== null) {
-    if (prefix) rows.push({ label: prefix, value: readable });
-    return rows;
-  }
-  if (typeof value !== "object" || seen.has(value)) return rows;
-  seen.add(value);
-  if (Array.isArray(value)) {
-    value.forEach((entry, index) => {
-      const name = readableIfcValue(entry?.Name);
-      flattenIfcData(entry, name ? `${prefix}.${name}` : `${prefix}.${index + 1}`, rows, seen);
-    });
-    return rows;
-  }
-  for (const [key, entry] of Object.entries(value)) {
-    if (key === "type" || key === "localId" || key.startsWith("_")) continue;
-    flattenIfcData(entry, prefix ? `${prefix}.${key}` : key, rows, seen);
-    if (rows.length >= 60) break;
-  }
-  return rows;
 }
 
 async function loadIfcItemDetails(localId, categoryHint = null) {
@@ -572,6 +619,7 @@ function createMarker(device) {
   element.addEventListener("click", (event) => {
     event.stopPropagation();
     selectDevice(device.id, true);
+    setDevicePanelOpen(true);
   });
 
   const label = new CSS2DObject(element);
@@ -698,18 +746,38 @@ function renderDeviceList() {
     const status = bound ? snapshot.status : "unavailable";
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `dt-device-item ${status}${state.selectedDeviceId === device.id ? " selected" : ""}`;
+    const presentedStatus = presentationStatus(status);
+    button.className = `dt-device-item ${presentedStatus.className}${state.selectedDeviceId === device.id ? " selected" : ""}`;
     button.innerHTML = `
-      <span class="dt-device-status"></span>
       <span class="dt-device-copy">
         <strong>${deviceText(device, "name")}</strong>
-        <small>${deviceText(device, "subtitle")} · ${bound ? t(snapshot.status) : t("noBinding")}</small>
+        <small>${deviceText(device, "subtitle")} · ${t(presentedStatus.key)}</small>
       </span>
-      <i class="ph ph-caret-right dt-device-chevron" aria-hidden="true"></i>
+      <span class="dt-device-state" aria-label="${t(presentedStatus.key)}"><span class="dt-device-status"></span></span>
     `;
-    button.addEventListener("click", () => selectDevice(device.id, true));
+    button.addEventListener("click", () => {
+      selectDevice(device.id, true);
+      setDevicePanelOpen(true);
+    });
     elements.deviceList.appendChild(button);
   }
+}
+
+function renderSiteOverview() {
+  const snapshots = [...state.snapshots.values()];
+  const metricValues = (keys) => snapshots.flatMap((snapshot) => keys
+    .filter((key) => Number.isFinite(snapshot.values[key]))
+    .map((key) => snapshot.values[key]));
+  const average = (values) => values.length
+    ? values.reduce((sum, value) => sum + value, 0) / values.length
+    : null;
+  const temperature = average(metricValues(["temperature", "supplyTemperature"]));
+  const humidity = average(metricValues(["humidity"]));
+  const co2 = average(metricValues(["co2"]));
+  elements.siteTemperature.textContent = temperature === null ? "—" : `${formatNumber(temperature)} °C`;
+  elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
+  elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
+  elements.siteOccupants.textContent = "—";
 }
 
 function renderEquipmentFilters() {
@@ -735,52 +803,50 @@ function renderEquipmentFilters() {
   }
 }
 
-function renderIfcProperties(item) {
-  elements.ifcPropertyList.innerHTML = "";
-  if (!item) {
-    elements.ifcPropertyCount.textContent = "0";
-    return;
-  }
-  const rows = [
-    { label: t("ifcCategory"), value: item.category },
-    { label: t("globalId"), value: item.guid || "—" },
-    { label: t("expressId"), value: String(item.localId) },
-  ];
-  const seen = new Set(rows.map((row) => `${row.label}:${row.value}`));
-  for (const row of flattenIfcData(item.data)) {
-    const label = row.label.split(".").slice(-2).join(" · ");
-    const signature = `${label}:${row.value}`;
-    if (!row.value || seen.has(signature) || rows.length >= 36) continue;
-    seen.add(signature);
-    rows.push({ label, value: row.value });
-  }
-  elements.ifcPropertyCount.textContent = String(rows.length);
-  for (const row of rows) {
-    const wrapper = document.createElement("div");
-    const term = document.createElement("dt");
-    const description = document.createElement("dd");
-    term.textContent = row.label;
-    description.textContent = row.value;
-    wrapper.append(term, description);
-    elements.ifcPropertyList.appendChild(wrapper);
-  }
-}
-
 function sparklinePath(values) {
-  const width = 320;
-  const height = 92;
-  const padding = 5;
+  const width = 360;
+  const height = 140;
+  const left = 40;
+  const right = 8;
+  const top = 10;
+  const bottom = 28;
+  const plotBottom = height - bottom;
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = Math.max(max - min, 0.1);
   const points = values.map((value, index) => {
-    const x = padding + (index / Math.max(values.length - 1, 1)) * (width - padding * 2);
-    const y = padding + (1 - (value - min) / range) * (height - padding * 2);
+    const x = left + (index / Math.max(values.length - 1, 1)) * (width - left - right);
+    const y = top + (1 - (value - min) / range) * (plotBottom - top);
     return [x, y];
   });
   const line = points.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${points.at(-1)[0].toFixed(1)},${height} L${points[0][0].toFixed(1)},${height} Z`;
-  return { line, area };
+  const area = `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z`;
+  const ticks = [max, min + range / 2, min].map((value, index) => ({
+    value,
+    y: top + (index / 2) * (plotBottom - top),
+  }));
+  return { line, area, ticks, range, left, right: width - right, top, plotBottom };
+}
+
+function renderMetricTrend(device, snapshot, chart) {
+  const metric = device.metrics.find((item) => item.key === chart.key);
+  chart.card.hidden = !metric;
+  if (!metric) return;
+  const paths = sparklinePath(snapshot.trends[metric.key]);
+  chart.label.textContent = t(metric.labelKey);
+  chart.value.textContent = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}`;
+  chart.line.setAttribute("d", paths.line);
+  chart.area.setAttribute("d", paths.area);
+  chart.grid.innerHTML = paths.ticks.map((tick) => `
+    <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
+  `).join("") + `<line x1="${paths.left}" y1="${paths.top}" x2="${paths.left}" y2="${paths.plotBottom}"></line>`;
+  const rangeLabel = state.historyRange === "custom" ? t("earlier") : `-${state.historyRange}`;
+  chart.axis.innerHTML = paths.ticks.map((tick) => `
+    <text x="34" y="${tick.y + 3}" text-anchor="end">${tick.value.toFixed(paths.range < 1 ? 2 : 1)}</text>
+  `).join("") + `
+    <text x="${paths.left}" y="132" text-anchor="start">${rangeLabel}</text>
+    <text x="${paths.right}" y="132" text-anchor="end">${t("now")}</text>
+  `;
 }
 
 function renderSelectedDevice() {
@@ -793,26 +859,25 @@ function renderSelectedDevice() {
     elements.statusBadge.textContent = "IFC";
     elements.statusBadge.className = "dt-status-badge normal";
     elements.metricGrid.hidden = true;
-    elements.trendCard.hidden = true;
+    elements.metricTrendCards.forEach((chart) => { chart.card.hidden = true; });
     elements.updateRow.hidden = true;
     elements.faultToggle.hidden = true;
-    renderIfcProperties(item);
     return;
   }
   const snapshot = state.snapshots.get(device.id);
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
   const displayStatus = bound ? snapshot.status : "unavailable";
+  const presentedStatus = presentationStatus(displayStatus);
 
   elements.bindingLabel.textContent = device.binding.kind === "object" ? t("objectBinding") : t("markerBinding");
   elements.deviceName.textContent = deviceText(device, "name");
   elements.deviceId.textContent = device.id;
-  elements.statusBadge.textContent = t(displayStatus);
-  elements.statusBadge.className = `dt-status-badge ${displayStatus}`;
+  elements.statusBadge.textContent = t(presentedStatus.key);
+  elements.statusBadge.className = `dt-status-badge ${presentedStatus.className}`;
   elements.metricGrid.hidden = false;
-  elements.trendCard.hidden = false;
+  elements.metricTrendCards.forEach((chart) => { chart.card.hidden = false; });
   elements.updateRow.hidden = false;
   elements.faultToggle.hidden = false;
-  renderIfcProperties(state.selectedItem || device.ifc);
 
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
     <div class="dt-metric">
@@ -821,13 +886,7 @@ function renderSelectedDevice() {
     </div>
   `).join("");
 
-  const primaryMetric = device.metrics[0];
-  const trend = snapshot.trends[primaryMetric.key];
-  const paths = sparklinePath(trend);
-  elements.trendLabel.textContent = t(primaryMetric.labelKey);
-  elements.trendValue.textContent = `${formatNumber(snapshot.values[primaryMetric.key])} ${primaryMetric.unit}`;
-  elements.trendLine.setAttribute("d", paths.line);
-  elements.trendArea.setAttribute("d", paths.area);
+  elements.metricTrendCards.forEach((chart) => renderMetricTrend(device, snapshot, chart));
   elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false });
   elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
@@ -838,6 +897,7 @@ function renderUI() {
   renderEquipmentFilters();
   renderDeviceList();
   renderSelectedDevice();
+  renderSiteOverview();
   updateAllVisualStates().catch((error) => console.error("Failed to style BIM components", error));
 }
 
@@ -871,6 +931,7 @@ function setDevicePanelOpen(open) {
   elements.devicePanel.setAttribute("aria-hidden", String(!open));
   elements.devicePanel.inert = !open;
   elements.devicePanelButton.setAttribute("aria-expanded", String(open));
+  elements.devicePanelButton.classList.toggle("active", open);
   if (open) elements.devicePanelClose.focus({ preventScroll: true });
   else elements.devicePanelButton.focus({ preventScroll: true });
 }
@@ -884,6 +945,7 @@ async function selectDevice(deviceId, focus = false) {
   if (focus) {
     focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
   }
+  if (device.binding.kind !== "object") return;
   try {
     const details = await loadIfcItemDetails(device.binding.localId, device.category);
     if (state.selectedDeviceId === deviceId && details) {
@@ -949,7 +1011,11 @@ function updateMockData() {
     snapshot.updatedAt = new Date();
   }
   renderSelectedDevice();
-  elements.clock.textContent = new Date().toLocaleTimeString(activeLocale(), { hour12: false });
+  renderSiteOverview();
+  elements.clock.textContent = new Date().toLocaleString(activeLocale(), {
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  });
 }
 
 function addGrid() {
@@ -1014,6 +1080,7 @@ async function finalizeFederatedModel(componentCount) {
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
   DEVICES = await scanIfcEquipment(state.fragmentsModel);
+  if (!DEVICES.length) DEVICES = fallbackSensorDevices();
   initializeDeviceSnapshots();
   state.selectedDeviceId = DEVICES[0]?.id || null;
   state.selectedItem = DEVICES[0]?.ifc || null;
@@ -1111,8 +1178,34 @@ window.addEventListener("storage", (event) => {
     applyLanguage(event.newValue);
   }
 });
-elements.devicePanelButton.addEventListener("click", () => setDevicePanelOpen(true));
+function setPlatformView(view) {
+  const workspace = elements.wrap.closest(".dt-workspace");
+  if (view === "overview") {
+    const open = !workspace.classList.contains("right-panel-open");
+    workspace.classList.toggle("right-panel-open", open);
+    document.querySelector('[data-view="overview"]')?.classList.toggle("active", open);
+  } else if (view === "sensors") {
+    setDevicePanelOpen(!elements.devicePanel.classList.contains("is-open"));
+  } else if (view === "bms" || view === "ai" || view === "reserved") {
+    workspace.classList.add("right-panel-open");
+    document.querySelector('[data-view="overview"]')?.classList.add("active");
+    elements.reservedTitle.textContent = view === "ai" ? "AI" : view === "reserved" ? "Reserved" : "BMS";
+    elements.reservedCopy.textContent = t(view === "ai" ? "aiReserved" : view === "reserved" ? "reservedCopy" : "bmsReserved");
+  }
+}
+
+elements.viewButtons.forEach((button) => button.addEventListener("click", () => setPlatformView(button.dataset.view)));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
+elements.overviewRailClose.addEventListener("click", () => setPlatformView("overview"));
+document.querySelector("[data-action='reset']")?.addEventListener("click", () => fitCameraToModel(true));
+elements.historyRangeButtons.forEach((button) => button.addEventListener("click", () => {
+  state.historyRange = button.dataset.historyRange;
+  elements.historyRangeButtons.forEach((item) => item.classList.toggle("active", item === button));
+  elements.historyNote.textContent = button.dataset.historyRange === "custom"
+    ? t("reservedCopy")
+    : t("mockHistoryNote");
+  renderSelectedDevice();
+}));
 elements.equipmentSearch.addEventListener("input", () => {
   state.equipmentQuery = elements.equipmentSearch.value;
   renderDeviceList();
@@ -1126,7 +1219,7 @@ elements.faultToggle.addEventListener("click", () => {
   if (!snapshot) return;
   setFault(state.selectedDeviceId, snapshot.status !== "fault");
 });
-elements.calibrateButton.addEventListener("click", () => {
+elements.calibrateButton?.addEventListener("click", () => {
   state.calibrating = !state.calibrating;
   elements.calibrateButton.classList.toggle("active", state.calibrating);
   elements.wrap.classList.toggle("is-calibrating", state.calibrating);

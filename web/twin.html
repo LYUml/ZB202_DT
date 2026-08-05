@@ -3,21 +3,16 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="ZB202 IFC / Fragments BIM digital twin viewer" />
-  <title>ZB202 Digital Twin | IFC / Fragments</title>
+  <meta name="description" content="ZB202 AI-Empowered Digital Twin Platform" />
+  <title>ZB202 AI-Empowered Digital Twin Platform</title>
   <script>
     (() => {
       const storageKey = "zb202-theme";
       let savedTheme = null;
-      try {
-        savedTheme = localStorage.getItem(storageKey);
-      } catch {
-        savedTheme = null;
-      }
-      const theme = savedTheme === "light" || savedTheme === "dark"
+      try { savedTheme = localStorage.getItem(storageKey); } catch { savedTheme = null; }
+      document.documentElement.dataset.theme = savedTheme === "light" || savedTheme === "dark"
         ? savedTheme
         : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.dataset.theme = theme;
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,49 +28,13 @@
         <a class="dt-back" id="overview-link" href="overview.html" aria-label="返回设备总览" data-i18n-aria="backAria">
           <i class="ph ph-arrow-left" aria-hidden="true"></i>
         </a>
-        <div>
-          <p class="dt-overline">WEB DIGITAL TWIN · ROUTE A</p>
-          <h1 data-i18n="title">ZB202 空间设备监控</h1>
-        </div>
+        <h1>ZB202 AI-Empowered Digital Twin Platform</h1>
       </div>
-
-      <div class="dt-topbar-actions">
-        <div class="dt-live-status" aria-label="数据连接状态" data-i18n-aria="connectionAria">
-          <span class="dt-live-dot"></span>
-          <span data-i18n="mockRunning">模拟数据运行中</span>
-          <time id="dt-clock">--:--:--</time>
-        </div>
-      </div>
+      <time class="dt-platform-clock" id="dt-clock">--:--:--</time>
     </header>
 
     <main class="dt-workspace">
       <section class="dt-viewer-card" aria-label="IFC / Fragments 三维模型" data-i18n-aria="viewerAria">
-        <div class="dt-viewer-toolbar">
-          <div class="dt-model-control">
-            <span class="dt-model-label" data-i18n="model">模型</span>
-            <span class="dt-model-name">Lab Archi + MEP</span>
-            <div class="dt-layer-controls" aria-label="模型可见层">
-              <label><input type="checkbox" data-model-layer="archi" checked><span>Lab 建筑</span></label>
-              <label><input type="checkbox" data-model-layer="mep" checked><span>Lab MEP</span></label>
-            </div>
-          </div>
-
-          <div class="dt-tool-actions">
-            <button class="dt-icon-btn" id="device-panel-btn" type="button" aria-controls="device-panel" aria-expanded="false">
-              <i class="ph ph-sidebar-simple" aria-hidden="true"></i>
-              <span data-i18n="openDevicePanel">设备面板</span>
-            </button>
-            <button class="dt-icon-btn" id="calibrate-btn" type="button" title="在模型表面拾取世界坐标" data-i18n-title="calibrateTitle">
-              <i class="ph ph-crosshair-simple" aria-hidden="true"></i>
-              <span data-i18n="calibrate">校准点位</span>
-            </button>
-            <button class="dt-icon-btn" id="reset-view-btn" type="button" title="重置模型视角" data-i18n-title="resetTitle">
-              <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
-              <span data-i18n="resetView">重置视角</span>
-            </button>
-          </div>
-        </div>
-
         <div class="dt-canvas-wrap" id="viewer-wrap">
           <canvas id="twin-canvas"></canvas>
 
@@ -88,27 +47,15 @@
 
           <div class="dt-error hidden" id="model-error" role="alert">
             <i class="ph ph-warning-circle dt-error-icon" aria-hidden="true"></i>
-            <div>
-              <strong data-i18n="loadFailed">模型加载失败</strong>
-              <p id="model-error-message" data-i18n="loadRetryHint">请检查模型文件后重试。</p>
-            </div>
+            <div><strong data-i18n="loadFailed">模型加载失败</strong><p id="model-error-message" data-i18n="loadRetryHint">请检查模型文件后重试。</p></div>
             <button class="dt-secondary-btn" id="retry-model-btn" type="button" data-i18n="reload">重新加载</button>
           </div>
 
-          <div class="dt-viewer-hint">
-            <span data-i18n="rotateHint">左键旋转</span><i></i><span data-i18n="panHint">右键平移</span><i></i><span data-i18n="zoomHint">滚轮缩放</span>
+          <div class="dt-layer-switcher" aria-label="模型可见层">
+            <label><input type="checkbox" data-model-layer="archi" checked><span>Architecture</span></label>
+            <label><input type="checkbox" data-model-layer="mep" checked><span>MEP</span></label>
           </div>
-
-          <div class="dt-status-legend" aria-label="设备状态图例" data-i18n-aria="statusLegendAria">
-            <span><i class="normal"></i><span data-i18n="normal">正常</span></span>
-            <span><i class="warning"></i><span data-i18n="warning">注意</span></span>
-            <span><i class="fault"></i><span data-i18n="fault">故障</span></span>
-          </div>
-
-          <div class="dt-scene-stats">
-            <span id="model-name">—</span>
-            <span><b id="mesh-count">0</b> <span data-i18n="components">构件</span></span>
-          </div>
+          <span class="dt-model-name" hidden>Lab Archi + MEP</span><span id="model-name" hidden></span><span id="mesh-count" hidden>0</span>
 
           <div class="dt-coordinate-toast hidden" id="coordinate-toast">
             <span id="coordinate-value">[0, 0, 0]</span>
@@ -117,97 +64,93 @@
         </div>
       </section>
 
-      <aside class="dt-sidebar" id="device-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-label="设备实时信息" data-i18n-aria="sidebarAria" inert>
-        <section class="dt-side-section dt-side-header">
-          <div>
-            <p class="dt-overline">LIVE ASSETS</p>
-            <h2 data-i18n="deviceStatus">设备状态</h2>
-          </div>
-          <div class="dt-panel-header-actions">
-            <span class="dt-count" id="device-count">0</span>
-            <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭设备面板" data-i18n-aria="closeDevicePanel">
-              <i class="ph ph-x" aria-hidden="true"></i>
-            </button>
-          </div>
-        </section>
-
-        <div class="dt-equipment-search">
-          <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-          <input
-            id="equipment-search"
-            type="search"
-            autocomplete="off"
-            placeholder="搜索名称、类型或 ID"
-            aria-label="搜索 IFC 设备"
-            data-i18n-placeholder="searchEquipmentPlaceholder"
-            data-i18n-aria="searchEquipmentAria"
-          />
-          <span id="equipment-search-count" aria-live="polite"></span>
-        </div>
-
-        <nav class="dt-equipment-filters" id="equipment-filters" aria-label="IFC 设备分类"></nav>
-
-        <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
-
-        <section class="dt-detail" id="device-detail">
+      <aside class="dt-data-panel" id="device-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-label="传感器数据面板" data-i18n-aria="dataPanelAria" inert>
+        <header class="dt-data-header">
+          <div><p class="dt-overline" data-i18n="dataPanelLabel">数据面板</p><h2 data-i18n="sensorData">传感器数据</h2></div>
+          <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭数据面板" data-i18n-aria="closeDataPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
+        </header>
+        <div class="dt-detail" id="device-detail">
           <div class="dt-detail-heading">
-            <div>
-              <p class="dt-binding-label" id="binding-label">BIM 构件绑定</p>
-              <h2 id="device-name">IFC BIM</h2>
-              <p id="device-id">—</p>
-            </div>
-            <span class="dt-status-badge normal" id="status-badge">正常</span>
+            <div><p class="dt-binding-label" id="binding-label">BIM 构件绑定</p><h2 id="device-name">IFC BIM</h2><p id="device-id">—</p></div>
+            <span class="dt-status-badge normal" id="status-badge">Online</span>
           </div>
-
-          <section class="dt-ifc-properties" id="ifc-properties">
-            <div class="dt-ifc-properties-heading">
-              <h3 data-i18n="ifcProperties">IFC 属性</h3>
-              <span id="ifc-property-count">0</span>
-            </div>
-            <dl id="ifc-property-list"></dl>
-          </section>
-
           <div class="dt-metrics" id="metric-grid"></div>
-
+          <div class="dt-update-row" id="update-row"><span data-i18n="lastUpload">最后上传</span><time id="updated-at">—</time></div>
           <div class="dt-trend-card" id="trend-card">
-            <div class="dt-trend-heading">
-              <div>
-                <span id="trend-label">送风温度</span>
-                <strong id="trend-value">—</strong>
-              </div>
-              <span data-i18n="last48Seconds">最近 48 秒</span>
+            <div class="dt-trend-heading"><div><span id="trend-label">送风温度</span><strong id="trend-value">—</strong></div></div>
+            <div class="dt-history-ranges" aria-label="历史数据范围">
+              <button type="button" class="active" data-history-range="1h">1h</button>
+              <button type="button" data-history-range="12h">12h</button>
+              <button type="button" data-history-range="24h">24h</button>
+              <button type="button" data-history-range="custom" data-i18n="custom">自定义</button>
             </div>
-            <svg id="trend-chart" viewBox="0 0 320 92" preserveAspectRatio="none" aria-label="实时数据趋势图" data-i18n-aria="trendAria">
-              <defs>
-                <linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop class="dt-trend-stop-start" offset="0%" stop-opacity="0.28" />
-                  <stop class="dt-trend-stop-end" offset="100%" stop-opacity="0" />
-                </linearGradient>
-              </defs>
-              <path class="dt-trend-area" id="trend-area"></path>
-              <path class="dt-trend-line" id="trend-line"></path>
+            <p class="dt-history-note" id="history-note" data-i18n="mockHistoryNote">当前仅显示可用的模拟数据窗口</p>
+            <svg class="dt-trend-chart" id="trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="实时数据趋势图" data-i18n-aria="trendAria">
+              <defs><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"><stop class="dt-trend-stop-start" offset="0%" stop-opacity="0.28" /><stop class="dt-trend-stop-end" offset="100%" stop-opacity="0" /></linearGradient></defs>
+              <g class="dt-trend-grid" id="trend-grid"></g>
+              <path class="dt-trend-area" id="trend-area"></path><path class="dt-trend-line" id="trend-line"></path>
+              <g class="dt-trend-axis-labels" id="trend-axis-labels"></g>
             </svg>
           </div>
-
-          <div class="dt-update-row" id="update-row">
-            <span data-i18n="lastUpdated">最后更新</span>
-            <time id="updated-at">—</time>
+          <div class="dt-trend-card" id="humidity-trend-card">
+            <div class="dt-trend-heading"><div><span id="humidity-trend-label">相对湿度</span><strong id="humidity-trend-value">—</strong></div></div>
+            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="相对湿度趋势图">
+              <g class="dt-trend-grid" id="humidity-trend-grid"></g>
+              <path class="dt-trend-area" id="humidity-trend-area"></path><path class="dt-trend-line" id="humidity-trend-line"></path>
+              <g class="dt-trend-axis-labels" id="humidity-trend-axis-labels"></g>
+            </svg>
           </div>
+          <div class="dt-trend-card" id="co2-trend-card">
+            <div class="dt-trend-heading"><div><span id="co2-trend-label">CO₂</span><strong id="co2-trend-value">—</strong></div></div>
+            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="CO₂ 趋势图">
+              <g class="dt-trend-grid" id="co2-trend-grid"></g>
+              <path class="dt-trend-area" id="co2-trend-area"></path><path class="dt-trend-line" id="co2-trend-line"></path>
+              <g class="dt-trend-axis-labels" id="co2-trend-axis-labels"></g>
+            </svg>
+          </div>
+          <button class="dt-fault-btn" id="fault-toggle" type="button"><i class="ph ph-warning dt-fault-icon" aria-hidden="true"></i><span id="fault-button-text">模拟设备故障</span></button>
+        </div>
+      </aside>
 
-          <button class="dt-fault-btn" id="fault-toggle" type="button">
-            <i class="ph ph-warning dt-fault-icon" aria-hidden="true"></i>
-            <span id="fault-button-text">模拟设备故障</span>
-          </button>
+      <aside class="dt-overview-rail" aria-label="平台概览">
+        <section class="dt-rail-card" id="site-overview-card">
+          <header>
+            <div><p class="dt-overline" data-i18n="liveSummary">实时概览</p><div class="dt-site-title"><h2 data-i18n="siteOverview">场地概览</h2><span class="dt-count" id="device-count">0</span></div></div>
+            <button class="dt-panel-close" id="overview-rail-close" type="button" aria-label="关闭概览面板" data-i18n-aria="closeOverviewPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
+          </header>
+          <div class="dt-site-grid">
+            <div><span data-i18n="siteTemperature">温度</span><strong id="site-temperature">—</strong></div>
+            <div><span data-i18n="siteHumidity">湿度</span><strong id="site-humidity">—</strong></div>
+            <div><span data-i18n="siteCo2">CO₂</span><strong id="site-co2">—</strong></div>
+            <div><span data-i18n="occupants">人数</span><strong id="site-occupants">—</strong></div>
+          </div>
         </section>
 
-        <footer class="dt-side-footer">
-          <span>WebGL / Three.js / IFC / Fragments</span>
-          <span>PoC v0.1</span>
-        </footer>
+        <section class="dt-rail-card dt-sensor-card" id="sensor-list-card">
+          <header>
+            <div><p class="dt-overline" data-i18n="liveAssets">实时设备</p><div class="dt-sensor-title"><h2 data-i18n="iotSensorsList">IoT 传感器列表</h2><span id="equipment-search-count">0/0</span></div></div>
+          </header>
+          <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索名称、类型或 ID" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
+          <nav class="dt-equipment-filters" id="equipment-filters" aria-label="IFC 设备分类"></nav>
+          <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
+        </section>
+
+        <section class="dt-rail-card dt-reserved-card" id="bms-card">
+          <header><div><p class="dt-overline" data-i18n="reservedModule">预留模块</p><h2 id="reserved-title">BMS</h2></div><i class="ph ph-hard-drives" aria-hidden="true"></i></header>
+          <p id="reserved-copy" data-i18n="bmsReserved">AHU 运行数据将在后续版本接入。</p>
+        </section>
       </aside>
+
+      <nav class="dt-bottom-nav" aria-label="主要功能">
+        <button type="button" data-view="overview" title="Overview" aria-label="Overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Overview</span></button>
+        <button type="button" id="device-panel-btn" data-view="sensors" title="Sensor List" aria-label="Sensor List" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>Sensor List</span></button>
+        <button type="button" data-view="bms" title="BMS" aria-label="BMS"><i class="ph ph-hard-drives" aria-hidden="true"></i><span>BMS</span></button>
+        <button type="button" data-view="ai" title="AI" aria-label="AI"><i class="ph ph-brain" aria-hidden="true"></i><span>AI</span></button>
+        <button type="button" id="reset-view-btn" data-action="reset" title="Reset View" aria-label="Reset View"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span>Reset View</span></button>
+        <button type="button" data-view="reserved" title="Reserved" aria-label="Reserved"><i class="ph ph-plus-circle" aria-hidden="true"></i><span>Reserved</span></button>
+      </nav>
     </main>
   </div>
-
   <script type="module" src="src/twin/app.js"></script>
 </body>
 </html>

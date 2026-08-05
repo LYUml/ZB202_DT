@@ -23,8 +23,8 @@ flowchart LR
 
 - **Model path**: `models/ifc/` stores the formal Lab Architecture and Lab MEP IFC files. They are preprocessed into separate `.frag` assets, federated in one room view, and can be shown or hidden independently.
 - **Device binding**: BIM equipment uses stable IFC `GlobalId` bindings; sensors without model elements can continue to use world-coordinate markers.
-- **Data status**: device records, trends, alarms, and fault simulation currently use frontend mock data. A live MQTT connection is not implemented.
-- **Pages**: `overview.html` provides the device directory and global language/theme controls; `device.html` shows one device; `twin.html` provides the 3D room and device panel.
+- **Data status**: device records, trends, alarms, and fault simulation currently use frontend mock data. When the current Fragments model contains no supported scanned IFC equipment, the room view shows three clearly identified AM-103 mock sensor markers. Live MQTT, persisted history, BMS/AHU data, and AI modules are not yet connected.
+- **Pages**: `overview.html` provides the device directory and global language/theme controls; `device.html` shows one device; `twin.html` provides the 3D room, a right-side Site Overview/IoT Sensors List/BMS rail, bottom task navigation, and a left data-and-trend panel when a sensor is selected.
 
 ### Planned Live-data Path
 

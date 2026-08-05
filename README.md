@@ -23,8 +23,8 @@ flowchart LR
 
 - **模型链路**：`models/ifc/` 保存正式的 Lab Architecture 与 Lab MEP IFC；两者预转换为独立 `.frag` 后在同一房间视图中叠加渲染，并可分别控制可见性。
 - **设备绑定**：BIM 设备使用 IFC `GlobalId` 稳定绑定；未建模传感器可继续使用世界坐标 marker。
-- **数据状态**：设备清单、趋势、告警和故障模拟目前均来自前端 Mock 数据，不代表真实 MQTT 已接通。
-- **页面形态**：`overview.html` 管理设备总览与全局语言/主题；`device.html` 展示单台设备；`twin.html` 展示 3D 房间与设备面板。
+- **数据状态**：设备清单、趋势、告警和故障模拟目前均来自前端 Mock 数据；当当前 Fragments 模型未扫描到受支持的 IFC 设备时，房间视图会显示 3 个明确标注的 AM-103 Mock 传感器点位。真实 MQTT、长期历史数据、BMS/AHU 与 AI 模块尚未接入。
+- **页面形态**：`overview.html` 管理设备总览与全局语言/主题；`device.html` 展示单台设备；`twin.html` 提供 3D 房间、右侧 Site Overview/IoT Sensors List/BMS 概览、底部功能导航，以及选中传感器后出现的左侧数据与趋势面板。
 
 ### 计划中的真实数据链路
 
