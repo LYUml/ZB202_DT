@@ -885,6 +885,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-device-item.unavailable .dt-device-status { background: var(--dt-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dt-text-muted) 12%, transparent); }
 
 .dt-trend-chart { width: 100%; height: 122px; margin-top: 6px; }
+.dt-metrics[hidden], .dt-trend-card[hidden], .dt-update-row[hidden], .dt-fault-btn[hidden] { display: none !important; }
 .dt-trend-grid line { stroke: var(--dt-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .dt-trend-axis-labels text { fill: var(--dt-text-muted); font-size: 9px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 

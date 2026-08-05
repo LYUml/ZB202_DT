@@ -330,6 +330,7 @@ const state = {
   modelRadius: 1,
   selectedDeviceId: null,
   selectedItem: null,
+  selectedIfcItem: null,
   equipmentFilter: "allEquipment",
   equipmentQuery: "",
   calibrating: false,
@@ -484,10 +485,11 @@ function metricsForCategory(category, localId) {
 async function loadIfcItemDetails(localId, categoryHint = null, fragmentsModel = state.fragmentsModel) {
   if (!fragmentsModel) return null;
   const item = fragmentsModel.getItem(localId);
+  const safely = (task, fallback = null) => Promise.resolve().then(task).catch(() => fallback);
   const [attributes, category, guid] = await Promise.all([
-    item.getAttributes(),
-    categoryHint ? Promise.resolve(categoryHint) : item.getCategory(),
-    item.getGuid(),
+    safely(() => item.getAttributes(), {}),
+    categoryHint ? Promise.resolve(categoryHint) : safely(() => item.getCategory(), "IFC"),
+    safely(() => item.getGuid()),
   ]);
   let data = [];
   try {
@@ -579,6 +581,7 @@ async function clearCurrentModel() {
   state.fragmentsModels.clear();
   state.selectedItem = null;
   state.selectedDeviceId = null;
+  state.selectedIfcItem = null;
   helpersGroup.clear();
   state.boundObjects.clear();
   state.markerObjects.clear();
@@ -680,8 +683,8 @@ async function styleBoundObject(deviceId) {
   if (selected || status !== "normal") {
     await fragmentsModel.highlight([target], {
       color: status === "normal" ? new THREE.Color(0x2f7df4) : statusColor,
-      opacity: status === "fault" ? 0.88 : 0.72,
-      transparent: true,
+      opacity: 1,
+      transparent: false,
       renderedFaces: renderedFaces.TWO,
     });
   }
@@ -961,9 +964,11 @@ function setDevicePanelOpen(open) {
 async function selectDevice(deviceId, focus = false) {
   const device = DEVICES.find((item) => item.id === deviceId);
   if (!device) return;
+  await clearStandaloneIfcSelection();
   state.selectedDeviceId = deviceId;
   state.selectedItem = device.ifc;
   renderUI();
+  await updateAllVisualStates();
   if (focus) {
     focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
   }
@@ -980,8 +985,18 @@ async function selectDevice(deviceId, focus = false) {
   }
 }
 
+async function clearStandaloneIfcSelection() {
+  if (!state.selectedIfcItem) return;
+  const { localId, modelId } = state.selectedIfcItem;
+  const fragmentsModel = state.fragmentsModels.get(modelId);
+  state.selectedIfcItem = null;
+  if (fragmentsModel) await fragmentsModel.resetHighlight([localId]);
+}
+
 async function selectIfcItem(localId, modelId) {
+  await clearStandaloneIfcSelection();
   state.selectedDeviceId = null;
+  state.selectedIfcItem = { localId, modelId };
   state.selectedItem = {
     localId,
     category: "IFC",
@@ -991,23 +1006,38 @@ async function selectIfcItem(localId, modelId) {
   };
   setDevicePanelOpen(true);
   renderUI();
+  const fragmentsModel = state.fragmentsModels.get(modelId) || state.fragmentsModel;
+  await updateAllVisualStates();
+  await fragmentsModel.highlight([localId], {
+    color: new THREE.Color(0x2f7df4),
+    opacity: 1,
+    transparent: false,
+    renderedFaces: renderedFaces.TWO,
+  });
   try {
-    const fragmentsModel = state.fragmentsModels.get(modelId) || state.fragmentsModel;
     const details = await loadIfcItemDetails(localId, null, fragmentsModel);
     if (!state.selectedDeviceId && state.selectedItem?.localId === localId && details) {
       state.selectedItem = details;
       renderSelectedDevice();
-      await fragmentsModel.resetHighlight();
-      await fragmentsModel.highlight([localId], {
-        color: new THREE.Color(0x2f7df4),
-        opacity: 0.72,
-        transparent: true,
-        renderedFaces: renderedFaces.TWO,
-      });
     }
   } catch (error) {
     console.error("Failed to inspect IFC component", error);
   }
+}
+
+async function isNonSelectableIfcItem(fragmentsModel, localId) {
+  const item = fragmentsModel.getItem(localId);
+  const [categoryResult, attributesResult] = await Promise.allSettled([
+    item.getCategory(),
+    item.getAttributes(),
+  ]);
+  const category = categoryResult.status === "fulfilled" ? String(categoryResult.value || "") : "";
+  const attributes = attributesResult.status === "fulfilled" ? attributesResult.value?.object || {} : {};
+  const name = [attributes.Name, attributes.ObjectType, attributes.PredefinedType]
+    .map((value) => readableIfcValue(value) || "")
+    .join(" ");
+  return /^IFCWALL(?:STANDARDCASE)?$/i.test(category)
+    || /(?:^|\b)basic\s+wall\b|\bwall[-_: ]/i.test(name);
 }
 
 function setFault(deviceId, shouldFault) {
@@ -1158,6 +1188,14 @@ async function handleCanvasSelection(event) {
       mouse: new THREE.Vector2(event.clientX, event.clientY),
       dom: elements.canvas,
     });
+    if (candidate && await isNonSelectableIfcItem(fragmentsModel, candidate.localId)) {
+      await clearStandaloneIfcSelection();
+      state.selectedDeviceId = null;
+      state.selectedItem = null;
+      setDevicePanelOpen(false);
+      renderUI();
+      return;
+    }
     const candidateDistance = candidate?.point ? camera.position.distanceToSquared(candidate.point) : Infinity;
     if (candidate && (!result || candidateDistance < hitDistance)) {
       result = candidate;
@@ -1274,8 +1312,9 @@ elements.canvas.addEventListener("pointerup", (event) => {
   if (!pointerDownPosition) return;
   const distance = Math.hypot(event.clientX - pointerDownPosition.x, event.clientY - pointerDownPosition.y);
   pointerDownPosition = null;
-  if (distance < 5) handleCanvasSelection(event).catch((error) => console.error("BIM selection failed", error));
+  if (distance < 10) handleCanvasSelection(event).catch((error) => console.error("BIM selection failed", error));
 });
+elements.canvas.addEventListener("pointercancel", () => { pointerDownPosition = null; });
 controls.addEventListener("change", () => {
   if (state.fragmentsModels.size) fragments.update();
 });
