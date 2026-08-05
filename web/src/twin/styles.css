@@ -462,9 +462,9 @@ body[data-page="twin"] *::after {
 .dt-equipment-filters {
   padding: 9px 12px 3px;
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
-  overflow-x: auto;
-  scrollbar-width: thin;
+  overflow: visible;
 }
 
 .dt-equipment-filters button {
@@ -879,8 +879,8 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-sensor-title > span { color: var(--dt-text-muted); font-size: 0.66rem; font-variant-numeric: tabular-nums; }
 .dt-sensor-card .dt-equipment-search { margin: 10px 12px 0; }
 .dt-sensor-card .dt-equipment-filters { padding-bottom: 8px; }
-.dt-sensor-card .dt-device-list { flex: 1 1 auto; min-height: 0; max-height: none; border-bottom: 0; }
-.dt-sensor-card .dt-device-item { grid-template-columns: minmax(0, 1fr) 28px; }
+.dt-sensor-card .dt-device-list { flex: 1 1 auto; min-height: 0; max-height: none; grid-auto-rows: 58px; align-content: start; border-bottom: 0; }
+.dt-sensor-card .dt-device-item { height: 58px; min-height: 58px; grid-template-columns: minmax(0, 1fr) 28px; }
 .dt-device-state { min-width: 28px; min-height: 28px; display: grid; place-items: center; justify-self: end; }
 .dt-device-item.unavailable .dt-device-status { background: var(--dt-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dt-text-muted) 12%, transparent); }
 

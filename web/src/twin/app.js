@@ -74,7 +74,7 @@ const I18N = {
     loadError: "无法读取 {model}。请通过 npm run dev 启动项目，并确认 Fragments 模型文件存在。",
     supplyTemperature: "送风温度", fanPower: "风机功率", airflow: "送风量", damperPosition: "风阀开度",
     ifcProperties: "IFC 属性", ifcCategory: "IFC 类型", globalId: "GlobalId", expressId: "Express ID",
-    allEquipment: "全部", fans: "风机", coils: "盘管", dampers: "风阀", airTerminals: "风口",
+    allEquipment: "全部", sensors: "传感器", fans: "风机", coils: "盘管", dampers: "风阀", airTerminals: "风口", ducts: "风管", pipes: "管道", mepComponents: "机电构件",
     noProperties: "没有可显示的 IFC 属性", staticBimItem: "静态 BIM 构件", scannedEquipment: "自动扫描设备",
     searchEquipmentPlaceholder: "搜索名称、类型或 ID", searchEquipmentAria: "搜索 IFC 设备", noSearchResults: "没有匹配的 IFC 设备",
     temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
@@ -103,7 +103,7 @@ const I18N = {
     loadError: "無法讀取 {model}。請透過 npm run dev 啟動專案，並確認 Fragments 模型檔案存在。",
     supplyTemperature: "送風溫度", fanPower: "風機功率", airflow: "送風量", damperPosition: "風閥開度",
     ifcProperties: "IFC 屬性", ifcCategory: "IFC 類型", globalId: "GlobalId", expressId: "Express ID",
-    allEquipment: "全部", fans: "風機", coils: "盤管", dampers: "風閥", airTerminals: "風口",
+    allEquipment: "全部", sensors: "感測器", fans: "風機", coils: "盤管", dampers: "風閥", airTerminals: "風口", ducts: "風管", pipes: "管道", mepComponents: "機電構件",
     noProperties: "沒有可顯示的 IFC 屬性", staticBimItem: "靜態 BIM 構件", scannedEquipment: "自動掃描設備",
     searchEquipmentPlaceholder: "搜尋名稱、類型或 ID", searchEquipmentAria: "搜尋 IFC 設備", noSearchResults: "沒有符合的 IFC 設備",
     temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
@@ -132,7 +132,7 @@ const I18N = {
     loadError: "Unable to load {model}. Start the project with npm run dev and confirm the Fragments model file exists.",
     supplyTemperature: "Supply Air Temperature", fanPower: "Fan Power", airflow: "Airflow", damperPosition: "Damper Position",
     ifcProperties: "IFC Properties", ifcCategory: "IFC Type", globalId: "GlobalId", expressId: "Express ID",
-    allEquipment: "All", fans: "Fans", coils: "Coils", dampers: "Dampers", airTerminals: "Air Terminals",
+    allEquipment: "All", sensors: "Sensors", fans: "Fans", coils: "Coils", dampers: "Dampers", airTerminals: "Air Terminals", ducts: "Ducts", pipes: "Pipes", mepComponents: "MEP",
     noProperties: "No IFC properties available", staticBimItem: "Static BIM Component", scannedEquipment: "Auto-scanned equipment",
     searchEquipmentPlaceholder: "Search name, type, or ID", searchEquipmentAria: "Search IFC equipment", noSearchResults: "No matching IFC equipment",
     temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
@@ -215,6 +215,10 @@ const EQUIPMENT_GROUPS = [
   { key: "dampers", category: "IFCDAMPER", label: { zh: "风阀", "zh-Hant": "風閥", en: "Damper" } },
   { key: "airTerminals", category: "IFCAIRTERMINAL", label: { zh: "风口", "zh-Hant": "風口", en: "Air Terminal" } },
   { key: "airTerminals", category: "IFCAIRTERMINALBOX", label: { zh: "风口箱", "zh-Hant": "風口箱", en: "Air Terminal Box" } },
+  { key: "ducts", category: "IFCDUCTSEGMENT", label: { zh: "风管", "zh-Hant": "風管", en: "Duct" } },
+  { key: "ducts", category: "IFCDUCTFITTING", label: { zh: "风管管件", "zh-Hant": "風管管件", en: "Duct Fitting" } },
+  { key: "pipes", category: "IFCPIPESEGMENT", label: { zh: "空调水管", "zh-Hant": "空調水管", en: "HVAC Pipe" } },
+  { key: "pipes", category: "IFCPIPEFITTING", label: { zh: "管道管件", "zh-Hant": "管道管件", en: "Pipe Fitting" } },
 ];
 
 let DEVICES = [];
@@ -232,7 +236,7 @@ function fallbackSensorDevices() {
       },
       subtitle: { zh: "空间点位 · 模拟遥测", "zh-Hant": "空間點位 · 模擬遙測", en: "Spatial marker · Simulated telemetry" },
       category: "IOT_SENSOR",
-      groupKey: "airTerminals",
+      groupKey: "sensors",
       binding: { kind: "marker", normalizedPosition },
       metrics: [
         { key: "temperature", labelKey: "temperature", unit: "°C", value: 22.8 + index * 0.4, variance: 0.18 },
@@ -307,9 +311,9 @@ const elements = {
   trendGrid: document.getElementById("trend-grid"),
   trendAxisLabels: document.getElementById("trend-axis-labels"),
   metricTrendCards: [
-    { key: "temperature", card: document.getElementById("trend-card"), label: document.getElementById("trend-label"), value: document.getElementById("trend-value"), line: document.getElementById("trend-line"), area: document.getElementById("trend-area"), grid: document.getElementById("trend-grid"), axis: document.getElementById("trend-axis-labels") },
-    { key: "humidity", card: document.getElementById("humidity-trend-card"), label: document.getElementById("humidity-trend-label"), value: document.getElementById("humidity-trend-value"), line: document.getElementById("humidity-trend-line"), area: document.getElementById("humidity-trend-area"), grid: document.getElementById("humidity-trend-grid"), axis: document.getElementById("humidity-trend-axis-labels") },
-    { key: "co2", card: document.getElementById("co2-trend-card"), label: document.getElementById("co2-trend-label"), value: document.getElementById("co2-trend-value"), line: document.getElementById("co2-trend-line"), area: document.getElementById("co2-trend-area"), grid: document.getElementById("co2-trend-grid"), axis: document.getElementById("co2-trend-axis-labels") },
+    { card: document.getElementById("trend-card"), label: document.getElementById("trend-label"), value: document.getElementById("trend-value"), line: document.getElementById("trend-line"), area: document.getElementById("trend-area"), grid: document.getElementById("trend-grid"), axis: document.getElementById("trend-axis-labels") },
+    { card: document.getElementById("humidity-trend-card"), label: document.getElementById("humidity-trend-label"), value: document.getElementById("humidity-trend-value"), line: document.getElementById("humidity-trend-line"), area: document.getElementById("humidity-trend-area"), grid: document.getElementById("humidity-trend-grid"), axis: document.getElementById("humidity-trend-axis-labels") },
+    { card: document.getElementById("co2-trend-card"), label: document.getElementById("co2-trend-label"), value: document.getElementById("co2-trend-value"), line: document.getElementById("co2-trend-line"), area: document.getElementById("co2-trend-area"), grid: document.getElementById("co2-trend-grid"), axis: document.getElementById("co2-trend-axis-labels") },
   ],
   viewButtons: [...document.querySelectorAll("[data-view]")],
 };
@@ -444,6 +448,14 @@ function equipmentGroupForCategory(category) {
   return EQUIPMENT_GROUPS.find((group) => group.category === category);
 }
 
+function groupForScannedCategory(category) {
+  const exact = equipmentGroupForCategory(category);
+  if (exact) return exact;
+  if (/DUCT/i.test(category)) return { key: "ducts", category, label: { zh: "风管", "zh-Hant": "風管", en: "Duct" } };
+  if (/PIPE/i.test(category)) return { key: "pipes", category, label: { zh: "管道", "zh-Hant": "管道", en: "Pipe" } };
+  return { key: "mepComponents", category, label: { zh: "机电构件", "zh-Hant": "機電構件", en: "MEP Component" } };
+}
+
 function localizedGroupLabel(group) {
   return group?.label[activeLang] || group?.label.zh || group?.label.en || "IFC";
 }
@@ -469,14 +481,17 @@ function metricsForCategory(category, localId) {
   ];
 }
 
-async function loadIfcItemDetails(localId, categoryHint = null) {
-  if (!state.fragmentsModel) return null;
-  const item = state.fragmentsModel.getItem(localId);
-  const [attributes, category, guid, data] = await Promise.all([
+async function loadIfcItemDetails(localId, categoryHint = null, fragmentsModel = state.fragmentsModel) {
+  if (!fragmentsModel) return null;
+  const item = fragmentsModel.getItem(localId);
+  const [attributes, category, guid] = await Promise.all([
     item.getAttributes(),
     categoryHint ? Promise.resolve(categoryHint) : item.getCategory(),
     item.getGuid(),
-    state.fragmentsModel.getItemsData([localId], {
+  ]);
+  let data = [];
+  try {
+    data = await fragmentsModel.getItemsData([localId], {
       attributesDefault: true,
       relations: {
         ContainedInStructure: { attributes: true, relations: false },
@@ -484,8 +499,10 @@ async function loadIfcItemDetails(localId, categoryHint = null) {
         IsDefinedBy: { attributes: true, relations: true },
         DefinesOccurrence: { attributes: true, relations: true },
       },
-    }),
-  ]);
+    });
+  } catch {
+    data = [];
+  }
   const attributeObject = attributes?.object || {};
   const itemData = data[0] || attributeObject;
   return {
@@ -497,15 +514,15 @@ async function loadIfcItemDetails(localId, categoryHint = null) {
   };
 }
 
-async function scanIfcEquipment(model) {
-  const categories = await model.getItemsOfCategories(
-    EQUIPMENT_GROUPS.map((group) => new RegExp(`^${group.category}$`)),
-  );
+async function scanIfcEquipment(model, modelId) {
+  if (modelId !== "mep") return [];
+  const categories = await model.getItemsOfCategories([
+    /IFC(FAN|COIL|DAMPER|AIRTERMINAL|DUCT|PIPE|FLOW|VALVE|PUMP|UNITARY|EQUIPMENT|BUILDINGELEMENTPROXY)/i,
+  ]);
   const records = [];
-  for (const group of EQUIPMENT_GROUPS) {
-    for (const localId of categories[group.category] || []) {
-      records.push({ localId, group });
-    }
+  for (const [category, localIds] of Object.entries(categories)) {
+    const group = groupForScannedCategory(category);
+    for (const localId of localIds) records.push({ localId, group });
   }
 
   const devices = await Promise.all(records.map(async ({ localId, group }) => {
@@ -516,7 +533,7 @@ async function scanIfcEquipment(model) {
       || readableIfcValue(attributeObject.ObjectType)
       || `${localizedGroupLabel(group)} #${localId}`;
     return {
-      id: guid || `${group.category}-${localId}`,
+      id: guid || `${modelId}-${group.category}-${localId}`,
       name: { zh: name, "zh-Hant": name, en: name },
       subtitle: {
         zh: `${group.label.zh} · IFC 自动扫描 · 模拟遥测`,
@@ -525,7 +542,7 @@ async function scanIfcEquipment(model) {
       },
       category: group.category,
       groupKey: group.key,
-      binding: { kind: "object", globalId: guid, localId },
+      binding: { kind: "object", globalId: guid, localId, modelId },
       metrics: metricsForCategory(group.category, localId),
       ifc: { localId, category: group.category, guid, name, data: attributeObject },
     };
@@ -606,8 +623,9 @@ function animateCamera(destination, target) {
 async function findBindingObject(device) {
   if (!state.model || device.binding.kind !== "object") return null;
   if (Number.isInteger(device.binding.localId)) return device.binding.localId;
-  if (!device.binding.globalId || !state.fragmentsModel) return null;
-  const [localId] = await state.fragmentsModel.getLocalIdsByGuids([device.binding.globalId]);
+  const fragmentsModel = state.fragmentsModels.get(device.binding.modelId) || state.fragmentsModel;
+  if (!device.binding.globalId || !fragmentsModel) return null;
+  const [localId] = await fragmentsModel.getLocalIdsByGuids([device.binding.globalId]);
   return localId ?? null;
 }
 
@@ -656,9 +674,11 @@ async function styleBoundObject(deviceId) {
   const status = statusFor(deviceId);
   const statusColor = new THREE.Color(STATUS[status].color);
 
-  if (!state.fragmentsModel) return;
+  const device = DEVICES.find((item) => item.id === deviceId);
+  const fragmentsModel = state.fragmentsModels.get(device?.binding.modelId) || state.fragmentsModel;
+  if (!fragmentsModel) return;
   if (selected || status !== "normal") {
-    await state.fragmentsModel.highlight([target], {
+    await fragmentsModel.highlight([target], {
       color: status === "normal" ? new THREE.Color(0x2f7df4) : statusColor,
       opacity: status === "fault" ? 0.88 : 0.72,
       transparent: true,
@@ -668,9 +688,11 @@ async function styleBoundObject(deviceId) {
 }
 
 async function updateAllVisualStates() {
-  if (state.fragmentsModel) {
-    const localIds = [...state.boundObjects.values()];
-    if (localIds.length) await state.fragmentsModel.resetHighlight(localIds);
+  for (const [modelId, fragmentsModel] of state.fragmentsModels) {
+    const localIds = DEVICES
+      .filter((device) => device.binding.modelId === modelId && state.boundObjects.has(device.id))
+      .map((device) => state.boundObjects.get(device.id));
+    if (localIds.length) await fragmentsModel.resetHighlight(localIds);
   }
   for (const device of DEVICES) {
     if (state.selectedDeviceId === device.id || statusFor(device.id) !== "normal") {
@@ -688,8 +710,9 @@ async function focusDevice(device) {
   const target = state.boundObjects.get(device.id);
   const marker = state.markerObjects.get(device.id);
 
-  if (target !== undefined && state.fragmentsModel) {
-    const boxes = await state.fragmentsModel.getBoxes([target]);
+  const fragmentsModel = state.fragmentsModels.get(device.binding.modelId) || state.fragmentsModel;
+  if (target !== undefined && fragmentsModel) {
+    const boxes = await fragmentsModel.getBoxes([target]);
     if (boxes.length) box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
   }
   if (marker) {
@@ -783,7 +806,7 @@ function renderSiteOverview() {
 function renderEquipmentFilters() {
   const filters = [
     { key: "allEquipment", count: DEVICES.length },
-    ...["fans", "coils", "dampers", "airTerminals"].map((key) => ({
+    ...["sensors", "fans", "coils", "dampers", "airTerminals", "ducts", "pipes", "mepComponents"].map((key) => ({
       key,
       count: DEVICES.filter((device) => device.groupKey === key).length,
     })),
@@ -828,8 +851,7 @@ function sparklinePath(values) {
   return { line, area, ticks, range, left, right: width - right, top, plotBottom };
 }
 
-function renderMetricTrend(device, snapshot, chart) {
-  const metric = device.metrics.find((item) => item.key === chart.key);
+function renderMetricTrend(snapshot, chart, metric) {
   chart.card.hidden = !metric;
   if (!metric) return;
   const paths = sparklinePath(snapshot.trends[metric.key]);
@@ -886,7 +908,7 @@ function renderSelectedDevice() {
     </div>
   `).join("");
 
-  elements.metricTrendCards.forEach((chart) => renderMetricTrend(device, snapshot, chart));
+  elements.metricTrendCards.forEach((chart, index) => renderMetricTrend(snapshot, chart, device.metrics[index]));
   elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false });
   elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
@@ -947,7 +969,8 @@ async function selectDevice(deviceId, focus = false) {
   }
   if (device.binding.kind !== "object") return;
   try {
-    const details = await loadIfcItemDetails(device.binding.localId, device.category);
+    const fragmentsModel = state.fragmentsModels.get(device.binding.modelId) || state.fragmentsModel;
+    const details = await loadIfcItemDetails(device.binding.localId, device.category, fragmentsModel);
     if (state.selectedDeviceId === deviceId && details) {
       state.selectedItem = details;
       renderSelectedDevice();
@@ -957,7 +980,7 @@ async function selectDevice(deviceId, focus = false) {
   }
 }
 
-async function selectIfcItem(localId) {
+async function selectIfcItem(localId, modelId) {
   state.selectedDeviceId = null;
   state.selectedItem = {
     localId,
@@ -969,12 +992,13 @@ async function selectIfcItem(localId) {
   setDevicePanelOpen(true);
   renderUI();
   try {
-    const details = await loadIfcItemDetails(localId);
+    const fragmentsModel = state.fragmentsModels.get(modelId) || state.fragmentsModel;
+    const details = await loadIfcItemDetails(localId, null, fragmentsModel);
     if (!state.selectedDeviceId && state.selectedItem?.localId === localId && details) {
       state.selectedItem = details;
       renderSelectedDevice();
-      await state.fragmentsModel.resetHighlight();
-      await state.fragmentsModel.highlight([localId], {
+      await fragmentsModel.resetHighlight();
+      await fragmentsModel.highlight([localId], {
         color: new THREE.Color(0x2f7df4),
         opacity: 0.72,
         transparent: true,
@@ -1079,8 +1103,10 @@ async function finalizeFederatedModel(componentCount) {
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
-  DEVICES = await scanIfcEquipment(state.fragmentsModel);
-  if (!DEVICES.length) DEVICES = fallbackSensorDevices();
+  const scannedDevices = (await Promise.all(
+    [...state.fragmentsModels].map(([modelId, fragmentsModel]) => scanIfcEquipment(fragmentsModel, modelId)),
+  )).flat();
+  DEVICES = [...fallbackSensorDevices(), ...scannedDevices];
   initializeDeviceSnapshots();
   state.selectedDeviceId = DEVICES[0]?.id || null;
   state.selectedItem = DEVICES[0]?.ifc || null;
@@ -1122,12 +1148,23 @@ async function loadModel() {
 
 async function handleCanvasSelection(event) {
   if (!state.model) return;
-  if (!state.fragmentsModel) return;
-  const result = await state.fragmentsModel.raycast({
-    camera,
-    mouse: new THREE.Vector2(event.clientX, event.clientY),
-    dom: elements.canvas,
-  });
+  let result = null;
+  let hitModelId = null;
+  let hitDistance = Infinity;
+  for (const [modelId, fragmentsModel] of state.fragmentsModels) {
+    if (!fragmentsModel.object.visible) continue;
+    const candidate = await fragmentsModel.raycast({
+      camera,
+      mouse: new THREE.Vector2(event.clientX, event.clientY),
+      dom: elements.canvas,
+    });
+    const candidateDistance = candidate?.point ? camera.position.distanceToSquared(candidate.point) : Infinity;
+    if (candidate && (!result || candidateDistance < hitDistance)) {
+      result = candidate;
+      hitModelId = modelId;
+      hitDistance = candidateDistance;
+    }
+  }
   if (!result) return;
   if (state.calibrating) {
     const point = result.point;
@@ -1139,12 +1176,12 @@ async function handleCanvasSelection(event) {
     elements.wrap.classList.remove("is-calibrating");
     return;
   }
-  const device = DEVICES.find((item) => state.boundObjects.get(item.id) === result.localId);
+  const device = DEVICES.find((item) => item.binding.modelId === hitModelId && state.boundObjects.get(item.id) === result.localId);
   if (device) {
     selectDevice(device.id, true);
     setDevicePanelOpen(true);
   } else {
-    selectIfcItem(result.localId);
+    selectIfcItem(result.localId, hitModelId);
   }
 }
 
