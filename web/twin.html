@@ -82,7 +82,10 @@
               <button type="button" class="active" data-history-range="1h">1h</button>
               <button type="button" data-history-range="12h">12h</button>
               <button type="button" data-history-range="24h">24h</button>
-              <button type="button" data-history-range="custom" data-i18n="custom">自定义</button>
+              <label class="dt-custom-hours" id="custom-hours-control">
+                <input id="custom-hours" type="number" min="1" max="720" step="1" placeholder="..." inputmode="numeric" aria-label="Custom history range in hours" />
+                <span>h</span>
+              </label>
             </div>
             <p class="dt-history-note" id="history-note" data-i18n="mockHistoryNote">当前仅显示可用的模拟数据窗口</p>
           </div>

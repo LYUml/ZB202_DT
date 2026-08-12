@@ -82,12 +82,9 @@ const i18n = {
     "common.decoder": "Decoder",
     "common.latestValues": "最新数据",
     "common.lastMaintenance": "最近检修",
-    "common.action": "操作",
-    "common.viewDetail": "查看详情",
     "common.statusLabel": "状态",
     "common.locationLabel": "位置",
     "common.maintenanceLabel": "检修",
-    "common.deviceDetail": "设备详情",
     "common.field": "字段",
     "common.value": "信息",
     "common.tbd": "待接入",
@@ -130,12 +127,9 @@ const i18n = {
     "common.decoder": "Decoder",
     "common.latestValues": "最新資料",
     "common.lastMaintenance": "最近檢修",
-    "common.action": "操作",
-    "common.viewDetail": "查看詳情",
     "common.statusLabel": "狀態",
     "common.locationLabel": "位置",
     "common.maintenanceLabel": "檢修",
-    "common.deviceDetail": "設備詳情",
     "common.field": "欄位",
     "common.value": "資訊",
     "common.tbd": "待接入",
@@ -149,8 +143,8 @@ const i18n = {
   },
   en: {
     "overview.eyebrow": "ZB202 / Building Digital Twin",
-    "overview.title": "Spatial Equipment Directory",
-    "overview.note": "Demo placeholder data for now; live IoT and BIM status will be integrated later.",
+    "overview.title": "Indoor Environment Sensors",
+    "overview.note": "MQTT is connected. Offline sensors are marked in red.",
     "overview.viewCard": "Card",
     "overview.viewTable": "Table",
     "overview.roomView": "Room View",
@@ -165,8 +159,12 @@ const i18n = {
     "detail.modelPlaceholderHint": "Connect your renderer and IoT live stream here later",
     "detail.switchToTable": "Table View",
     "detail.switchToVisual": "Model View",
+    "detail.openTwin": "Open in Digital Twin",
+    "detail.readingsEyebrow": "Latest MQTT Reading",
+    "detail.readingsTitle": "Indoor Environment",
+    "detail.readingsNote": "Open the digital twin to view live status and historical trends.",
     "common.room": "Room",
-    "common.devices": "Devices",
+    "common.devices": "Sensors",
     "common.name": "Name",
     "common.id": "ID",
     "common.location": "Location",
@@ -178,12 +176,9 @@ const i18n = {
     "common.decoder": "Decoder",
     "common.latestValues": "Latest Values",
     "common.lastMaintenance": "Last Maintenance",
-    "common.action": "Action",
-    "common.viewDetail": "View Detail",
     "common.statusLabel": "Status",
     "common.locationLabel": "Location",
     "common.maintenanceLabel": "Maintenance",
-    "common.deviceDetail": "Device Detail",
     "common.field": "Field",
     "common.value": "Value",
     "common.tbd": "TBD",
@@ -204,7 +199,7 @@ const statusClassMap = {
 };
 
 const query = new URLSearchParams(window.location.search);
-const initialLang = query.get("lang") || localStorage.getItem("lang") || "zh";
+const initialLang = query.get("lang") || localStorage.getItem("lang") || "en";
 let activeLang = normalizeLanguage(initialLang);
 let isDeviceTableMode = false;
 
@@ -310,7 +305,8 @@ window.addEventListener("storage", (event) => {
 });
 
 function deviceUrl(deviceId) {
-  return `device.html?deviceId=${encodeURIComponent(deviceId)}&lang=${activeLang}`;
+  const sensorId = deviceId.replaceAll("_", "-");
+  return `twin.html?lang=${activeLang}&sensor=${encodeURIComponent(sensorId)}`;
 }
 
 function getDeviceText(value) {
@@ -333,6 +329,20 @@ function formatLatestValues(values) {
     .join(" / ");
 }
 
+function metricLabel(key) {
+  if (key === "co2") return "CO₂";
+  return key.replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function renderMetricGrid(values) {
+  return Object.entries(values || {}).map(([key, value]) => `
+    <div class="device-metric">
+      <span>${metricLabel(key)}</span>
+      <strong>${value}</strong>
+    </div>
+  `).join("");
+}
+
 function renderOverview(devices) {
   const cardRoot = document.getElementById("card-view");
   const tableBody = document.getElementById("device-table-body");
@@ -348,19 +358,17 @@ function renderOverview(devices) {
       const statusClass = statusClassMap[device.status] || statusClassMap.normal;
 
       return `
-      <article class="device-card">
-        <h3>${getDeviceText(device.name)}</h3>
-        <p class="muted">${device.id}${device.model ? ` · ${device.model}` : ""}</p>
-        <div class="card-row"><span>${t("common.locationLabel")}</span><span>${getDeviceText(device.location)}</span></div>
-        <div class="card-row"><span>${t("common.type")}</span><span>${getDeviceText(device.type)}</span></div>
-        <div class="card-row">
-          <span>${t("common.statusLabel")}</span>
+      <a class="device-card" href="${deviceUrl(device.id)}" aria-label="${getDeviceText(device.name)} · ${statusText}">
+        <div class="device-card-header">
+          <div>
+            <h3>${getDeviceText(device.name)}</h3>
+            <p class="muted">${device.id}${device.model ? ` · ${device.model}` : ""}</p>
+          </div>
           <span class="status"><i class="dot ${statusClass}"></i>${statusText}</span>
         </div>
-        <div class="card-row"><span>${t("common.latestValues")}</span><span>${formatLatestValues(device.latestValues)}</span></div>
-        <div class="card-row"><span>${t("common.maintenanceLabel")}</span><span>${getMaintenanceText(device.maintenanceDate)}</span></div>
-        <a class="btn" href="${deviceUrl(device.id)}">${t("common.viewDetail")}</a>
-      </article>`;
+        <p class="device-location">${getDeviceText(device.location)}</p>
+        <div class="device-metrics">${renderMetricGrid(device.latestValues)}</div>
+      </a>`;
     })
     .join("");
 
@@ -370,16 +378,25 @@ function renderOverview(devices) {
       const statusClass = statusClassMap[device.status] || statusClassMap.normal;
 
       return `
-      <tr>
+      <tr class="device-table-row" data-href="${deviceUrl(device.id)}" tabindex="0" role="link" aria-label="${getDeviceText(device.name)} · ${statusText}">
         <td>${getDeviceText(device.name)}</td>
         <td>${device.id}</td>
         <td>${getDeviceText(device.location)}</td>
         <td><span class="status"><i class="dot ${statusClass}"></i>${statusText}</span></td>
-        <td>${getMaintenanceText(device.maintenanceDate)}</td>
-        <td><a class="btn" href="${deviceUrl(device.id)}">${t("common.deviceDetail")}</a></td>
+        <td>${formatLatestValues(device.latestValues)}</td>
       </tr>`;
     })
     .join("");
+
+  tableBody.querySelectorAll(".device-table-row").forEach((row) => {
+    const openDevice = () => window.location.assign(row.dataset.href);
+    row.addEventListener("click", openDevice);
+    row.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      openDevice();
+    });
+  });
 }
 
 function attachViewSwitch() {
@@ -524,7 +541,8 @@ function initCubeInteraction() {
 function renderDeviceDetail(devices) {
   const titleEl = document.getElementById("device-title");
   const listEl = document.getElementById("device-info-list");
-  if (!titleEl || !listEl) return;
+  const readingGrid = document.getElementById("detail-reading-grid");
+  if (!titleEl || !listEl || !readingGrid) return;
 
   const deviceId = query.get("deviceId");
   const device = devices.find((item) => item.id === deviceId) || devices[0];
@@ -534,7 +552,6 @@ function renderDeviceDetail(devices) {
   titleEl.textContent = getDeviceText(device.name);
 
   listEl.innerHTML = `
-    <div><dt>${t("common.name")}</dt><dd>${getDeviceText(device.name)}</dd></div>
     <div><dt>${t("common.id")}</dt><dd>${device.id}</dd></div>
     <div><dt>${t("common.model")}</dt><dd>${device.model || "-"}</dd></div>
     <div><dt>${t("common.type")}</dt><dd>${getDeviceText(device.type)}</dd></div>
@@ -542,9 +559,17 @@ function renderDeviceDetail(devices) {
     <div><dt>${t("common.decoder")}</dt><dd>${device.decoder || "-"}</dd></div>
     <div><dt>${t("common.location")}</dt><dd>${getDeviceText(device.location)}</dd></div>
     <div><dt>${t("common.status")}</dt><dd><span class="status"><i class="dot ${statusClass}"></i>${statusText}</span></dd></div>
-    <div><dt>${t("common.latestValues")}</dt><dd>${formatLatestValues(device.latestValues)}</dd></div>
-    <div><dt>${t("common.lastMaintenance")}</dt><dd>${getMaintenanceText(device.maintenanceDate)}</dd></div>
   `;
+
+  readingGrid.innerHTML = Object.entries(device.latestValues || {}).map(([key, value]) => `
+    <div class="detail-reading">
+      <span>${key === "co2" ? "CO₂" : key.replace(/^./, (letter) => letter.toUpperCase())}</span>
+      <strong>${value}</strong>
+    </div>
+  `).join("");
+
+  const twinLink = document.getElementById("twin-view-link");
+  if (twinLink) twinLink.href = `twin.html?lang=${activeLang}`;
 }
 
 async function loadDevices() {
@@ -572,14 +597,8 @@ async function loadDevices() {
 
   if (page === "device") {
     renderDeviceDetail(devices);
-    renderDetailTable(devices);
-    initCubeInteraction();
-    attachDeviceModeToggle();
-    syncDetailModeUI();
     addLanguageControl(() => {
       renderDeviceDetail(devices);
-      renderDetailTable(devices);
-      syncDetailModeUI();
     });
   }
 })();

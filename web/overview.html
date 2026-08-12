@@ -37,7 +37,7 @@
         </div>
       </div>
 
-      <h1 class="hero-title" data-i18n="overview.title">空间设备总览</h1>
+      <h1 class="hero-title" data-i18n="overview.title">室内环境传感器</h1>
 
       <div class="hero-meta">
         <div>
@@ -45,11 +45,11 @@
           <p class="hero-value">ZB202</p>
         </div>
         <div>
-          <p class="kicker" data-i18n="common.devices">设备数</p>
+          <p class="kicker" data-i18n="common.devices">传感器</p>
           <p class="hero-value" id="device-count">0</p>
         </div>
         <div class="hero-note">
-          <p data-i18n="overview.note">当前为演示占位数据，后续将接入实时 IoT 与 BIM 状态。</p>
+          <p data-i18n="overview.note">MQTT 已接入。离线设备会以红色状态显示。</p>
         </div>
       </div>
     </header>
@@ -72,8 +72,7 @@
               <th data-i18n="common.id">编号</th>
               <th data-i18n="common.location">位置</th>
               <th data-i18n="common.status">状态</th>
-              <th data-i18n="common.lastMaintenance">最近检修</th>
-              <th data-i18n="common.action">操作</th>
+              <th data-i18n="common.latestValues">最新数据</th>
             </tr>
           </thead>
           <tbody id="device-table-body"></tbody>

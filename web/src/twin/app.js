@@ -5,6 +5,7 @@ import "@phosphor-icons/web/regular";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const query = new URLSearchParams(window.location.search);
+const requestedSensorId = String(query.get("sensor") || "").replaceAll("_", "-").toUpperCase();
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 
@@ -140,6 +141,7 @@ const I18N = {
     temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
     dataPanelAria: "Sensor data panel", closeDataPanel: "Close data panel", sensorData: "Sensor Data",
     componentDetails: "Component Details", componentInfo: "BIM Component", ifcType: "IFC Type", identifiers: "Identifiers",
+    readingsInRange: "{count} real readings in the selected {range} window",
     dataPanelLabel: "Data Panel", earlier: "Earlier", now: "Now",
     lastUpload: "Last upload", custom: "Custom", mockHistoryNote: "Showing the available simulated-data window",
     bmsReserved: "AHU operating data will be connected in a future release.", aiReserved: "AI analytics will be connected in a future release.",
@@ -330,6 +332,8 @@ const elements = {
   reservedCopy: document.getElementById("reserved-copy"),
   historyNote: document.getElementById("history-note"),
   historyRangeButtons: [...document.querySelectorAll("[data-history-range]")],
+  customHoursControl: document.getElementById("custom-hours-control"),
+  customHoursInput: document.getElementById("custom-hours"),
   trendGrid: document.getElementById("trend-grid"),
   trendAxisLabels: document.getElementById("trend-axis-labels"),
   metricTrendCards: [
@@ -363,6 +367,7 @@ const state = {
   fragmentsModel: null,
   fragmentsModels: new Map(),
   historyRange: "1h",
+  customHours: 6,
   liveDevices: new Set(),
   mqttConnected: false,
   mqttConnectionKnown: false,
@@ -859,7 +864,42 @@ function renderSiteOverview() {
   elements.siteOccupants.textContent = "—";
 }
 
-function sparklinePath(values) {
+function historyWindowMs() {
+  if (state.historyRange === "1h") return 60 * 60 * 1000;
+  if (state.historyRange === "12h") return 12 * 60 * 60 * 1000;
+  if (state.historyRange === "24h") return 24 * 60 * 60 * 1000;
+  if (state.historyRange === "custom") return state.customHours * 60 * 60 * 1000;
+  return null;
+}
+
+function samplesInSelectedRange(samples) {
+  const windowMs = historyWindowMs();
+  if (!windowMs) return samples;
+  const cutoff = Date.now() - windowMs;
+  return samples.filter((sample) => sample.time >= cutoff);
+}
+
+function trendScale(metric, values) {
+  const scaleByMetric = {
+    temperature: { minimumSpan: 0.4, decimals: 1 },
+    humidity: { minimumSpan: 1, decimals: 1 },
+    co2: { minimumSpan: 20, decimals: 0 },
+  };
+  const config = scaleByMetric[metric?.key] || { minimumSpan: 1, decimals: 1 };
+  const observedMin = Math.min(...values);
+  const observedMax = Math.max(...values);
+  const observedSpan = observedMax - observedMin;
+  const span = Math.max(config.minimumSpan, observedSpan * 1.24);
+  const center = (observedMin + observedMax) / 2;
+  return {
+    min: center - span / 2,
+    max: center + span / 2,
+    span,
+    decimals: config.decimals,
+  };
+}
+
+function sparklinePath(samples, metric) {
   const width = 360;
   const height = 140;
   const left = 40;
@@ -867,29 +907,35 @@ function sparklinePath(values) {
   const top = 10;
   const bottom = 28;
   const plotBottom = height - bottom;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = Math.max(max - min, 0.1);
-  const points = values.map((value, index) => {
-    const x = left + (index / Math.max(values.length - 1, 1)) * (width - left - right);
-    const y = top + (1 - (value - min) / range) * (plotBottom - top);
+  const values = samples.map((sample) => sample.value);
+  const scale = trendScale(metric, values);
+  const windowMs = historyWindowMs();
+  const latestTime = Date.now();
+  let domainStart = windowMs ? latestTime - windowMs : samples[0].time;
+  let domainEnd = windowMs ? latestTime : samples.at(-1).time;
+  if (domainEnd <= domainStart) domainEnd = domainStart + 1;
+  let points = samples.map((sample) => {
+    const xRatio = Math.max(0, Math.min(1, (sample.time - domainStart) / (domainEnd - domainStart)));
+    const x = left + xRatio * (width - left - right);
+    const y = top + (1 - (sample.value - scale.min) / scale.span) * (plotBottom - top);
     return [x, y];
   });
+  if (points.length === 1) points = [[left, points[0][1]], [width - right, points[0][1]]];
   const line = points.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const area = `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z`;
-  const ticks = [max, min + range / 2, min].map((value, index) => ({
+  const ticks = [scale.max, (scale.max + scale.min) / 2, scale.min].map((value, index) => ({
     value,
     y: top + (index / 2) * (plotBottom - top),
   }));
-  return { line, area, points, ticks, range, left, right: width - right, top, plotBottom };
+  return { line, area, points, ticks, decimals: scale.decimals, left, right: width - right, top, plotBottom };
 }
 
 function renderMetricTrend(snapshot, chart, metric) {
-  const values = metric ? snapshot.trends[metric.key].filter(Number.isFinite) : [];
-  chart.card.hidden = !metric || values.length === 0;
-  if (!metric || values.length === 0) return;
-  const chartValues = values.length === 1 ? [values[0], values[0]] : values;
-  const paths = sparklinePath(chartValues);
+  const samples = metric ? samplesInSelectedRange(snapshot.trends[metric.key]) : [];
+  const values = samples.map((sample) => sample.value);
+  chart.card.hidden = !metric || samples.length === 0;
+  if (!metric || samples.length === 0) return;
+  const paths = sparklinePath(samples, metric);
   chart.label.textContent = t(metric.labelKey);
   const delta = values.at(-1) - values[0];
   const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
@@ -903,9 +949,9 @@ function renderMetricTrend(snapshot, chart, metric) {
   chart.grid.innerHTML = paths.ticks.map((tick) => `
     <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
   `).join("") + `<line x1="${paths.left}" y1="${paths.top}" x2="${paths.left}" y2="${paths.plotBottom}"></line>`;
-  const rangeLabel = state.historyRange === "custom" ? t("earlier") : `-${state.historyRange}`;
+  const rangeLabel = `-${state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange}`;
   chart.axis.innerHTML = paths.ticks.map((tick) => `
-    <text x="34" y="${tick.y + 3}" text-anchor="end">${tick.value.toFixed(paths.range < 1 ? 2 : 1)}</text>
+    <text x="34" y="${tick.y + 3}" text-anchor="end">${tick.value.toFixed(paths.decimals)}</text>
   `).join("") + `
     <text x="${paths.left}" y="132" text-anchor="start">${rangeLabel}</text>
     <text x="${paths.right}" y="132" text-anchor="end">${t("now")}</text>
@@ -972,6 +1018,9 @@ function renderSelectedDevice() {
   `).join("");
 
   elements.metricTrendCards.forEach((chart, index) => renderMetricTrend(snapshot, chart, device.metrics[index]));
+  const primarySamples = samplesInSelectedRange(snapshot.trends[device.metrics[0].key]);
+  const selectedRangeLabel = state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange;
+  elements.historyNote.textContent = t("readingsInRange", { count: primarySamples.length, range: selectedRangeLabel });
   elements.updatedAt.textContent = state.lastLiveAt.has(device.id)
     ? snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false })
     : "—";
@@ -1171,7 +1220,7 @@ function connectMqttBridge() {
       const value = Number(message.values?.[metric.key]);
       if (!Number.isFinite(value)) continue;
       snapshot.values[metric.key] = value;
-      snapshot.trends[metric.key].push(value);
+      snapshot.trends[metric.key].push({ value, time: Date.parse(message.receivedAt) || Date.now() });
       snapshot.trends[metric.key] = snapshot.trends[metric.key].slice(-24);
     }
     snapshot.status = "normal";
@@ -1255,14 +1304,18 @@ async function finalizeFederatedModel(componentCount) {
   DEVICES = fallbackSensorDevices();
   MEP_COMPONENTS = await scanIfcEquipment(state.fragmentsModels.get("mep"), "mep");
   initializeDeviceSnapshots();
-  state.selectedDeviceId = DEVICES[0]?.id || null;
-  state.selectedItem = DEVICES[0]?.ifc || null;
+  const initialDevice = DEVICES.find((device) => device.id.toUpperCase() === requestedSensorId) || DEVICES[0];
+  state.selectedDeviceId = initialDevice?.id || null;
+  state.selectedItem = initialDevice?.ifc || null;
   elements.deviceCount.textContent = String(DEVICES.length);
   addGrid();
   fitCameraToModel(false);
   await fragments.update(true);
   await bindDevices();
-  if (DEVICES[0]) await selectDevice(DEVICES[0].id);
+  if (initialDevice) {
+    await selectDevice(initialDevice.id, Boolean(requestedSensorId));
+    if (requestedSensorId) setDevicePanelOpen(true);
+  }
   elements.meshCount.textContent = componentCount.toLocaleString(activeLocale());
   elements.loadingProgress.style.width = "100%";
   elements.loadingMeta.textContent = t("modelReady", { count: componentCount.toLocaleString(activeLocale()) });
@@ -1390,11 +1443,28 @@ document.querySelector("[data-action='reset']")?.addEventListener("click", () =>
 elements.historyRangeButtons.forEach((button) => button.addEventListener("click", () => {
   state.historyRange = button.dataset.historyRange;
   elements.historyRangeButtons.forEach((item) => item.classList.toggle("active", item === button));
-  elements.historyNote.textContent = button.dataset.historyRange === "custom"
-    ? t("reservedCopy")
-    : t("mockHistoryNote");
+  elements.customHoursControl.classList.remove("active");
   renderSelectedDevice();
 }));
+function applyCustomHours() {
+  const value = Math.round(Number(elements.customHoursInput.value));
+  state.customHours = Math.max(1, Math.min(720, Number.isFinite(value) ? value : 6));
+  elements.customHoursInput.value = String(state.customHours);
+  if (state.historyRange === "custom") renderSelectedDevice();
+}
+elements.customHoursInput.addEventListener("focus", () => {
+  state.historyRange = "custom";
+  elements.historyRangeButtons.forEach((item) => item.classList.remove("active"));
+  elements.customHoursControl.classList.add("active");
+  renderSelectedDevice();
+});
+elements.customHoursInput.addEventListener("change", applyCustomHours);
+elements.customHoursInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    applyCustomHours();
+    elements.customHoursInput.blur();
+  }
+});
 elements.equipmentSearch.addEventListener("input", () => {
   state.equipmentQuery = elements.equipmentSearch.value;
   renderDeviceList();

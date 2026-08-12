@@ -1027,6 +1027,10 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-history-ranges { margin: 10px 12px 0; display: flex; gap: 5px; }
 .dt-history-ranges button { min-width: 42px; padding: 5px 8px; border: 1px solid var(--dt-border); border-radius: 7px; color: var(--dt-text-muted); background: var(--dt-panel); font: inherit; font-size: 0.62rem; cursor: pointer; }
 .dt-history-ranges button:hover, .dt-history-ranges button.active { border-color: var(--dt-accent-border); color: var(--dt-accent); background: var(--dt-accent-soft); }
+.dt-custom-hours { width: 42px; min-height: 26px; padding: 0 3px; display: inline-flex; align-items: center; justify-content: center; gap: 1px; border: 1px solid var(--dt-border); border-radius: 7px; color: var(--dt-text-muted); background: var(--dt-panel); font-size: 0.62rem; cursor: text; }
+.dt-custom-hours.active, .dt-custom-hours:focus-within { border-color: var(--dt-accent-border); color: var(--dt-accent); background: var(--dt-accent-soft); }
+.dt-custom-hours input { width: 18px; padding: 0; border: 0; outline: 0; color: inherit; background: transparent; font: inherit; font-variant-numeric: tabular-nums; text-align: center; appearance: textfield; }
+.dt-custom-hours input::-webkit-inner-spin-button, .dt-custom-hours input::-webkit-outer-spin-button { margin: 0; appearance: none; }
 .dt-history-note { margin: 8px 12px 0; color: var(--dt-text-muted); font-size: 0.6rem; }
 .dt-history-toolbar { flex: 0 0 auto; margin-top: 10px; }
 .dt-history-toolbar .dt-history-ranges { margin: 0; }
