@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="zh-HK">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="description" content="ZB202 AI-Empowered Digital Twin Platform" />
   <title>ZB202 AI-Empowered Digital Twin Platform</title>
   <script>
@@ -12,7 +12,7 @@
       try { savedTheme = localStorage.getItem(storageKey); } catch { savedTheme = null; }
       document.documentElement.dataset.theme = savedTheme === "light" || savedTheme === "dark"
         ? savedTheme
-        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        : "light";
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">

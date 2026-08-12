@@ -147,7 +147,7 @@ const I18N = {
   },
 };
 
-let activeLang = normalizeLanguage(query.get("lang") || localStorage.getItem("lang") || "zh");
+let activeLang = normalizeLanguage(query.get("lang") || "en");
 
 function normalizeLanguage(lang) {
   if (lang === "en") return "en";
@@ -224,19 +224,25 @@ const EQUIPMENT_GROUPS = [
 let DEVICES = [];
 
 function fallbackSensorDevices() {
-  const positions = [[0.32, 0.64, 0.38], [0.58, 0.52, 0.56], [0.73, 0.68, 0.36]];
-  return positions.map((normalizedPosition, index) => {
-    const number = String(index + 1).padStart(2, "0");
+  const positions = [
+    { model: "AM103", number: "07", normalizedPosition: [0.29, 0.66, 0.31] },
+    { model: "AM103", number: "08", normalizedPosition: [0.51, 0.83, 0.39] },
+    { model: "AM308", number: "01", normalizedPosition: [0.56, 0.50, 0.54] },
+    { model: "AM103", number: "05", normalizedPosition: [0.43, 0.54, 0.62] },
+    { model: "AM103", number: "06", normalizedPosition: [0.68, 0.48, 0.57] },
+  ];
+  return positions.map(({ model, number, normalizedPosition }, index) => {
     return {
-      id: `AM103-${number}`,
+      id: `${model}-${number}`,
       name: {
-        zh: `AM-103 室内环境传感器 ${number}`,
-        "zh-Hant": `AM-103 室內環境感測器 ${number}`,
-        en: `AM-103 Indoor Environment Sensor ${number}`,
+        zh: `${model}-${number} 室内环境传感器`,
+        "zh-Hant": `${model}-${number} 室內環境感測器`,
+        en: `${model}-${number} Indoor Environment Sensor`,
       },
       subtitle: { zh: "空间点位 · 模拟遥测", "zh-Hant": "空間點位 · 模擬遙測", en: "Spatial marker · Simulated telemetry" },
       category: "IOT_SENSOR",
       groupKey: "sensors",
+      sensorModel: model,
       binding: { kind: "marker", normalizedPosition },
       metrics: [
         { key: "temperature", labelKey: "temperature", unit: "°C", value: 22.8 + index * 0.4, variance: 0.18 },
@@ -739,7 +745,7 @@ function normalizedSearchText(value) {
 function visibleDevices() {
   const categoryDevices = state.equipmentFilter === "allEquipment"
     ? DEVICES
-    : DEVICES.filter((device) => device.groupKey === state.equipmentFilter);
+    : DEVICES.filter((device) => device.sensorModel === state.equipmentFilter);
   const queryText = normalizedSearchText(state.equipmentQuery);
   if (!queryText) return categoryDevices;
   return categoryDevices.filter((device) => {
@@ -809,9 +815,9 @@ function renderSiteOverview() {
 function renderEquipmentFilters() {
   const filters = [
     { key: "allEquipment", count: DEVICES.length },
-    ...["sensors", "fans", "coils", "dampers", "airTerminals", "ducts", "pipes", "mepComponents"].map((key) => ({
+    ...["AM103", "AM308"].map((key) => ({
       key,
-      count: DEVICES.filter((device) => device.groupKey === key).length,
+      count: DEVICES.filter((device) => device.sensorModel === key).length,
     })),
   ];
   elements.equipmentFilters.innerHTML = "";
@@ -819,7 +825,7 @@ function renderEquipmentFilters() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = state.equipmentFilter === filter.key ? "active" : "";
-    button.textContent = `${t(filter.key)} ${filter.count}`;
+    button.textContent = `${filter.key === "allEquipment" ? t(filter.key) : filter.key} ${filter.count}`;
     button.addEventListener("click", () => {
       state.equipmentFilter = filter.key;
       renderEquipmentFilters();
@@ -1133,10 +1139,7 @@ async function finalizeFederatedModel(componentCount) {
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
-  const scannedDevices = (await Promise.all(
-    [...state.fragmentsModels].map(([modelId, fragmentsModel]) => scanIfcEquipment(fragmentsModel, modelId)),
-  )).flat();
-  DEVICES = [...fallbackSensorDevices(), ...scannedDevices];
+  DEVICES = fallbackSensorDevices();
   initializeDeviceSnapshots();
   state.selectedDeviceId = DEVICES[0]?.id || null;
   state.selectedItem = DEVICES[0]?.ifc || null;

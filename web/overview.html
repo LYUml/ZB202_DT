@@ -9,7 +9,7 @@
       const saved = localStorage.getItem("zb202-theme");
       document.documentElement.dataset.theme = saved === "light" || saved === "dark"
         ? saved
-        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        : "light";
     })();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
