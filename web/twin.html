@@ -66,7 +66,7 @@
 
       <aside class="dt-data-panel" id="device-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-label="传感器数据面板" data-i18n-aria="dataPanelAria" inert>
         <header class="dt-data-header">
-          <div><p class="dt-overline" data-i18n="dataPanelLabel">数据面板</p><h2 data-i18n="sensorData">传感器数据</h2></div>
+          <div><p class="dt-overline" id="data-panel-label" data-i18n="dataPanelLabel">数据面板</p><h2 id="data-panel-title" data-i18n="sensorData">传感器数据</h2></div>
           <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭数据面板" data-i18n-aria="closeDataPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
         </header>
         <div class="dt-detail" id="device-detail">
@@ -75,6 +75,7 @@
             <span class="dt-status-badge normal" id="status-badge">Online</span>
           </div>
           <div class="dt-metrics" id="metric-grid"></div>
+          <section class="dt-component-properties" id="component-properties" hidden></section>
           <div class="dt-update-row" id="update-row"><span data-i18n="lastUpload">最后上传</span><time id="updated-at">—</time></div>
           <div class="dt-history-toolbar">
             <div class="dt-history-ranges" aria-label="历史数据范围">
@@ -133,7 +134,11 @@
 
         <section class="dt-rail-card dt-sensor-card" id="sensor-list-card">
           <header>
-            <div><p class="dt-overline" data-i18n="liveAssets">实时设备</p><div class="dt-sensor-title"><h2 data-i18n="iotSensorsList">IoT 传感器列表</h2><span id="equipment-search-count">0/0</span></div></div>
+            <div><p class="dt-overline" data-i18n="liveAssets">实时设备</p><div class="dt-sensor-title"><h2 id="asset-list-title" data-i18n="iotSensorsList">IoT 传感器列表</h2><span id="equipment-search-count">0/0</span></div></div>
+            <div class="dt-asset-tabs" role="tablist" aria-label="Asset type">
+              <button type="button" class="active" role="tab" aria-selected="true" data-asset-view="sensors"><i class="ph ph-check" aria-hidden="true"></i><span>Sensor</span></button>
+              <button type="button" role="tab" aria-selected="false" data-asset-view="mep"><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></button>
+            </div>
           </header>
           <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索名称、类型或 ID" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
           <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>

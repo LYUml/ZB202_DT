@@ -79,6 +79,7 @@ const I18N = {
     searchEquipmentPlaceholder: "搜索名称、类型或 ID", searchEquipmentAria: "搜索 IFC 设备", noSearchResults: "没有匹配的 IFC 设备",
     temperature: "室内温度", humidity: "相对湿度", co2: "CO₂",
     dataPanelAria: "传感器数据面板", closeDataPanel: "关闭数据面板", sensorData: "传感器数据",
+    componentDetails: "构件详情", componentInfo: "BIM 构件", ifcType: "IFC 类型", identifiers: "标识符",
     dataPanelLabel: "数据面板", earlier: "较早", now: "现在",
     lastUpload: "最后上传", custom: "自定义", mockHistoryNote: "当前仅显示可用的模拟数据窗口",
     bmsReserved: "AHU 运行数据将在后续版本接入。", aiReserved: "AI 分析模块将在后续版本接入。",
@@ -108,6 +109,7 @@ const I18N = {
     searchEquipmentPlaceholder: "搜尋名稱、類型或 ID", searchEquipmentAria: "搜尋 IFC 設備", noSearchResults: "沒有符合的 IFC 設備",
     temperature: "室內溫度", humidity: "相對濕度", co2: "CO₂",
     dataPanelAria: "感測器資料面板", closeDataPanel: "關閉資料面板", sensorData: "感測器資料",
+    componentDetails: "構件詳情", componentInfo: "BIM 構件", ifcType: "IFC 類型", identifiers: "識別碼",
     dataPanelLabel: "資料面板", earlier: "較早", now: "現在",
     lastUpload: "最後上傳", custom: "自訂", mockHistoryNote: "目前僅顯示可用的模擬資料視窗",
     bmsReserved: "AHU 運行資料將於後續版本接入。", aiReserved: "AI 分析模組將於後續版本接入。",
@@ -137,6 +139,7 @@ const I18N = {
     searchEquipmentPlaceholder: "Search name, type, or ID", searchEquipmentAria: "Search IFC equipment", noSearchResults: "No matching IFC equipment",
     temperature: "Indoor Temperature", humidity: "Relative Humidity", co2: "CO₂",
     dataPanelAria: "Sensor data panel", closeDataPanel: "Close data panel", sensorData: "Sensor Data",
+    componentDetails: "Component Details", componentInfo: "BIM Component", ifcType: "IFC Type", identifiers: "Identifiers",
     dataPanelLabel: "Data Panel", earlier: "Earlier", now: "Now",
     lastUpload: "Last upload", custom: "Custom", mockHistoryNote: "Showing the available simulated-data window",
     bmsReserved: "AHU operating data will be connected in a future release.", aiReserved: "AI analytics will be connected in a future release.",
@@ -225,6 +228,7 @@ const EQUIPMENT_GROUPS = [
 ];
 
 let DEVICES = [];
+let MEP_COMPONENTS = [];
 
 function fallbackSensorDevices() {
   const positions = [
@@ -297,12 +301,17 @@ const elements = {
   technologyLabel: document.querySelector(".dt-side-footer span"),
   equipmentSearch: document.getElementById("equipment-search"),
   equipmentSearchCount: document.getElementById("equipment-search-count"),
+  assetListTitle: document.getElementById("asset-list-title"),
+  assetViewButtons: [...document.querySelectorAll("[data-asset-view]")],
   deviceList: document.getElementById("device-list"),
   bindingLabel: document.getElementById("binding-label"),
   deviceName: document.getElementById("device-name"),
   deviceId: document.getElementById("device-id"),
   statusBadge: document.getElementById("status-badge"),
   metricGrid: document.getElementById("metric-grid"),
+  componentProperties: document.getElementById("component-properties"),
+  dataPanelLabel: document.getElementById("data-panel-label"),
+  dataPanelTitle: document.getElementById("data-panel-title"),
   trendCard: document.getElementById("trend-card"),
   trendLabel: document.getElementById("trend-label"),
   trendValue: document.getElementById("trend-value"),
@@ -345,6 +354,7 @@ const state = {
   selectedItem: null,
   selectedIfcItem: null,
   equipmentQuery: "",
+  assetView: "sensors",
   calibrating: false,
   boundObjects: new Map(),
   markerObjects: new Map(),
@@ -730,7 +740,7 @@ async function updateAllVisualStates() {
 
 async function focusDevice(device) {
   let box = null;
-  const target = state.boundObjects.get(device.id);
+  const target = state.boundObjects.get(device.id) ?? device.binding.localId;
   const marker = state.markerObjects.get(device.id);
 
   const fragmentsModel = state.fragmentsModels.get(device.binding.modelId) || state.fragmentsModel;
@@ -757,9 +767,10 @@ function normalizedSearchText(value) {
 }
 
 function visibleDevices() {
+  const collection = state.assetView === "mep" ? MEP_COMPONENTS : DEVICES;
   const queryText = normalizedSearchText(state.equipmentQuery);
-  if (!queryText) return DEVICES;
-  return DEVICES.filter((device) => {
+  if (!queryText) return collection;
+  return collection.filter((device) => {
     const searchable = [
       deviceText(device, "name"),
       deviceText(device, "subtitle"),
@@ -775,7 +786,9 @@ function visibleDevices() {
 function renderDeviceList() {
   elements.deviceList.innerHTML = "";
   const matchedDevices = visibleDevices();
-  elements.equipmentSearchCount.textContent = `${matchedDevices.length}/${DEVICES.length}`;
+  const total = state.assetView === "mep" ? MEP_COMPONENTS.length : DEVICES.length;
+  elements.assetListTitle.textContent = state.assetView === "mep" ? "MEP Components" : t("iotSensorsList");
+  elements.equipmentSearchCount.textContent = `${matchedDevices.length}/${total}`;
   if (!matchedDevices.length) {
     const empty = document.createElement("p");
     empty.className = "dt-device-empty";
@@ -784,6 +797,27 @@ function renderDeviceList() {
     return;
   }
   for (const device of matchedDevices) {
+    if (state.assetView === "mep") {
+      const button = document.createElement("button");
+      button.type = "button";
+      const selected = state.selectedIfcItem?.localId === device.binding.localId && state.selectedIfcItem?.modelId === device.binding.modelId;
+      button.className = `dt-device-item bim${selected ? " selected" : ""}`;
+      button.innerHTML = `
+        <span class="dt-device-copy">
+          <strong>${deviceText(device, "name")}</strong>
+          <small>${localizedGroupLabel(groupForScannedCategory(device.category))} · ${device.category}</small>
+        </span>
+        <span class="dt-device-state" aria-label="BIM"><i class="ph ph-cube" aria-hidden="true"></i></span>
+      `;
+      button.querySelector("strong").title = deviceText(device, "name");
+      button.querySelector("small").title = `${localizedGroupLabel(groupForScannedCategory(device.category))} · ${device.category}`;
+      button.addEventListener("click", async () => {
+        await selectIfcItem(device.binding.localId, device.binding.modelId);
+        focusDevice(device).catch((error) => console.error("Failed to focus MEP component", error));
+      });
+      elements.deviceList.appendChild(button);
+      continue;
+    }
     const snapshot = state.snapshots.get(device.id);
     const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
     const status = bound ? snapshot.status : "unavailable";
@@ -798,6 +832,8 @@ function renderDeviceList() {
       </span>
       <span class="dt-device-state" aria-label="${t(presentedStatus.key)}"><span class="dt-device-status"></span></span>
     `;
+    button.querySelector("strong").title = deviceText(device, "name");
+    button.querySelector("small").title = `${deviceText(device, "subtitle")} · ${t(presentedStatus.key)}`;
     button.addEventListener("click", () => {
       selectDevice(device.id, true);
       setDevicePanelOpen(true);
@@ -880,17 +916,37 @@ function renderSelectedDevice() {
   const device = DEVICES.find((item) => item.id === state.selectedDeviceId);
   if (!device) {
     const item = state.selectedItem;
+    elements.dataPanelLabel.textContent = t("componentInfo");
+    elements.dataPanelTitle.textContent = t("componentDetails");
     elements.bindingLabel.textContent = t("staticBimItem");
     elements.deviceName.textContent = item?.name || t("noProperties");
     elements.deviceId.textContent = item?.guid || (item ? `${t("expressId")} ${item.localId}` : "—");
-    elements.statusBadge.textContent = "IFC";
-    elements.statusBadge.className = "dt-status-badge normal";
+    elements.deviceName.title = elements.deviceName.textContent;
+    elements.deviceId.title = elements.deviceId.textContent;
+    elements.statusBadge.textContent = "BIM";
+    elements.statusBadge.className = "dt-status-badge bim";
     elements.metricGrid.hidden = true;
+    elements.componentProperties.hidden = !item;
+    elements.componentProperties.innerHTML = item ? `
+      <h3>${t("componentDetails")}</h3>
+      <dl>
+        <div><dt>${t("ifcType")}</dt><dd>${item.category || "—"}</dd></div>
+        <div><dt>${t("globalId")}</dt><dd>${item.guid || "—"}</dd></div>
+        <div><dt>${t("expressId")}</dt><dd>${item.localId ?? "—"}</dd></div>
+      </dl>
+    ` : "";
+    elements.componentProperties.querySelectorAll("dd").forEach((value) => { value.title = value.textContent; });
     elements.metricTrendCards.forEach((chart) => { chart.card.hidden = true; });
     elements.updateRow.hidden = true;
+    elements.historyNote.closest(".dt-history-toolbar").hidden = true;
     elements.faultToggle.hidden = true;
     return;
   }
+  elements.dataPanelLabel.textContent = t("dataPanelLabel");
+  elements.dataPanelTitle.textContent = t("sensorData");
+  elements.componentProperties.hidden = true;
+  elements.componentProperties.innerHTML = "";
+  elements.historyNote.closest(".dt-history-toolbar").hidden = false;
   const snapshot = state.snapshots.get(device.id);
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id);
   const displayStatus = bound ? snapshot.status : "unavailable";
@@ -899,6 +955,8 @@ function renderSelectedDevice() {
   elements.bindingLabel.textContent = device.binding.kind === "object" ? t("objectBinding") : t("markerBinding");
   elements.deviceName.textContent = deviceText(device, "name");
   elements.deviceId.textContent = device.id;
+  elements.deviceName.title = elements.deviceName.textContent;
+  elements.deviceId.title = elements.deviceId.textContent;
   elements.statusBadge.textContent = t(presentedStatus.key);
   elements.statusBadge.className = `dt-status-badge ${presentedStatus.className}`;
   elements.metricGrid.hidden = false;
@@ -1195,6 +1253,7 @@ async function finalizeFederatedModel(componentCount) {
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
   DEVICES = fallbackSensorDevices();
+  MEP_COMPONENTS = await scanIfcEquipment(state.fragmentsModels.get("mep"), "mep");
   initializeDeviceSnapshots();
   state.selectedDeviceId = DEVICES[0]?.id || null;
   state.selectedItem = DEVICES[0]?.ifc || null;
@@ -1240,6 +1299,7 @@ async function handleCanvasSelection(event) {
   let result = null;
   let hitModelId = null;
   let hitDistance = Infinity;
+  let hitPriority = Infinity;
   for (const [modelId, fragmentsModel] of state.fragmentsModels) {
     if (!fragmentsModel.object.visible) continue;
     const candidate = await fragmentsModel.raycast({
@@ -1247,19 +1307,14 @@ async function handleCanvasSelection(event) {
       mouse: new THREE.Vector2(event.clientX, event.clientY),
       dom: elements.canvas,
     });
-    if (candidate && await isNonSelectableIfcItem(fragmentsModel, candidate.localId)) {
-      await clearStandaloneIfcSelection();
-      state.selectedDeviceId = null;
-      state.selectedItem = null;
-      setDevicePanelOpen(false);
-      renderUI();
-      return;
-    }
+    if (candidate && await isNonSelectableIfcItem(fragmentsModel, candidate.localId)) continue;
     const candidateDistance = candidate?.point ? camera.position.distanceToSquared(candidate.point) : Infinity;
-    if (candidate && (!result || candidateDistance < hitDistance)) {
+    const candidatePriority = modelId === "mep" ? 0 : 1;
+    if (candidate && (!result || candidatePriority < hitPriority || (candidatePriority === hitPriority && candidateDistance < hitDistance))) {
       result = candidate;
       hitModelId = modelId;
       hitDistance = candidateDistance;
+      hitPriority = candidatePriority;
     }
   }
   if (!result) return;
@@ -1344,6 +1399,17 @@ elements.equipmentSearch.addEventListener("input", () => {
   state.equipmentQuery = elements.equipmentSearch.value;
   renderDeviceList();
 });
+elements.assetViewButtons.forEach((button) => button.addEventListener("click", () => {
+  state.assetView = button.dataset.assetView;
+  state.equipmentQuery = "";
+  elements.equipmentSearch.value = "";
+  elements.assetViewButtons.forEach((item) => {
+    const active = item === button;
+    item.classList.toggle("active", active);
+    item.setAttribute("aria-selected", String(active));
+  });
+  renderDeviceList();
+}));
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
 });

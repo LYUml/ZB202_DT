@@ -551,8 +551,32 @@ body[data-page="twin"] *::after {
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-color: var(--dt-border-strong) transparent;
   scrollbar-width: thin;
+}
+
+.dt-detail-heading {
+  min-width: 0;
+  display: flex;
+}
+
+.dt-detail-heading > div {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.dt-detail-heading h2 {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.dt-detail-heading p:last-child {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 .dt-status-badge {
@@ -571,6 +595,70 @@ body[data-page="twin"] *::after {
   border-color: color-mix(in srgb, var(--dt-warning) 34%, transparent);
   color: var(--dt-warning);
   background: color-mix(in srgb, var(--dt-warning) 10%, var(--dt-panel));
+}
+
+.dt-status-badge.bim {
+  border-color: var(--dt-border);
+  color: var(--dt-text-soft);
+  background: var(--dt-panel-subtle);
+}
+
+.dt-component-properties {
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--dt-border);
+  border-radius: 10px;
+  background: var(--dt-panel-raised);
+}
+
+.dt-data-header > div,
+.dt-rail-card > header > div,
+.dt-sensor-title {
+  min-width: 0;
+}
+
+.dt-sensor-title h2 {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-device-item {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dt-component-properties h3 {
+  margin: 0 0 12px;
+  color: var(--dt-text);
+  font-size: 0.78rem;
+}
+
+.dt-component-properties dl {
+  margin: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.dt-component-properties dl > div {
+  display: grid;
+  gap: 3px;
+}
+
+.dt-component-properties dt {
+  color: var(--dt-text-muted);
+  font-size: 0.6rem;
+}
+
+.dt-component-properties dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--dt-text);
+  font-size: 0.72rem;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 
 .dt-device-list::-webkit-scrollbar,
@@ -1274,6 +1362,49 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 
 .dt-sensor-card .dt-equipment-search {
   margin: 8px 10px 4px;
+}
+
+.dt-asset-tabs {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dt-asset-tabs button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--dt-border);
+  border-radius: 7px;
+  color: var(--dt-text-muted);
+  background: var(--dt-panel-raised);
+  font: inherit;
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.dt-asset-tabs button i {
+  display: none;
+}
+
+.dt-asset-tabs button.active {
+  border-color: var(--dt-accent-border);
+  color: var(--dt-accent);
+  background: var(--dt-accent-soft);
+}
+
+.dt-asset-tabs button.active i {
+  display: inline-block;
+}
+
+.dt-device-item.bim .dt-device-state {
+  color: var(--dt-text-muted);
+  font-size: 1rem;
 }
 
 .dt-sensor-card .dt-equipment-search input {
