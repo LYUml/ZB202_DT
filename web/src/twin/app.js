@@ -324,9 +324,9 @@ const elements = {
   trendGrid: document.getElementById("trend-grid"),
   trendAxisLabels: document.getElementById("trend-axis-labels"),
   metricTrendCards: [
-    { card: document.getElementById("trend-card"), label: document.getElementById("trend-label"), value: document.getElementById("trend-value"), line: document.getElementById("trend-line"), area: document.getElementById("trend-area"), grid: document.getElementById("trend-grid"), axis: document.getElementById("trend-axis-labels") },
-    { card: document.getElementById("humidity-trend-card"), label: document.getElementById("humidity-trend-label"), value: document.getElementById("humidity-trend-value"), line: document.getElementById("humidity-trend-line"), area: document.getElementById("humidity-trend-area"), grid: document.getElementById("humidity-trend-grid"), axis: document.getElementById("humidity-trend-axis-labels") },
-    { card: document.getElementById("co2-trend-card"), label: document.getElementById("co2-trend-label"), value: document.getElementById("co2-trend-value"), line: document.getElementById("co2-trend-line"), area: document.getElementById("co2-trend-area"), grid: document.getElementById("co2-trend-grid"), axis: document.getElementById("co2-trend-axis-labels") },
+    { card: document.getElementById("trend-card"), label: document.getElementById("trend-label"), value: document.getElementById("trend-value"), line: document.getElementById("trend-line"), area: document.getElementById("trend-area"), points: document.getElementById("trend-points"), grid: document.getElementById("trend-grid"), axis: document.getElementById("trend-axis-labels") },
+    { card: document.getElementById("humidity-trend-card"), label: document.getElementById("humidity-trend-label"), value: document.getElementById("humidity-trend-value"), line: document.getElementById("humidity-trend-line"), area: document.getElementById("humidity-trend-area"), points: document.getElementById("humidity-trend-points"), grid: document.getElementById("humidity-trend-grid"), axis: document.getElementById("humidity-trend-axis-labels") },
+    { card: document.getElementById("co2-trend-card"), label: document.getElementById("co2-trend-label"), value: document.getElementById("co2-trend-value"), line: document.getElementById("co2-trend-line"), area: document.getElementById("co2-trend-area"), points: document.getElementById("co2-trend-points"), grid: document.getElementById("co2-trend-grid"), axis: document.getElementById("co2-trend-axis-labels") },
   ],
   viewButtons: [...document.querySelectorAll("[data-view]")],
 };
@@ -359,6 +359,7 @@ const state = {
   mqttConnectedAt: null,
   mqttSocket: null,
   lastLiveAt: new Map(),
+  seenTelemetry: new Set(),
 };
 
 function initializeDeviceSnapshots() {
@@ -844,18 +845,25 @@ function sparklinePath(values) {
     value,
     y: top + (index / 2) * (plotBottom - top),
   }));
-  return { line, area, ticks, range, left, right: width - right, top, plotBottom };
+  return { line, area, points, ticks, range, left, right: width - right, top, plotBottom };
 }
 
 function renderMetricTrend(snapshot, chart, metric) {
   const values = metric ? snapshot.trends[metric.key].filter(Number.isFinite) : [];
-  chart.card.hidden = !metric || values.length < 2;
-  if (!metric || values.length < 2) return;
-  const paths = sparklinePath(values);
+  chart.card.hidden = !metric || values.length === 0;
+  if (!metric || values.length === 0) return;
+  const chartValues = values.length === 1 ? [values[0], values[0]] : values;
+  const paths = sparklinePath(chartValues);
   chart.label.textContent = t(metric.labelKey);
-  chart.value.textContent = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}`;
+  const delta = values.at(-1) - values[0];
+  const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+  const deltaSign = delta > 0 ? "+" : "";
+  chart.value.innerHTML = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>`;
   chart.line.setAttribute("d", paths.line);
   chart.area.setAttribute("d", paths.area);
+  chart.points.innerHTML = paths.points.map(([x, y], index) => `
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${index === paths.points.length - 1 ? 4.5 : 3.2}"></circle>
+  `).join("");
   chart.grid.innerHTML = paths.ticks.map((tick) => `
     <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
   `).join("") + `<line x1="${paths.left}" y1="${paths.top}" x2="${paths.left}" y2="${paths.plotBottom}"></line>`;
@@ -1098,6 +1106,9 @@ function connectMqttBridge() {
     const device = DEVICES.find((item) => item.devEui === normalizedEui);
     const snapshot = device && state.snapshots.get(device.id);
     if (!device || !snapshot) return;
+    const telemetryKey = `${device.id}:${message.receivedAt || JSON.stringify(message.values)}`;
+    if (state.seenTelemetry.has(telemetryKey)) return;
+    state.seenTelemetry.add(telemetryKey);
     for (const metric of device.metrics) {
       const value = Number(message.values?.[metric.key]);
       if (!Number.isFinite(value)) continue;

@@ -618,6 +618,44 @@ body[data-page="twin"] *::after {
 
 .dt-trend-line {
   stroke: var(--dt-accent);
+  stroke-width: 3;
+}
+
+.dt-trend-points circle {
+  fill: var(--dt-panel);
+  stroke: var(--dt-accent);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.dt-trend-heading strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dt-trend-delta {
+  padding: 3px 6px;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dt-trend-delta.up {
+  color: #b45309;
+  background: #fff7ed;
+}
+
+.dt-trend-delta.down {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.dt-trend-delta.flat {
+  color: var(--dt-text-muted);
+  background: var(--dt-panel-subtle);
 }
 
 .dt-trend-stop-start,

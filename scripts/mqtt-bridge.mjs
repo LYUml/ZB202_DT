@@ -1,11 +1,15 @@
 import mqtt from "mqtt";
 import { WebSocketServer, WebSocket } from "ws";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 const brokerUrl = process.env.ZB202_MQTT_URL || "mqtt://itf.beeerise.com:1889";
 const topic = process.env.ZB202_MQTT_TOPIC || "/ZB202/milesight/uplink";
 const websocketPort = Number(process.env.ZB202_MQTT_BRIDGE_PORT || 8787);
 const clientId = process.env.ZB202_MQTT_CLIENT_ID || `ZB202-DT-${crypto.randomUUID().slice(0, 8)}`;
 const bridgeStartedAt = new Date().toISOString();
+const cacheDirectory = path.resolve(".cache");
+const cacheFile = path.join(cacheDirectory, "mqtt-history.json");
 
 const mqttClient = mqtt.connect(brokerUrl, {
   clientId,
@@ -17,8 +21,33 @@ const mqttClient = mqtt.connect(brokerUrl, {
 });
 
 const websocketServer = new WebSocketServer({ host: "127.0.0.1", port: websocketPort });
-const latestByDevice = new Map();
+const historyByDevice = new Map();
 let brokerConnected = false;
+let cacheTimer = null;
+
+try {
+  const cached = JSON.parse(await readFile(cacheFile, "utf8"));
+  for (const [devEui, history] of Object.entries(cached)) {
+    if (Array.isArray(history)) historyByDevice.set(devEui, history.slice(-24));
+  }
+  console.log(`[Bridge] Restored ${[...historyByDevice.values()].reduce((sum, entries) => sum + entries.length, 0)} cached readings`);
+} catch {
+  // The cache is created after the first valid uplink.
+}
+
+function scheduleCacheWrite() {
+  clearTimeout(cacheTimer);
+  cacheTimer = setTimeout(async () => {
+    try {
+      await mkdir(cacheDirectory, { recursive: true });
+      const temporaryFile = `${cacheFile}.tmp`;
+      await writeFile(temporaryFile, JSON.stringify(Object.fromEntries(historyByDevice), null, 2));
+      await rename(temporaryFile, cacheFile);
+    } catch (error) {
+      console.error(`[Bridge] Cache write failed: ${error.message}`);
+    }
+  }, 150);
+}
 
 function send(socket, message) {
   if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
@@ -80,7 +109,9 @@ function normalizeUplink(payload, receivedAt) {
 
 websocketServer.on("connection", (socket) => {
   send(socket, { type: "bridge-status", connected: brokerConnected, broker: brokerUrl, topic, startedAt: bridgeStartedAt });
-  for (const telemetry of latestByDevice.values()) send(socket, telemetry);
+  for (const history of historyByDevice.values()) {
+    for (const telemetry of history) send(socket, telemetry);
+  }
 });
 
 mqttClient.on("connect", () => {
@@ -99,7 +130,10 @@ mqttClient.on("message", (messageTopic, payload) => {
     console.warn(`[MQTT] Ignored unrecognized message on ${messageTopic}`);
     return;
   }
-  latestByDevice.set(telemetry.devEui, telemetry);
+  const history = historyByDevice.get(telemetry.devEui) || [];
+  if (!history.some((entry) => entry.receivedAt === telemetry.receivedAt)) history.push(telemetry);
+  historyByDevice.set(telemetry.devEui, history.slice(-24));
+  scheduleCacheWrite();
   broadcast(telemetry);
   console.log(`[MQTT] ${telemetry.devEui}`, telemetry.values);
 });
