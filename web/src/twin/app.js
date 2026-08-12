@@ -206,8 +206,11 @@ const STATUS = {
   normal: { color: 0x20a464 },
   warning: { color: 0xe99a2c },
   fault: { color: 0xe34d59 },
+  offline: { color: 0xe34d59 },
   unavailable: { color: 0x8b94a6 },
 };
+
+const MQTT_STALE_AFTER_MS = 15 * 60 * 1000;
 
 const EQUIPMENT_GROUPS = [
   { key: "fans", category: "IFCFAN", label: { zh: "风机", "zh-Hant": "風機", en: "Fan" } },
@@ -225,13 +228,13 @@ let DEVICES = [];
 
 function fallbackSensorDevices() {
   const positions = [
-    { model: "AM103", number: "07", normalizedPosition: [0.29, 0.66, 0.31] },
-    { model: "AM103", number: "08", normalizedPosition: [0.51, 0.83, 0.39] },
-    { model: "AM308", number: "01", normalizedPosition: [0.56, 0.50, 0.54] },
-    { model: "AM103", number: "05", normalizedPosition: [0.43, 0.54, 0.62] },
-    { model: "AM103", number: "06", normalizedPosition: [0.68, 0.48, 0.57] },
+    { model: "AM103", number: "07", devEui: "24E124725E281056", normalizedPosition: [0.29, 0.66, 0.31] },
+    { model: "AM103", number: "08", devEui: "24E124725E283167", normalizedPosition: [0.51, 0.83, 0.39] },
+    { model: "AM308", number: "01", devEui: "24E124707E093681", normalizedPosition: [0.56, 0.50, 0.54] },
+    { model: "AM103", number: "05", devEui: "24E124725E281413", normalizedPosition: [0.43, 0.54, 0.62] },
+    { model: "AM103", number: "06", devEui: "24E124725E283152", normalizedPosition: [0.68, 0.48, 0.57] },
   ];
-  return positions.map(({ model, number, normalizedPosition }, index) => {
+  return positions.map(({ model, number, devEui, normalizedPosition }, index) => {
     return {
       id: `${model}-${number}`,
       name: {
@@ -247,6 +250,7 @@ function fallbackSensorDevices() {
       category: "IOT_SENSOR",
       groupKey: "sensors",
       sensorModel: model,
+      devEui,
       binding: { kind: "marker", normalizedPosition },
       metrics: [
         { key: "temperature", labelKey: "temperature", unit: "°C", value: 22.8 + index * 0.4, variance: 0.18 },
@@ -349,18 +353,24 @@ const state = {
   fragmentsModel: null,
   fragmentsModels: new Map(),
   historyRange: "1h",
+  liveDevices: new Set(),
+  mqttConnected: false,
+  mqttConnectionKnown: false,
+  mqttConnectedAt: null,
+  mqttSocket: null,
+  lastLiveAt: new Map(),
 };
 
 function initializeDeviceSnapshots() {
   state.snapshots.clear();
   for (const device of DEVICES) {
-  const values = Object.fromEntries(device.metrics.map((metric) => [metric.key, metric.value]));
+  const values = Object.fromEntries(device.metrics.map((metric) => [metric.key, null]));
     state.snapshots.set(device.id, {
       deviceId: device.id,
-      status: "normal",
+      status: "offline",
       updatedAt: new Date(),
       values,
-      trends: Object.fromEntries(device.metrics.map((metric) => [metric.key, Array(24).fill(metric.value)])),
+      trends: Object.fromEntries(device.metrics.map((metric) => [metric.key, []])),
     });
   }
 }
@@ -434,6 +444,7 @@ function statusFor(deviceId) {
 function presentationStatus(status) {
   if (status === "normal") return { key: "online", className: "normal" };
   if (status === "warning") return { key: "maintenance", className: "warning" };
+  if (status === "offline") return { key: "offline", className: "fault" };
   if (status === "unavailable") return { key: "offline", className: "unavailable" };
   return { key: "fault", className: "fault" };
 }
@@ -837,9 +848,10 @@ function sparklinePath(values) {
 }
 
 function renderMetricTrend(snapshot, chart, metric) {
-  chart.card.hidden = !metric;
-  if (!metric) return;
-  const paths = sparklinePath(snapshot.trends[metric.key]);
+  const values = metric ? snapshot.trends[metric.key].filter(Number.isFinite) : [];
+  chart.card.hidden = !metric || values.length < 2;
+  if (!metric || values.length < 2) return;
+  const paths = sparklinePath(values);
   chart.label.textContent = t(metric.labelKey);
   chart.value.textContent = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}`;
   chart.line.setAttribute("d", paths.line);
@@ -884,17 +896,19 @@ function renderSelectedDevice() {
   elements.metricGrid.hidden = false;
   elements.metricTrendCards.forEach((chart) => { chart.card.hidden = false; });
   elements.updateRow.hidden = false;
-  elements.faultToggle.hidden = false;
+  elements.faultToggle.hidden = true;
 
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
     <div class="dt-metric">
       <span>${t(metric.labelKey)}</span>
-      <strong>${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small></strong>
+      <strong>${Number.isFinite(snapshot.values[metric.key]) ? `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
   `).join("");
 
   elements.metricTrendCards.forEach((chart, index) => renderMetricTrend(snapshot, chart, device.metrics[index]));
-  elements.updatedAt.textContent = snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false });
+  elements.updatedAt.textContent = state.lastLiveAt.has(device.id)
+    ? snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false })
+    : "—";
   elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
   elements.faultToggle.disabled = !bound;
@@ -1030,27 +1044,82 @@ function setFault(deviceId, shouldFault) {
 }
 
 function updateMockData() {
-  for (const device of DEVICES) {
-    const snapshot = state.snapshots.get(device.id);
-    for (const metric of device.metrics) {
-      const drift = (Math.random() - 0.5) * metric.variance * 2;
-      let nextValue = snapshot.values[metric.key] + drift;
-      if (snapshot.status === "fault") {
-        if (metric.key === "supplyTemperature") nextValue += 0.35;
-        if (metric.key === "co2") nextValue += 15;
-      }
-      snapshot.values[metric.key] = nextValue;
-      snapshot.trends[metric.key].push(nextValue);
-      snapshot.trends[metric.key] = snapshot.trends[metric.key].slice(-24);
-    }
-    snapshot.updatedAt = new Date();
-  }
+  updateDeviceConnectivity();
   renderSelectedDevice();
   renderSiteOverview();
   elements.clock.textContent = new Date().toLocaleString(activeLocale(), {
     year: "numeric", month: "2-digit", day: "2-digit",
     hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
   });
+}
+
+function updateDeviceConnectivity() {
+  if (!state.mqttConnectionKnown) return;
+  const now = Date.now();
+  for (const device of DEVICES) {
+    const snapshot = state.snapshots.get(device.id);
+    if (!snapshot) continue;
+    const lastLiveAt = state.lastLiveAt.get(device.id);
+    const brokerOffline = !state.mqttConnected;
+    const deviceStale = state.mqttConnected && (!lastLiveAt || now - lastLiveAt > MQTT_STALE_AFTER_MS);
+    if (brokerOffline || deviceStale) snapshot.status = "offline";
+    else if (snapshot.status === "offline") snapshot.status = "normal";
+  }
+}
+
+function connectMqttBridge() {
+  if (state.mqttSocket && state.mqttSocket.readyState < WebSocket.CLOSING) return;
+  const bridgeUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8787`;
+  let socket;
+  try {
+    socket = new WebSocket(bridgeUrl);
+    state.mqttSocket = socket;
+  } catch (error) {
+    console.warn("MQTT bridge unavailable", error);
+    return;
+  }
+  socket.addEventListener("message", (event) => {
+    let message;
+    try { message = JSON.parse(event.data); } catch { return; }
+    if (message.type === "bridge-status") {
+      const wasConnected = state.mqttConnected;
+      state.mqttConnected = Boolean(message.connected);
+      state.mqttConnectionKnown = true;
+      if (state.mqttConnected && !wasConnected) {
+        const bridgeStartedAt = Date.parse(message.startedAt);
+        state.mqttConnectedAt = Number.isFinite(bridgeStartedAt) ? bridgeStartedAt : Date.now();
+      }
+      updateDeviceConnectivity();
+      renderUI();
+      return;
+    }
+    if (message.type !== "telemetry") return;
+    const normalizedEui = String(message.devEui || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+    const device = DEVICES.find((item) => item.devEui === normalizedEui);
+    const snapshot = device && state.snapshots.get(device.id);
+    if (!device || !snapshot) return;
+    for (const metric of device.metrics) {
+      const value = Number(message.values?.[metric.key]);
+      if (!Number.isFinite(value)) continue;
+      snapshot.values[metric.key] = value;
+      snapshot.trends[metric.key].push(value);
+      snapshot.trends[metric.key] = snapshot.trends[metric.key].slice(-24);
+    }
+    snapshot.status = "normal";
+    snapshot.updatedAt = new Date(message.receivedAt || Date.now());
+    state.liveDevices.add(device.id);
+    state.lastLiveAt.set(device.id, snapshot.updatedAt.getTime());
+    renderUI();
+  });
+  socket.addEventListener("close", () => {
+    state.mqttConnected = false;
+    state.mqttConnectionKnown = true;
+    state.mqttSocket = null;
+    updateDeviceConnectivity();
+    renderUI();
+    window.setTimeout(connectMqttBridge, 3000);
+  });
+  socket.addEventListener("error", () => socket.close());
 }
 
 function addGrid() {
@@ -1129,6 +1198,7 @@ async function finalizeFederatedModel(componentCount) {
   elements.loadingMeta.textContent = t("modelReady", { count: componentCount.toLocaleString(activeLocale()) });
   elements.loading.classList.add("hidden");
   renderUI();
+  connectMqttBridge();
 }
 
 async function loadModel() {

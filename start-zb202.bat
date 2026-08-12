@@ -11,14 +11,19 @@ if not exist "node_modules" (
   if errorlevel 1 goto install_failed
 )
 
-powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=zh' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
+powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+if errorlevel 1 (
+  start "ZB202 MQTT Bridge" /min cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run mqtt:bridge"
+)
+
+powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=en' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
 if errorlevel 1 (
   start "ZB202 Dev Server" cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run dev -- --host 127.0.0.1 --strictPort"
 )
 
 echo Waiting for the ZB202 development server...
 for /L %%I in (1,1,30) do (
-  powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=zh' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
+  powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=en' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
   if not errorlevel 1 goto open_browser
   timeout /t 1 /nobreak >nul
 )
@@ -30,7 +35,7 @@ pause
 exit /b 1
 
 :open_browser
-start "" "http://127.0.0.1:5173/overview.html?lang=zh"
+start "" "http://127.0.0.1:5173/overview.html?lang=en"
 exit /b 0
 
 :no_node
