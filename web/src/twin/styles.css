@@ -885,6 +885,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-device-item.unavailable .dt-device-status { background: var(--dt-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dt-text-muted) 12%, transparent); }
 
 .dt-trend-chart { width: 100%; height: 122px; margin-top: 6px; }
+#trend-chart { height: 122px; margin-top: 6px; }
 .dt-metrics[hidden], .dt-trend-card[hidden], .dt-update-row[hidden], .dt-fault-btn[hidden] { display: none !important; }
 .dt-trend-grid line { stroke: var(--dt-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .dt-trend-axis-labels text { fill: var(--dt-text-muted); font-size: 9px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
@@ -896,11 +897,14 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-data-panel { position: absolute; z-index: 18; top: 16px; left: 16px; bottom: 16px; width: min(var(--dt-data-width), calc(100% - 32px)); display: flex; flex-direction: column; border: 1px solid var(--dt-border-strong); border-radius: 14px; color: var(--dt-text); background: var(--dt-panel); box-shadow: var(--dt-shadow); overflow: hidden; transform: translateX(calc(-100% - 32px)); transition: transform 280ms ease-out; }
 .dt-data-panel.is-open { transform: translateX(0); }
 .dt-data-panel .dt-detail { flex: 1 1 auto; padding: 16px; }
-.dt-data-panel .dt-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dt-data-panel .dt-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .dt-history-ranges { margin: 10px 12px 0; display: flex; gap: 5px; }
 .dt-history-ranges button { min-width: 42px; padding: 5px 8px; border: 1px solid var(--dt-border); border-radius: 7px; color: var(--dt-text-muted); background: var(--dt-panel); font: inherit; font-size: 0.62rem; cursor: pointer; }
 .dt-history-ranges button:hover, .dt-history-ranges button.active { border-color: var(--dt-accent-border); color: var(--dt-accent); background: var(--dt-accent-soft); }
 .dt-history-note { margin: 8px 12px 0; color: var(--dt-text-muted); font-size: 0.6rem; }
+.dt-history-toolbar { flex: 0 0 auto; margin-top: 10px; }
+.dt-history-toolbar .dt-history-ranges { margin: 0; }
+.dt-history-toolbar .dt-history-note { margin: 6px 0 0; }
 
 .dt-bottom-nav { position: absolute; z-index: 14; left: calc(50% - (var(--dt-rail-width) / 2)); bottom: 18px; padding: 7px; display: flex; align-items: stretch; gap: 3px; transform: translateX(-50%); border: 1px solid var(--dt-border-strong); border-radius: 16px; background: color-mix(in srgb, var(--dt-panel) 96%, transparent); box-shadow: var(--dt-floating-shadow); backdrop-filter: blur(14px); }
 .dt-bottom-nav button { min-width: 76px; min-height: 55px; padding: 7px 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; border-radius: 10px; color: var(--dt-text-muted); background: transparent; font: inherit; font-size: 0.62rem; cursor: pointer; }
@@ -1177,4 +1181,94 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-bottom-nav { right: 8px; left: auto; bottom: 8px; flex-direction: column; }
   .dt-bottom-nav button { min-width: 48px; min-height: 44px; }
   .dt-bottom-nav button span { display: none; }
+}
+
+/* Compact IoT rail: prioritize the device inventory above supporting modules. */
+.dt-overview-rail {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 10px;
+}
+
+.dt-overview-rail .dt-reserved-card {
+  display: none;
+}
+
+#site-overview-card > header {
+  min-height: 48px;
+  padding-block: 8px;
+}
+
+.dt-site-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.dt-site-grid > div {
+  min-height: 54px;
+  padding: 8px 10px;
+  border-bottom: 0;
+}
+
+.dt-site-grid > div:nth-child(even) {
+  border-right: 1px solid var(--dt-border);
+}
+
+.dt-site-grid > div:last-child {
+  border-right: 0;
+}
+
+.dt-site-grid span {
+  font-size: 0.6rem;
+}
+
+.dt-site-grid strong {
+  font-size: 0.88rem;
+}
+
+.dt-sensor-card > header {
+  min-height: 52px;
+  padding: 9px 14px;
+}
+
+.dt-sensor-card .dt-overline {
+  margin-bottom: 0;
+  font-size: 0.55rem;
+}
+
+.dt-sensor-card .dt-equipment-search {
+  margin: 8px 10px 4px;
+}
+
+.dt-sensor-card .dt-equipment-search input {
+  height: 36px;
+}
+
+.dt-sensor-card .dt-device-list {
+  padding: 6px 10px 10px;
+  gap: 6px;
+  grid-auto-rows: 62px;
+}
+
+.dt-sensor-card .dt-device-item {
+  height: 62px;
+  min-height: 62px;
+  padding-block: 8px;
+}
+
+.dt-device-copy strong {
+  font-size: 0.75rem;
+}
+
+.dt-device-copy small {
+  margin-top: 3px;
+  font-size: 0.61rem;
+}
+
+@media (max-width: 560px) {
+  #site-overview-card {
+    display: none;
+  }
+
+  .dt-overview-rail {
+    grid-template-rows: minmax(0, 1fr);
+  }
 }

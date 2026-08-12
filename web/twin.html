@@ -76,8 +76,7 @@
           </div>
           <div class="dt-metrics" id="metric-grid"></div>
           <div class="dt-update-row" id="update-row"><span data-i18n="lastUpload">最后上传</span><time id="updated-at">—</time></div>
-          <div class="dt-trend-card" id="trend-card">
-            <div class="dt-trend-heading"><div><span id="trend-label">送风温度</span><strong id="trend-value">—</strong></div></div>
+          <div class="dt-history-toolbar">
             <div class="dt-history-ranges" aria-label="历史数据范围">
               <button type="button" class="active" data-history-range="1h">1h</button>
               <button type="button" data-history-range="12h">12h</button>
@@ -85,6 +84,9 @@
               <button type="button" data-history-range="custom" data-i18n="custom">自定义</button>
             </div>
             <p class="dt-history-note" id="history-note" data-i18n="mockHistoryNote">当前仅显示可用的模拟数据窗口</p>
+          </div>
+          <div class="dt-trend-card" id="trend-card">
+            <div class="dt-trend-heading"><div><span id="trend-label">送风温度</span><strong id="trend-value">—</strong></div></div>
             <svg class="dt-trend-chart" id="trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="实时数据趋势图" data-i18n-aria="trendAria">
               <defs><linearGradient id="trend-fill" x1="0" y1="0" x2="0" y2="1"><stop class="dt-trend-stop-start" offset="0%" stop-opacity="0.28" /><stop class="dt-trend-stop-end" offset="100%" stop-opacity="0" /></linearGradient></defs>
               <g class="dt-trend-grid" id="trend-grid"></g>
@@ -131,7 +133,6 @@
             <div><p class="dt-overline" data-i18n="liveAssets">实时设备</p><div class="dt-sensor-title"><h2 data-i18n="iotSensorsList">IoT 传感器列表</h2><span id="equipment-search-count">0/0</span></div></div>
           </header>
           <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索名称、类型或 ID" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
-          <nav class="dt-equipment-filters" id="equipment-filters" aria-label="IFC 设备分类"></nav>
           <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
         </section>
 

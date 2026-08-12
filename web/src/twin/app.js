@@ -239,7 +239,11 @@ function fallbackSensorDevices() {
         "zh-Hant": `${model}-${number} 室內環境感測器`,
         en: `${model}-${number} Indoor Environment Sensor`,
       },
-      subtitle: { zh: "空间点位 · 模拟遥测", "zh-Hant": "空間點位 · 模擬遙測", en: "Spatial marker · Simulated telemetry" },
+      subtitle: {
+        zh: `${model} · ${model === "AM308" ? "八合一" : "三合一"} · 室内环境`,
+        "zh-Hant": `${model} · ${model === "AM308" ? "八合一" : "三合一"} · 室內環境`,
+        en: `${model} · ${model === "AM308" ? "8-in-1" : "3-in-1"} · Indoor environment`,
+      },
       category: "IOT_SENSOR",
       groupKey: "sensors",
       sensorModel: model,
@@ -289,7 +293,6 @@ const elements = {
   technologyLabel: document.querySelector(".dt-side-footer span"),
   equipmentSearch: document.getElementById("equipment-search"),
   equipmentSearchCount: document.getElementById("equipment-search-count"),
-  equipmentFilters: document.getElementById("equipment-filters"),
   deviceList: document.getElementById("device-list"),
   bindingLabel: document.getElementById("binding-label"),
   deviceName: document.getElementById("device-name"),
@@ -337,7 +340,6 @@ const state = {
   selectedDeviceId: null,
   selectedItem: null,
   selectedIfcItem: null,
-  equipmentFilter: "allEquipment",
   equipmentQuery: "",
   calibrating: false,
   boundObjects: new Map(),
@@ -743,12 +745,9 @@ function normalizedSearchText(value) {
 }
 
 function visibleDevices() {
-  const categoryDevices = state.equipmentFilter === "allEquipment"
-    ? DEVICES
-    : DEVICES.filter((device) => device.sensorModel === state.equipmentFilter);
   const queryText = normalizedSearchText(state.equipmentQuery);
-  if (!queryText) return categoryDevices;
-  return categoryDevices.filter((device) => {
+  if (!queryText) return DEVICES;
+  return DEVICES.filter((device) => {
     const searchable = [
       deviceText(device, "name"),
       deviceText(device, "subtitle"),
@@ -810,29 +809,6 @@ function renderSiteOverview() {
   elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
   elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
   elements.siteOccupants.textContent = "—";
-}
-
-function renderEquipmentFilters() {
-  const filters = [
-    { key: "allEquipment", count: DEVICES.length },
-    ...["AM103", "AM308"].map((key) => ({
-      key,
-      count: DEVICES.filter((device) => device.sensorModel === key).length,
-    })),
-  ];
-  elements.equipmentFilters.innerHTML = "";
-  for (const filter of filters) {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = state.equipmentFilter === filter.key ? "active" : "";
-    button.textContent = `${filter.key === "allEquipment" ? t(filter.key) : filter.key} ${filter.count}`;
-    button.addEventListener("click", () => {
-      state.equipmentFilter = filter.key;
-      renderEquipmentFilters();
-      renderDeviceList();
-    });
-    elements.equipmentFilters.appendChild(button);
-  }
 }
 
 function sparklinePath(values) {
@@ -925,7 +901,6 @@ function renderSelectedDevice() {
 }
 
 function renderUI() {
-  renderEquipmentFilters();
   renderDeviceList();
   renderSelectedDevice();
   renderSiteOverview();
