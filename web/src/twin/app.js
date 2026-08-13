@@ -51,11 +51,12 @@ const MODELS = [
     label: "Lab MEP",
     hiddenCategories: ["IFCCOVERING"],
   },
+  { id: "sensor", name: "Sensor.frag", url: "./models/fragments/Sensor.frag", label: "Lab Sensors" },
 ];
 
 const MODEL = {
   name: MODELS.map((model) => model.name).join(" + "),
-  label: "Lab Archi + MEP",
+  label: "Lab Archi + MEP + Sensors",
 };
 
 const I18N = {
@@ -266,6 +267,42 @@ function fallbackSensorDevices() {
       ifc: { localId: `MOCK-${number}`, category: "IoT Sensor", guid: null, name: `AM103-${number}`, data: { Source: "Mock data", Binding: "Normalized model coordinate" } },
     };
   });
+}
+
+async function bindSensorsToIfc(devices, sensorModel) {
+  if (!sensorModel) return devices;
+  const categories = await sensorModel.getItemsOfCategories([/^IFCBUILDINGELEMENTPROXY$/i]);
+  const localIds = Object.values(categories).flat();
+  const available = [];
+
+  for (const localId of localIds) {
+    const boxes = await sensorModel.getBoxes([localId]);
+    if (!boxes.length) continue;
+    const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
+    available.push({ localId, box, center: box.getCenter(new THREE.Vector3()) });
+  }
+
+  const modelSize = state.modelBox.getSize(new THREE.Vector3());
+  for (const device of devices) {
+    if (!available.length) break;
+    const [nx, ny, nz] = device.binding.normalizedPosition;
+    const expected = new THREE.Vector3(
+      state.modelBox.min.x + modelSize.x * nx,
+      state.modelBox.min.y + modelSize.y * ny,
+      state.modelBox.min.z + modelSize.z * nz,
+    );
+    available.sort((a, b) => a.center.distanceToSquared(expected) - b.center.distanceToSquared(expected));
+    const match = available.shift();
+    const details = await loadIfcItemDetails(match.localId, "IFCBUILDINGELEMENTPROXY", sensorModel);
+    device.binding = {
+      kind: "object",
+      modelId: "sensor",
+      localId: match.localId,
+      globalId: details?.guid || null,
+    };
+    if (details) device.ifc = details;
+  }
+  return devices;
 }
 
 function deviceText(device, field) {
@@ -667,7 +704,7 @@ async function findBindingObject(device) {
   return localId ?? null;
 }
 
-function createMarker(device) {
+function createMarker(device, worldPosition = null) {
   const element = document.createElement("button");
   element.type = "button";
   element.className = "dt-model-marker normal";
@@ -680,13 +717,17 @@ function createMarker(device) {
 
   const label = new CSS2DObject(element);
   label.name = `marker-${device.id}`;
-  const [nx, ny, nz] = device.binding.normalizedPosition;
-  const size = state.modelBox.getSize(new THREE.Vector3());
-  label.position.set(
-    state.modelBox.min.x + size.x * nx,
-    state.modelBox.min.y + size.y * ny,
-    state.modelBox.min.z + size.z * nz,
-  );
+  if (worldPosition) {
+    label.position.copy(worldPosition);
+  } else {
+    const [nx, ny, nz] = device.binding.normalizedPosition;
+    const size = state.modelBox.getSize(new THREE.Vector3());
+    label.position.set(
+      state.modelBox.min.x + size.x * nx,
+      state.modelBox.min.y + size.y * ny,
+      state.modelBox.min.z + size.z * nz,
+    );
+  }
   helpersGroup.add(label);
   state.markerObjects.set(device.id, { label, element });
 }
@@ -701,6 +742,16 @@ async function bindDevices() {
     const target = await findBindingObject(device);
     if (target === null) continue;
     state.boundObjects.set(device.id, target);
+    if (device.binding.modelId === "sensor") {
+      const fragmentsModel = state.fragmentsModels.get("sensor");
+      const boxes = await fragmentsModel.getBoxes([target]);
+      if (boxes.length) {
+        const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
+        const markerPosition = box.getCenter(new THREE.Vector3());
+        markerPosition.y = box.max.y + state.modelRadius * 0.008;
+        createMarker(device, markerPosition);
+      }
+    }
   }
   await updateAllVisualStates();
 }
@@ -1301,7 +1352,7 @@ async function finalizeFederatedModel(componentCount) {
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
-  DEVICES = fallbackSensorDevices();
+  DEVICES = await bindSensorsToIfc(fallbackSensorDevices(), state.fragmentsModels.get("sensor"));
   MEP_COMPONENTS = await scanIfcEquipment(state.fragmentsModels.get("mep"), "mep");
   initializeDeviceSnapshots();
   const initialDevice = DEVICES.find((device) => device.id.toUpperCase() === requestedSensorId) || DEVICES[0];

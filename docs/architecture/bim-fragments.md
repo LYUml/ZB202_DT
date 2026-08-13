@@ -45,4 +45,4 @@ The room-view entry loads IFC/Fragments by default and retains the existing HTML
 
 ## Current model
 
-The runtime federates the formal `Lab archi.ifc` and `Lab mep.ifc` exports as independent Architecture and MEP Fragments layers. Both are visible by default and can be toggled independently. Non-MEP `IFCCOVERING` elements exported inside the MEP file are hidden at runtime so its ceiling platform does not duplicate the Architecture layer. Equipment discovery currently uses the MEP layer; production telemetry bindings should use its stable IFC `GlobalId` values.
+The runtime federates the formal `Lab archi.ifc`, `Lab mep.ifc`, and `Sensor.ifc` exports as independent Architecture, MEP, and Sensor Fragments layers. All three are visible by default and can be toggled independently. Non-MEP `IFCCOVERING` elements exported inside the MEP file are hidden at runtime so its ceiling platform does not duplicate the Architecture layer. Equipment discovery currently uses the MEP layer; production telemetry bindings should use stable IFC `GlobalId` values from the owning layer.
