@@ -2,89 +2,186 @@
 
 [中文](README.md) | [English](README.en.md)
 
-**Live demo: [Open ZB202 Web Digital Twin](https://lyuml.github.io/ZB202_DT/)**
+A browser-based digital twin for environmental monitoring in laboratory ZB202. It combines Vite, Three.js, and That Open Fragments for IFC/BIM visualization with a local bridge that reads time-series sensor data from InfluxDB.
 
-A lightweight web digital-twin PoC for equipment monitoring in laboratory ZB202, built as a Vite multi-page frontend with Three.js/WebGL and an IFC/That Open Fragments BIM model.
+> Live demo: [ZB202 Web Digital Twin](https://lyuml.github.io/ZB202_DT/)
+>
+> The hosted site contains the static frontend only. Live InfluxDB data requires the local bridge.
 
-## Technical Path
-
-### Current Implementation
-
-```mermaid
-flowchart LR
-  RVT["Revit source models<br/>RVT"] --> IFC["Open BIM source<br/>IFC"]
-  IFC --> FRAG["Browser runtime model<br/>That Open Fragments"]
-  FRAG --> VITE["Vite<br/>module and asset build"]
-  VITE --> THREE["Three.js / WebGL<br/>Fragments rendering"]
-  MOCK["Frontend mock data<br/>devices, metrics, trends, faults"] --> UI["Web UI<br/>overview / detail / room view"]
-  THREE --> BIND["Device binding<br/>BIM component ID / world coordinates"]
-  BIND --> UI
-```
-
-- **Model path**: `models/ifc/` stores the formal Lab Architecture and Lab MEP IFC files. They are preprocessed into separate `.frag` assets, federated in one room view, and can be shown or hidden independently.
-- **Device binding**: BIM equipment uses stable IFC `GlobalId` bindings; sensors without model elements can continue to use world-coordinate markers.
-- **Data status**: device records, trends, alarms, and fault simulation currently use frontend mock data. When the current Fragments model contains no supported scanned IFC equipment, the room view shows three clearly identified AM-103 mock sensor markers. Live MQTT, persisted history, BMS/AHU data, and AI modules are not yet connected.
-- **Pages**: `overview.html` provides the device directory and global language/theme controls; `device.html` shows one device; `twin.html` provides the 3D room, a right-side Site Overview/IoT Sensors List/BMS rail, bottom task navigation, and a left data-and-trend panel when a sensor is selected.
-
-### Planned Live-data Path
+## Architecture
 
 ```mermaid
 flowchart LR
-  DEVICE["Milesight / BA devices"] --> MQTT["MQTT Broker"]
-  MQTT --> COLLECTOR["collection and decoding<br/>DevEUI mapping"]
-  COLLECTOR --> DB["time-series / business database"]
-  DB --> API["HTTP API / WebSocket"]
-  API --> WEB["ZB202 web frontend"]
+  SENSOR["Milesight sensors"] --> INFLUX["InfluxDB 2.x<br/>bucket: zb202_iot"]
+  INFLUX --> BRIDGE["Node.js polling bridge"]
+  BRIDGE --> WS["WebSocket<br/>127.0.0.1:8787"]
+  WS --> UI["Web frontend<br/>overview / device / 3D twin"]
+
+  RVT["Revit models"] --> IFC["IFC models"]
+  IFC --> FRAG["That Open Fragments"]
+  FRAG --> UI
 ```
 
-This path is planned for the next phase. The frontend will not connect directly to MQTT. A collector will decode payloads, map devices, and write data; the frontend will consume business data through an API or WebSocket.
+The browser never connects to InfluxDB directly. The API token is read only by the local Node.js bridge and is not bundled into frontend assets.
 
-## Folder Structure
+## Features
+
+- Federated Architecture, MEP, and Sensor Fragments layers with independent visibility controls.
+- BIM-to-device binding through IFC `GlobalId` values or world-coordinate markers.
+- Temperature, relative-humidity, and CO₂ history from InfluxDB.
+- DevEUI-based mapping between time-series rows and sensors.
+- Live status and latest readings on both the overview and 3D twin pages through the local WebSocket.
+- The most recent 24 trend points; a sensor is marked offline after 15 minutes without a new record.
+- Light/dark themes and Chinese/English UI.
+- Live BMS/AHU data, backend alarms, and AI analysis are not yet connected.
+
+## Requirements
+
+- Node.js 20.19 or newer
+- npm
+- A reachable InfluxDB 2.x instance
+- An InfluxDB API token with read access to the target bucket
+
+## InfluxDB schema
+
+The default bucket is `zb202_iot`. The bridge recognizes these field aliases:
+
+| UI metric | Supported InfluxDB `_field` values |
+| --- | --- |
+| Temperature | `temperature_c` (current), `temperature`, `temp` |
+| Relative humidity | `relative_humidity_pct` (current), `humidity`, `relativeHumidity`, `rh` |
+| CO₂ | `co2_ppm` (current), `co2`, `co2Concentration` |
+
+The current bucket uses device IDs as measurements (for example, `AM103_05`), which the bridge maps directly to frontend device IDs. `devEui`, `deviceEui`, `dev_eui`, and `device_eui` tags remain supported.
+
+No measurement filter is applied by default. Set `ZB202_INFLUX_MEASUREMENT` when the bucket contains unrelated measurements.
+
+## Configuration
+
+Create a local environment file:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Edit `.env`:
+
+```dotenv
+ZB202_INFLUX_URL=http://influxdb.itf.beeerise.com
+ZB202_INFLUX_TOKEN=your-read-only-token
+ZB202_INFLUX_ORG=PolyU
+ZB202_INFLUX_BUCKET=zb202_iot
+
+# Optional
+ZB202_INFLUX_MEASUREMENT=
+ZB202_INFLUX_DEVICE_COLUMN=devEui
+ZB202_INFLUX_POLL_INTERVAL_MS=10000
+ZB202_INFLUX_POLL_LOOKBACK=-15m
+ZB202_INFLUX_HISTORY_RANGE=-24h
+ZB202_INFLUX_BRIDGE_PORT=8787
+```
+
+`.env` is ignored by Git. Never place a real token in documentation, frontend code, or version control. A read-only production token is recommended.
+
+## Running the project
+
+### Windows launcher
+
+After configuring `.env`, double-click `start-zb202.bat`. It installs missing dependencies, starts the InfluxDB bridge and Vite server, and opens the overview page.
+
+### Manual startup
+
+Install dependencies once:
+
+```powershell
+npm install
+```
+
+Run these commands in separate terminals:
+
+```powershell
+npm run influx:bridge
+```
+
+```powershell
+npm run dev -- --host 127.0.0.1
+```
+
+Open:
+
+- Overview: `http://127.0.0.1:5173/overview.html`
+- Device detail: `http://127.0.0.1:5173/device.html`
+- 3D twin: `http://127.0.0.1:5173/twin.html`
+
+## Commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the Vite development server |
+| `npm run influx:bridge` | Start the InfluxDB-to-WebSocket bridge |
+| `npm run test:bridge` | Verify the bridge and all five ZB202 sensor streams |
+| `npm run build` | Build production assets into `dist/` |
+| `npm run preview` | Preview the production build |
+| `npm run bim:convert` | Convert IFC models to Fragments |
+
+## Project structure
 
 ```text
 ZB202_DT/
-├── .github/
-│   └── workflows/
-│       └── deploy-pages.yml       # GitHub Pages build and deployment
-├── docs/
-│   ├── architecture/
-│   │   └── technical-routes.mmd   # Technical-route comparison
-│   ├── integrations/
-│   │   └── mqtt-interface-notes.txt
-│   └── quality/
-│       └── design-qa.md           # Archived design QA
-├── dvc/
-│   ├── zb202_device_backup.csv    # Master device-list backup
-│   └── zb202_device_backup.xlsx
+├── docs/                         # Architecture and quality notes
+├── dvc/                          # Device-list backups
 ├── models/
-│   ├── ifc/                       # IFC BIM source and provenance
-│   │   ├── Lab archi.ifc
-│   │   └── Lab mep.ifc
-│   └── rvt/                       # Revit source models
-│       ├── Lab Architecture Model.rvt
-│       └── Lab MEP Model.rvt
+│   ├── ifc/                      # IFC source models
+│   └── rvt/                      # Revit source models
+├── scripts/
+│   ├── influxdb-bridge.mjs       # InfluxDB query and WebSocket bridge
+│   └── ifc-to-fragments.mjs      # IFC-to-Fragments conversion
 ├── web/
-│   ├── index.html                 # Root entry
-│   ├── overview.html              # Device overview
-│   ├── device.html                # Device detail
-│   ├── twin.html                  # Three.js room view
-│   ├── public/models/fragments/   # Architecture and MEP runtime models
-│   └── src/
-│       ├── dashboard/
-│       │   ├── app.js             # Overview and detail behavior
-│       │   └── devices.js         # Frontend device records
-│       ├── shared/
-│       │   ├── styles.css         # Shared layout and components
-│       │   └── theme.css          # Global day/night theme
-│       └── twin/
-│           ├── app.js             # Three.js, Fragments, and device interaction
-│           └── styles.css         # Room-view styles
-├── package.json                   # npm scripts and dependencies
-├── package-lock.json              # Locked dependency versions
-├── vite.config.js                 # Multi-page build configuration
-├── start-zb202.bat                # One-click Windows launcher
-├── README.md
-└── README.en.md
+│   ├── public/models/fragments/  # Browser runtime models
+│   ├── src/dashboard/            # Overview and device-detail logic
+│   ├── src/shared/               # Shared styles and themes
+│   ├── src/twin/                 # 3D twin logic and styles
+│   ├── overview.html
+│   ├── device.html
+│   └── twin.html
+├── .env.example                  # InfluxDB configuration template
+├── package.json
+├── start-zb202.bat               # Windows launcher
+└── vite.config.js
 ```
 
-`node_modules/` and `dist/` are local install/build outputs rather than source directories. Both are ignored by Git.
+`node_modules/`, `dist/`, `.cache/`, and `.env` are local generated content and are ignored by Git.
+
+## Troubleshooting
+
+### Missing environment variables
+
+Make sure `.env` exists in the project root and defines `ZB202_INFLUX_URL`, `ZB202_INFLUX_TOKEN`, `ZB202_INFLUX_ORG`, and `ZB202_INFLUX_BUCKET`.
+
+### InfluxDB connects but no readings appear
+
+Check that:
+
+1. The token can read `zb202_iot`.
+2. The organization is `PolyU` and the optional measurement setting is correct.
+3. Field names follow the schema above.
+4. The DevEUI tag matches a device in `web/src/dashboard/devices.js`.
+5. Timestamps fall inside `ZB202_INFLUX_HISTORY_RANGE`.
+
+### Devices appear offline
+
+The frontend marks sensors offline when the database bridge is unavailable or when no new reading has arrived for 15 minutes. Check the terminal running `npm run influx:bridge` first.
+
+InfluxDB measurements use underscore IDs such as `AM103_05`, while frontend devices use hyphen IDs such as `AM103-05`; the application normalizes these formats automatically. Run the end-to-end bridge check with:
+
+```powershell
+npm run test:bridge
+```
+
+## Status and polling behavior
+
+- On startup, the bridge reads the last 24 points per series inside `ZB202_INFLUX_HISTORY_RANGE`.
+- During normal operation it polls every 10 seconds and looks back 15 minutes to catch delayed writes.
+- A bounded deduplication cache prevents memory growth during long-running sessions.
+- All sensors are marked offline when InfluxDB or the local bridge is unavailable.
+- When the database is healthy, an individual sensor is marked offline only after 15 minutes without a new record.

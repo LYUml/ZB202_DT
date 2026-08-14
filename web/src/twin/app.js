@@ -83,7 +83,8 @@ const I18N = {
     dataPanelAria: "传感器数据面板", closeDataPanel: "关闭数据面板", sensorData: "传感器数据",
     componentDetails: "构件详情", componentInfo: "BIM 构件", ifcType: "IFC 类型", identifiers: "标识符",
     dataPanelLabel: "数据面板", earlier: "较早", now: "现在",
-    lastUpload: "最后上传", custom: "自定义", mockHistoryNote: "当前仅显示可用的模拟数据窗口",
+    readingsInRange: "所选 {range} 时间范围内有 {count} 条真实记录",
+    lastUpload: "最后记录", custom: "自定义", mockHistoryNote: "当前显示可用的数据窗口",
     bmsReserved: "AHU 运行数据将在后续版本接入。", aiReserved: "AI 分析模块将在后续版本接入。",
     reservedCopy: "此模块为后续功能预留。", online: "在线", offline: "离线", maintenance: "维护中",
     liveSummary: "实时概览", siteOverview: "场地概览", liveAssets: "实时设备", iotSensorsList: "IoT 传感器列表",
@@ -113,7 +114,8 @@ const I18N = {
     dataPanelAria: "感測器資料面板", closeDataPanel: "關閉資料面板", sensorData: "感測器資料",
     componentDetails: "構件詳情", componentInfo: "BIM 構件", ifcType: "IFC 類型", identifiers: "識別碼",
     dataPanelLabel: "資料面板", earlier: "較早", now: "現在",
-    lastUpload: "最後上傳", custom: "自訂", mockHistoryNote: "目前僅顯示可用的模擬資料視窗",
+    readingsInRange: "所選 {range} 時間範圍內有 {count} 筆真實記錄",
+    lastUpload: "最後記錄", custom: "自訂", mockHistoryNote: "目前顯示可用的資料視窗",
     bmsReserved: "AHU 運行資料將於後續版本接入。", aiReserved: "AI 分析模組將於後續版本接入。",
     reservedCopy: "此模組為後續功能預留。", online: "在線", offline: "離線", maintenance: "維護中",
     liveSummary: "即時概覽", siteOverview: "場地概覽", liveAssets: "即時設備", iotSensorsList: "IoT 感測器列表",
@@ -144,7 +146,7 @@ const I18N = {
     componentDetails: "Component Details", componentInfo: "BIM Component", ifcType: "IFC Type", identifiers: "Identifiers",
     readingsInRange: "{count} real readings in the selected {range} window",
     dataPanelLabel: "Data Panel", earlier: "Earlier", now: "Now",
-    lastUpload: "Last upload", custom: "Custom", mockHistoryNote: "Showing the available simulated-data window",
+    lastUpload: "Last reading", custom: "Custom", mockHistoryNote: "Showing the available data window",
     bmsReserved: "AHU operating data will be connected in a future release.", aiReserved: "AI analytics will be connected in a future release.",
     reservedCopy: "This space is reserved for a future module.", online: "Online", offline: "Offline", maintenance: "Maintenance",
     liveSummary: "Live Summary", siteOverview: "Site Overview", liveAssets: "Live Assets", iotSensorsList: "IoT Sensors List",
@@ -216,7 +218,8 @@ const STATUS = {
   unavailable: { color: 0x8b94a6 },
 };
 
-const MQTT_STALE_AFTER_MS = 15 * 60 * 1000;
+const INFLUX_STALE_AFTER_MS = 15 * 60 * 1000;
+const MAX_SEEN_TELEMETRY = 5000;
 
 const EQUIPMENT_GROUPS = [
   { key: "fans", category: "IFCFAN", label: { zh: "风机", "zh-Hant": "風機", en: "Fan" } },
@@ -406,10 +409,10 @@ const state = {
   historyRange: "1h",
   customHours: 6,
   liveDevices: new Set(),
-  mqttConnected: false,
-  mqttConnectionKnown: false,
-  mqttConnectedAt: null,
-  mqttSocket: null,
+  influxConnected: false,
+  influxConnectionKnown: false,
+  influxConnectedAt: null,
+  influxSocket: null,
   lastLiveAt: new Map(),
   seenTelemetry: new Set(),
 };
@@ -1220,40 +1223,40 @@ function updateMockData() {
 }
 
 function updateDeviceConnectivity() {
-  if (!state.mqttConnectionKnown) return;
+  if (!state.influxConnectionKnown) return;
   const now = Date.now();
   for (const device of DEVICES) {
     const snapshot = state.snapshots.get(device.id);
     if (!snapshot) continue;
     const lastLiveAt = state.lastLiveAt.get(device.id);
-    const brokerOffline = !state.mqttConnected;
-    const deviceStale = state.mqttConnected && (!lastLiveAt || now - lastLiveAt > MQTT_STALE_AFTER_MS);
-    if (brokerOffline || deviceStale) snapshot.status = "offline";
+    const databaseOffline = !state.influxConnected;
+    const deviceStale = state.influxConnected && (!lastLiveAt || now - lastLiveAt > INFLUX_STALE_AFTER_MS);
+    if (databaseOffline || deviceStale) snapshot.status = "offline";
     else if (snapshot.status === "offline") snapshot.status = "normal";
   }
 }
 
-function connectMqttBridge() {
-  if (state.mqttSocket && state.mqttSocket.readyState < WebSocket.CLOSING) return;
+function connectInfluxBridge() {
+  if (state.influxSocket && state.influxSocket.readyState < WebSocket.CLOSING) return;
   const bridgeUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8787`;
   let socket;
   try {
     socket = new WebSocket(bridgeUrl);
-    state.mqttSocket = socket;
+    state.influxSocket = socket;
   } catch (error) {
-    console.warn("MQTT bridge unavailable", error);
+    console.warn("InfluxDB bridge unavailable", error);
     return;
   }
   socket.addEventListener("message", (event) => {
     let message;
     try { message = JSON.parse(event.data); } catch { return; }
     if (message.type === "bridge-status") {
-      const wasConnected = state.mqttConnected;
-      state.mqttConnected = Boolean(message.connected);
-      state.mqttConnectionKnown = true;
-      if (state.mqttConnected && !wasConnected) {
+      const wasConnected = state.influxConnected;
+      state.influxConnected = Boolean(message.connected);
+      state.influxConnectionKnown = true;
+      if (state.influxConnected && !wasConnected) {
         const bridgeStartedAt = Date.parse(message.startedAt);
-        state.mqttConnectedAt = Number.isFinite(bridgeStartedAt) ? bridgeStartedAt : Date.now();
+        state.influxConnectedAt = Number.isFinite(bridgeStartedAt) ? bridgeStartedAt : Date.now();
       }
       updateDeviceConnectivity();
       renderUI();
@@ -1261,12 +1264,16 @@ function connectMqttBridge() {
     }
     if (message.type !== "telemetry") return;
     const normalizedEui = String(message.devEui || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
-    const device = DEVICES.find((item) => item.devEui === normalizedEui);
+    const normalizedDeviceId = String(message.deviceId || "").replaceAll("_", "-").toUpperCase();
+    const device = DEVICES.find((item) => item.devEui === normalizedEui || item.id.toUpperCase() === normalizedDeviceId);
     const snapshot = device && state.snapshots.get(device.id);
     if (!device || !snapshot) return;
     const telemetryKey = `${device.id}:${message.receivedAt || JSON.stringify(message.values)}`;
     if (state.seenTelemetry.has(telemetryKey)) return;
     state.seenTelemetry.add(telemetryKey);
+    if (state.seenTelemetry.size > MAX_SEEN_TELEMETRY) {
+      state.seenTelemetry.delete(state.seenTelemetry.values().next().value);
+    }
     for (const metric of device.metrics) {
       const value = Number(message.values?.[metric.key]);
       if (!Number.isFinite(value)) continue;
@@ -1281,12 +1288,12 @@ function connectMqttBridge() {
     renderUI();
   });
   socket.addEventListener("close", () => {
-    state.mqttConnected = false;
-    state.mqttConnectionKnown = true;
-    state.mqttSocket = null;
+    state.influxConnected = false;
+    state.influxConnectionKnown = true;
+    state.influxSocket = null;
     updateDeviceConnectivity();
     renderUI();
-    window.setTimeout(connectMqttBridge, 3000);
+    window.setTimeout(connectInfluxBridge, 3000);
   });
   socket.addEventListener("error", () => socket.close());
 }
@@ -1372,7 +1379,7 @@ async function finalizeFederatedModel(componentCount) {
   elements.loadingMeta.textContent = t("modelReady", { count: componentCount.toLocaleString(activeLocale()) });
   elements.loading.classList.add("hidden");
   renderUI();
-  connectMqttBridge();
+  connectInfluxBridge();
 }
 
 async function loadModel() {

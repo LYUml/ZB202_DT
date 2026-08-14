@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "mqtt:bridge": "node scripts/mqtt-bridge.mjs",
+    "influx:bridge": "node scripts/influxdb-bridge.mjs",
+    "test:bridge": "node scripts/bridge-smoke-test.mjs",
     "build": "vite build",
     "bim:convert": "node scripts/ifc-to-fragments.mjs",
     "preview": "vite preview"
@@ -13,7 +14,8 @@
   "dependencies": {
     "@phosphor-icons/web": "^2.1.2",
     "@thatopen/fragments": "^3.4.7",
-    "mqtt": "^5.15.2",
+    "@influxdata/influxdb-client": "^1.35.0",
+    "dotenv": "^17.2.1",
     "three": "0.185.1",
     "web-ifc": "^0.0.77",
     "ws": "^8.21.3"
