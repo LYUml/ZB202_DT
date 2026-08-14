@@ -47,14 +47,17 @@ import "@phosphor-icons/web/regular";
 
 // Overview and device-detail page behavior.
 const THEME_STORAGE_KEY = "zb202-theme";
+const INFLUX_STALE_AFTER_MS = 15 * 60 * 1000;
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+let overviewConnected = false;
 
 const i18n = {
   zh: {
     "overview.eyebrow": "ZB202 / 建筑数字孪生",
     "overview.title": "空间设备总览",
-    "overview.note": "当前为演示占位数据，后续将接入实时 IoT 与 BIM 状态。",
+    "overview.note": "InfluxDB 已连接。离线传感器以红色显示。",
+    "overview.noteOffline": "InfluxDB 连接中断，当前传感器状态可能不是最新。",
     "overview.viewCard": "卡片",
     "overview.viewTable": "表格",
     "overview.roomView": "房间视图",
@@ -99,7 +102,8 @@ const i18n = {
   "zh-Hant": {
     "overview.eyebrow": "ZB202 / 建築數位孿生",
     "overview.title": "空間設備總覽",
-    "overview.note": "目前為示範佔位資料，後續將接入即時 IoT 與 BIM 狀態。",
+    "overview.note": "InfluxDB 已連接。離線感測器以紅色顯示。",
+    "overview.noteOffline": "InfluxDB 連線中斷，目前感測器狀態可能不是最新。",
     "overview.viewCard": "卡片",
     "overview.viewTable": "表格",
     "overview.roomView": "房間視圖",
@@ -144,7 +148,8 @@ const i18n = {
   en: {
     "overview.eyebrow": "ZB202 / Building Digital Twin",
     "overview.title": "Indoor Environment Sensors",
-    "overview.note": "MQTT is connected. Offline sensors are marked in red.",
+    "overview.note": "InfluxDB is connected. Offline sensors are marked in red.",
+    "overview.noteOffline": "InfluxDB is disconnected. Sensor status may be out of date.",
     "overview.viewCard": "Card",
     "overview.viewTable": "Table",
     "overview.roomView": "Room View",
@@ -160,7 +165,7 @@ const i18n = {
     "detail.switchToTable": "Table View",
     "detail.switchToVisual": "Model View",
     "detail.openTwin": "Open in Digital Twin",
-    "detail.readingsEyebrow": "Latest MQTT Reading",
+    "detail.readingsEyebrow": "Latest InfluxDB Reading",
     "detail.readingsTitle": "Indoor Environment",
     "detail.readingsNote": "Open the digital twin to view live status and historical trends.",
     "common.room": "Room",
@@ -399,6 +404,71 @@ function renderOverview(devices) {
   });
 }
 
+function updateOverviewNote() {
+  const note = document.querySelector('[data-i18n="overview.note"]');
+  if (note) note.textContent = t(overviewConnected ? "overview.note" : "overview.noteOffline");
+}
+
+function connectOverviewBridge(devices) {
+  const lastSeenAt = new Map();
+  let renderTimer = null;
+  let socket = null;
+
+  const scheduleRender = () => {
+    clearTimeout(renderTimer);
+    renderTimer = window.setTimeout(() => renderOverview(devices), 50);
+  };
+
+  const updateStatuses = () => {
+    const now = Date.now();
+    for (const device of devices) {
+      const lastSeen = lastSeenAt.get(device.id);
+      device.status = overviewConnected && lastSeen && now - lastSeen <= INFLUX_STALE_AFTER_MS ? "normal" : "alert";
+    }
+    scheduleRender();
+  };
+
+  const connect = () => {
+    const bridgeUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8787`;
+    socket = new WebSocket(bridgeUrl);
+    socket.addEventListener("message", (event) => {
+      let message;
+      try { message = JSON.parse(event.data); } catch { return; }
+      if (message.type === "bridge-status") {
+        overviewConnected = Boolean(message.connected);
+        updateOverviewNote();
+        updateStatuses();
+        return;
+      }
+      if (message.type !== "telemetry") return;
+      const normalizedEui = String(message.devEui || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
+      const normalizedDeviceId = String(message.deviceId || "").replaceAll("-", "_").toUpperCase();
+      const device = devices.find((item) => item.devEui === normalizedEui || item.id.toUpperCase() === normalizedDeviceId);
+      if (!device) return;
+      const receivedAt = Date.parse(message.receivedAt);
+      if (!Number.isFinite(receivedAt)) return;
+      lastSeenAt.set(device.id, receivedAt);
+      const temperature = Number(message.values?.temperature);
+      const humidity = Number(message.values?.humidity);
+      const co2 = Number(message.values?.co2);
+      if (Number.isFinite(temperature)) device.latestValues.temperature = `${temperature.toFixed(1)} °C`;
+      if (Number.isFinite(humidity)) device.latestValues.humidity = `${humidity.toFixed(1)}%`;
+      if (Number.isFinite(co2)) device.latestValues.co2 = `${Math.round(co2)} ppm`;
+      updateStatuses();
+    });
+    socket.addEventListener("close", () => {
+      overviewConnected = false;
+      updateOverviewNote();
+      updateStatuses();
+      window.setTimeout(connect, 3000);
+    });
+    socket.addEventListener("error", () => socket.close());
+  };
+
+  connect();
+  window.setInterval(updateStatuses, 30000);
+}
+
 function attachViewSwitch() {
   const viewButtons = Array.from(document.querySelectorAll(".seg"));
   const cardView = document.getElementById("card-view");
@@ -591,8 +661,12 @@ async function loadDevices() {
   if (page === "overview") {
     renderOverview(devices);
     attachViewSwitch();
-    addLanguageControl(() => renderOverview(devices));
+    addLanguageControl(() => {
+      renderOverview(devices);
+      updateOverviewNote();
+    });
     attachThemeControl();
+    connectOverviewBridge(devices);
   }
 
   if (page === "device") {

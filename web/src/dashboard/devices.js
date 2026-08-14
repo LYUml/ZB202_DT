@@ -1,4 +1,4 @@
-// Sensors currently installed in ZB202 and connected through the MQTT bridge.
+// Sensors currently installed in ZB202 and read through the InfluxDB bridge.
 window.ZB202_DEVICE_DATA = [
   { id: "AM103_07", name: { en: "AM103-07 Indoor Environment Sensor" }, model: "AM103", type: { en: "3-in-1 Indoor Environment Sensor" }, devEui: "24E124725E281056", profile: "Class A / OTAA", decoder: "AM103", location: { en: "ZB202 · Monitoring Point 7" }, status: "normal", latestValues: { temperature: "23.5 °C", humidity: "69.0%", co2: "564 ppm" } },
   { id: "AM103_08", name: { en: "AM103-08 Indoor Environment Sensor" }, model: "AM103", type: { en: "3-in-1 Indoor Environment Sensor" }, devEui: "24E124725E283167", profile: "Class A / OTAA", decoder: "AM103", location: { en: "ZB202 · Monitoring Point 8" }, status: "normal", latestValues: { temperature: "23.3 °C", humidity: "69.0%", co2: "571 ppm" } },

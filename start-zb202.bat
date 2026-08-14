@@ -13,7 +13,7 @@ if not exist "node_modules" (
 
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 MQTT Bridge" /min cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run mqtt:bridge"
+  start "ZB202 InfluxDB Bridge" /min cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run influx:bridge"
 )
 
 powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=en' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
