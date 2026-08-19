@@ -238,13 +238,13 @@ let MEP_COMPONENTS = [];
 
 function fallbackSensorDevices() {
   const positions = [
-    { model: "AM103", number: "07", devEui: "24E124725E281056", normalizedPosition: [0.29, 0.66, 0.31] },
-    { model: "AM103", number: "08", devEui: "24E124725E283167", normalizedPosition: [0.51, 0.83, 0.39] },
-    { model: "AM308", number: "01", devEui: "24E124707E093681", normalizedPosition: [0.56, 0.50, 0.54] },
-    { model: "AM103", number: "05", devEui: "24E124725E281413", normalizedPosition: [0.43, 0.54, 0.62] },
-    { model: "AM103", number: "06", devEui: "24E124725E283152", normalizedPosition: [0.68, 0.48, 0.57] },
+    { model: "AM103", number: "07", devEui: "24E124725E281056", sensorGuid: "22cHeEQV9Ccwk$gYcfob0G", normalizedPosition: [0.29, 0.66, 0.31] },
+    { model: "AM103", number: "08", devEui: "24E124725E283167", sensorGuid: "22cHeEQV9Ccwk$gYcfob4i", normalizedPosition: [0.51, 0.83, 0.39] },
+    { model: "AM308", number: "01", devEui: "24E124707E093681", sensorGuid: "22cHeEQV9Ccwk$gYcfob4M", normalizedPosition: [0.56, 0.50, 0.54] },
+    { model: "AM103", number: "05", devEui: "24E124725E281413", sensorGuid: "22cHeEQV9Ccwk$gYcfob7f", normalizedPosition: [0.43, 0.54, 0.62] },
+    { model: "AM103", number: "06", devEui: "24E124725E283152", sensorGuid: "22cHeEQV9Ccwk$gYcfob44", normalizedPosition: [0.68, 0.48, 0.57] },
   ];
-  return positions.map(({ model, number, devEui, normalizedPosition }, index) => {
+  return positions.map(({ model, number, devEui, sensorGuid, normalizedPosition }, index) => {
     return {
       id: `${model}-${number}`,
       name: {
@@ -261,7 +261,7 @@ function fallbackSensorDevices() {
       groupKey: "sensors",
       sensorModel: model,
       devEui,
-      binding: { kind: "marker", normalizedPosition },
+      binding: { kind: "marker", sensorGuid, normalizedPosition },
       metrics: [
         { key: "temperature", labelKey: "temperature", unit: "°C", value: 22.8 + index * 0.4, variance: 0.18 },
         { key: "humidity", labelKey: "humidity", unit: "%", value: 52 + index * 2, variance: 0.6 },
@@ -274,35 +274,11 @@ function fallbackSensorDevices() {
 
 async function bindSensorsToIfc(devices, sensorModel) {
   if (!sensorModel) return devices;
-  const categories = await sensorModel.getItemsOfCategories([/^IFCBUILDINGELEMENTPROXY$/i]);
-  const localIds = Object.values(categories).flat();
-  const available = [];
-
-  for (const localId of localIds) {
-    const boxes = await sensorModel.getBoxes([localId]);
-    if (!boxes.length) continue;
-    const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
-    available.push({ localId, box, center: box.getCenter(new THREE.Vector3()) });
-  }
-
-  const modelSize = state.modelBox.getSize(new THREE.Vector3());
   for (const device of devices) {
-    if (!available.length) break;
-    const [nx, ny, nz] = device.binding.normalizedPosition;
-    const expected = new THREE.Vector3(
-      state.modelBox.min.x + modelSize.x * nx,
-      state.modelBox.min.y + modelSize.y * ny,
-      state.modelBox.min.z + modelSize.z * nz,
-    );
-    available.sort((a, b) => a.center.distanceToSquared(expected) - b.center.distanceToSquared(expected));
-    const match = available.shift();
-    const details = await loadIfcItemDetails(match.localId, "IFCBUILDINGELEMENTPROXY", sensorModel);
-    device.binding = {
-      kind: "object",
-      modelId: "sensor",
-      localId: match.localId,
-      globalId: details?.guid || null,
-    };
+    const [localId] = await sensorModel.getLocalIdsByGuids([device.binding.sensorGuid]);
+    if (localId === undefined) continue;
+    const details = await loadIfcItemDetails(localId, "IFCBUILDINGELEMENTPROXY", sensorModel);
+    device.binding = { kind: "object", modelId: "sensor", localId, globalId: device.binding.sensorGuid };
     if (details) device.ifc = details;
   }
   return devices;
