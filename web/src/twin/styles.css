@@ -363,7 +363,14 @@ body[data-page="twin"] *::after {
   background: var(--dt-fault-soft);
 }
 
+.dt-model-marker.offline {
+  border-color: color-mix(in srgb, var(--dt-fault) 55%, transparent);
+  color: var(--dt-fault);
+  background: var(--dt-fault-soft);
+}
+
 .dt-model-marker.fault .dt-marker-pulse,
+.dt-model-marker.offline .dt-marker-pulse,
 .dt-device-item.fault .dt-device-status {
   background: var(--dt-fault);
 }
@@ -1039,6 +1046,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-bottom-nav { position: absolute; z-index: 14; left: calc(50% - (var(--dt-rail-width) / 2)); bottom: 18px; padding: 7px; display: flex; align-items: stretch; gap: 3px; transform: translateX(-50%); border: 1px solid var(--dt-border-strong); border-radius: 16px; background: color-mix(in srgb, var(--dt-panel) 96%, transparent); box-shadow: var(--dt-floating-shadow); backdrop-filter: blur(14px); }
 .dt-bottom-nav button { min-width: 76px; min-height: 55px; padding: 7px 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1px solid transparent; border-radius: 10px; color: var(--dt-text-muted); background: transparent; font: inherit; font-size: 0.62rem; cursor: pointer; }
 .dt-bottom-nav button i { font-size: 1.05rem; }
+.dt-bottom-nav button span { opacity: 1; transform: none; }
 .dt-bottom-nav button:hover, .dt-bottom-nav button.active { border-color: var(--dt-accent-border); color: var(--dt-accent); background: var(--dt-accent-soft); }
 
 @media (max-width: 1180px) {
@@ -1070,7 +1078,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   position: absolute;
   z-index: 10;
   top: 18px;
-  left: 18px;
+  left: 50%;
   min-height: 38px;
   padding: 6px 9px;
   display: flex;
@@ -1082,7 +1090,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   background: color-mix(in srgb, var(--dt-panel) 94%, transparent);
   box-shadow: var(--dt-floating-shadow);
   backdrop-filter: blur(12px);
-  transition: left 280ms ease-out;
+  transform: translateX(-50%);
 }
 
 .dt-layer-switcher label {
@@ -1101,7 +1109,7 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 }
 
 .dt-workspace.panel-open .dt-layer-switcher {
-  left: calc(var(--dt-data-width) + 32px);
+  left: 50%;
 }
 
 .dt-overview-rail {
@@ -1134,51 +1142,43 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 @media (max-width: 1400px) {
   .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
     max-width: calc(100% - var(--dt-data-width) - var(--dt-rail-width) - 64px);
-    padding: 5px;
+    min-height: 71px;
+    padding: 7px;
     gap: 2px;
+    box-sizing: border-box;
   }
 
   .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
-    min-width: 44px;
-    min-height: 46px;
+    flex: 0 0 55px;
+    width: 55px;
+    height: 55px;
+    min-width: 55px;
+    min-height: 55px;
     padding: 6px;
+    align-self: center;
   }
 
   .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    display: none;
   }
 
-  .dt-workspace.panel-open.right-panel-open .dt-overview-rail {
-    bottom: 92px;
-  }
 }
 
 @media (max-width: 1100px) and (min-width: 821px) {
   .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
     max-width: none;
     display: grid;
-    grid-template-columns: repeat(3, 44px);
-    grid-template-rows: repeat(2, 44px);
+    grid-template-columns: repeat(6, 55px);
+    grid-template-rows: 55px;
   }
 
   .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
-    width: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 55px;
+    min-width: 55px;
+    min-height: 55px;
     padding: 5px;
   }
 
-  .dt-workspace.panel-open.right-panel-open .dt-overview-rail {
-    bottom: 124px;
-  }
 }
 
 .dt-workspace.panel-open #twin-canvas,
@@ -1202,8 +1202,8 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 }
 
 @media (max-width: 820px) {
-  .dt-layer-switcher { top: 12px; left: 12px; }
-  .dt-workspace.panel-open .dt-layer-switcher { left: 12px; opacity: 0; pointer-events: none; }
+  .dt-layer-switcher { top: 12px; left: 50%; }
+  .dt-workspace.panel-open .dt-layer-switcher { left: 50%; opacity: 1; pointer-events: auto; }
   .dt-bottom-nav,
   .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
   .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
@@ -1213,7 +1213,6 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
     max-width: none;
     transform: none;
   }
-  .dt-workspace.panel-open.right-panel-open .dt-overview-rail { bottom: 82px; }
   .dt-workspace.right-panel-open:not(.panel-open) #twin-canvas,
   .dt-workspace.right-panel-open:not(.panel-open) .dt-label-layer,
   .dt-workspace.panel-open:not(.right-panel-open) #twin-canvas,
@@ -1298,12 +1297,80 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-rail-card > header, .dt-data-header { min-height: 58px; padding: 10px 12px; }
   .dt-sensor-card .dt-device-list { padding: 8px; }
   .dt-bottom-nav { padding: 5px; border-radius: 13px; }
-  .dt-bottom-nav button { min-width: 60px; min-height: 52px; padding: 5px 6px; }
-  .dt-bottom-nav button:nth-child(4),
-  .dt-bottom-nav button:nth-child(6) { display: none; }
+  .dt-bottom-nav { display: flex; gap: 2px; }
+  .dt-bottom-nav button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 52px;
+    padding: 5px 2px;
+    gap: 3px;
+  }
+  .dt-bottom-nav button i { font-size: 1rem; }
+  .dt-bottom-nav button span {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
-@media (max-height: 560px) and (orientation: landscape) {
+/* Tablet and phone: keep the platform tools in a bottom dock, matching the
+   desktop tool order while avoiding a narrow vertical rail on touch screens. */
+@media (max-width: 1180px) and (pointer: coarse) {
+  /* Mobile/tablet panels use a compact footprint and leave a clear lane for
+     the bottom tool dock. Desktop panel dimensions remain untouched. */
+  .dt-overview-rail {
+    top: 10px;
+    right: 10px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    width: min(330px, calc(100% - 20px));
+  }
+
+  .dt-data-panel {
+    top: 10px;
+    left: 10px;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    width: min(340px, calc(100% - 20px));
+  }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    right: auto;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: 50%;
+    width: max-content;
+    max-width: calc(100% - 24px);
+    padding: 4px;
+    gap: 1px;
+    transform: translateX(-50%);
+  }
+
+  .dt-bottom-nav button {
+    flex: 0 0 44px;
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px;
+    gap: 0;
+  }
+
+  .dt-bottom-nav button span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+@media (min-width: 1181px) and (max-height: 560px) and (orientation: landscape) {
   body[data-page="twin"] { --dt-topbar-height: 54px; }
   .dt-overview-rail, .dt-data-panel { top: 8px; bottom: 8px; }
   .dt-overview-rail { grid-template-rows: auto minmax(150px, 1fr); }
@@ -1444,4 +1511,780 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-overview-rail {
     grid-template-rows: minmax(0, 1fr);
   }
+}
+
+.dt-metric-icon {
+  display: none;
+}
+
+/* Final mobile shell override. Kept at the end so desktop component rules
+   cannot accidentally enlarge the touch layout. */
+@media (max-width: 1180px) and (pointer: coarse) {
+  .dt-model-marker {
+    min-height: 0;
+    padding: 4px 7px 4px 16px;
+    border-radius: 999px;
+    font-size: 0.5rem;
+    line-height: 1;
+    box-shadow: 0 4px 12px rgba(31, 45, 67, 0.13);
+  }
+
+  .dt-marker-pulse {
+    left: 6px;
+    width: 5px;
+    height: 5px;
+  }
+
+  .dt-model-marker:hover,
+  .dt-model-marker.selected {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--dt-accent) 18%, transparent), 0 5px 14px rgba(31, 45, 67, 0.14);
+  }
+
+  .dt-model-marker.is-collided {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .dt-workspace.panel-open #twin-canvas,
+  .dt-workspace.panel-open .dt-label-layer,
+  .dt-workspace.right-panel-open:not(.panel-open) #twin-canvas,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-label-layer,
+  .dt-workspace.panel-open:not(.right-panel-open) #twin-canvas,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-label-layer,
+  .dt-workspace.panel-open.right-panel-open #twin-canvas,
+  .dt-workspace.panel-open.right-panel-open .dt-label-layer {
+    transform: none;
+  }
+
+  .dt-overview-rail {
+    top: 8px;
+    right: max(8px, env(safe-area-inset-right));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: min(244px, calc(100% - 16px));
+    gap: 5px;
+  }
+
+  .dt-workspace.right-panel-open .dt-overview-rail,
+  .dt-workspace.panel-open.right-panel-open .dt-overview-rail {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+
+  .dt-data-panel {
+    top: 8px;
+    left: max(8px, env(safe-area-inset-left));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: min(236px, calc(100% - 16px));
+    border-radius: 10px;
+  }
+
+  .dt-data-panel .dt-data-header {
+    min-height: 36px;
+    padding: 5px 7px;
+  }
+
+  .dt-data-panel .dt-data-header .dt-overline {
+    display: none;
+  }
+
+  .dt-data-panel .dt-data-header h2 {
+    font-size: 0.72rem;
+  }
+
+  .dt-rail-card {
+    border-radius: 10px;
+  }
+
+  .dt-rail-card > header,
+  .dt-data-header,
+  #site-overview-card > header,
+  .dt-sensor-card > header {
+    min-height: 40px;
+    padding: 6px 8px;
+    gap: 5px;
+  }
+
+  .dt-rail-card h2,
+  .dt-data-header h2 {
+    font-size: 0.76rem;
+  }
+
+  .dt-overline,
+  .dt-sensor-card .dt-overline {
+    font-size: 0.43rem;
+    letter-spacing: 0.14em;
+  }
+
+  .dt-panel-close {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    min-height: 30px;
+  }
+
+  .dt-site-grid > div {
+    min-height: 36px;
+    padding: 4px 5px;
+  }
+
+  .dt-site-grid span { font-size: 0.43rem; }
+  .dt-site-grid strong { font-size: 0.64rem; }
+
+  .dt-sensor-card .dt-equipment-search {
+    margin: 5px 6px 2px;
+  }
+
+  .dt-sensor-card .dt-equipment-search input {
+    height: 28px;
+    min-height: 28px;
+    padding-left: 27px;
+    font-size: 0.64rem;
+  }
+
+  .dt-asset-tabs { gap: 3px; }
+  .dt-asset-tabs button {
+    min-height: 23px;
+    padding: 2px 5px;
+    font-size: 0.48rem;
+  }
+
+  .dt-sensor-card .dt-device-list {
+    padding: 3px 6px 6px;
+    gap: 3px;
+    grid-auto-rows: 42px;
+  }
+
+  .dt-sensor-card .dt-device-item {
+    height: 42px;
+    min-height: 42px;
+    padding: 4px 6px;
+  }
+
+  .dt-device-copy strong { font-size: 0.59rem; }
+  .dt-device-copy small { margin-top: 1px; font-size: 0.47rem; }
+
+  .dt-data-panel .dt-detail {
+    padding: 6px;
+  }
+
+  .dt-data-panel .dt-detail-heading {
+    gap: 5px;
+  }
+
+  .dt-data-panel .dt-binding-label {
+    margin-bottom: 2px;
+    font-size: 0.46rem;
+  }
+
+  .dt-detail-heading h2 {
+    font-size: 0.69rem;
+    line-height: 1.18;
+  }
+
+  .dt-data-panel .dt-status-badge {
+    padding: 3px 6px;
+    font-size: 0.5rem;
+  }
+
+  .dt-detail-heading p:last-child,
+  .dt-update-row,
+  .dt-history-note {
+    font-size: 0.48rem;
+  }
+
+  .dt-data-panel .dt-metrics {
+    margin-top: 7px;
+    gap: 4px;
+  }
+
+  .dt-data-panel .dt-metric {
+    min-height: 34px;
+    padding: 3px;
+  }
+
+  .dt-metric > span { display: none; }
+  .dt-metric-icon {
+    display: inline-block;
+    flex: 0 0 auto;
+    color: var(--dt-text-muted);
+    font-size: 0.82rem;
+  }
+  .dt-metric {
+    display: flex;
+    align-items: center;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .dt-metric strong { font-size: 0.72rem; white-space: nowrap; }
+  .dt-metric small { font-size: 0.45rem; }
+
+  .dt-data-panel .dt-update-row {
+    margin-top: 6px;
+  }
+
+  .dt-data-panel .dt-history-toolbar {
+    margin-top: 5px;
+  }
+
+  .dt-data-panel .dt-history-ranges {
+    gap: 3px;
+  }
+
+  .dt-data-panel .dt-history-ranges button,
+  .dt-data-panel .dt-custom-hours {
+    min-width: 35px;
+    min-height: 24px;
+    padding: 3px 5px;
+    font-size: 0.5rem;
+  }
+
+  .dt-data-panel .dt-history-note {
+    margin-top: 4px;
+  }
+
+  .dt-data-panel .dt-trend-card {
+    margin-top: 6px;
+  }
+
+  .dt-data-panel .dt-trend-heading {
+    padding: 6px 7px 0;
+  }
+
+  .dt-data-panel .dt-trend-chart,
+  .dt-data-panel #trend-chart {
+    height: 82px;
+    margin-top: 2px;
+  }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    display: flex;
+    grid-template: none;
+    flex-direction: row;
+    right: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: 50%;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-width: calc(100% - 16px);
+    padding: 3px;
+    gap: 0;
+    border-radius: 12px;
+    transform: translateX(-50%);
+  }
+
+  .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 2px;
+    align-self: center;
+  }
+
+  .dt-bottom-nav button i { font-size: 0.96rem; }
+}
+
+@media (max-width: 1180px) and (max-height: 560px) and (pointer: coarse) {
+  body[data-page="twin"] { --dt-topbar-height: 58px; }
+  .dt-topbar { padding-block: 0; }
+  .dt-back { width: 38px; height: 38px; min-height: 38px; }
+  .dt-brand h1 { font-size: 0.84rem; }
+  .dt-layer-switcher { top: 8px; }
+}
+
+/* iPad Pro landscape: retain the full desktop-scale controls and typography,
+   with only a modest reduction to the two side-panel widths. */
+@media (min-width: 1181px) and (max-width: 1400px) and (pointer: coarse) {
+  body[data-page="twin"] {
+    --dt-rail-width: 350px;
+    --dt-data-width: 360px;
+  }
+
+  .dt-overview-rail {
+    width: var(--dt-rail-width);
+  }
+
+  .dt-data-panel {
+    width: min(var(--dt-data-width), calc(100% - 32px));
+  }
+
+  .dt-rail-card > header,
+  .dt-data-header,
+  #site-overview-card > header,
+  .dt-sensor-card > header {
+    min-height: 48px;
+    padding: 9px 12px;
+  }
+
+  .dt-rail-card h2,
+  .dt-data-header h2 {
+    font-size: 0.76rem;
+  }
+
+  .dt-overline,
+  .dt-sensor-card .dt-overline {
+    font-size: 0.43rem;
+    letter-spacing: 0.14em;
+  }
+
+  .dt-data-panel .dt-detail {
+    padding: 12px;
+  }
+
+  .dt-detail-heading h2 {
+    font-size: 0.69rem;
+    line-height: 1.2;
+  }
+
+  .dt-data-panel .dt-status-badge {
+    font-size: 0.5rem;
+  }
+
+  .dt-data-panel .dt-metrics {
+    margin-top: 10px;
+    gap: 6px;
+  }
+
+  .dt-data-panel .dt-metric {
+    min-height: 44px;
+    padding: 7px;
+  }
+
+  .dt-metric strong { font-size: 0.72rem; }
+  .dt-metric small { font-size: 0.45rem; }
+
+  .dt-sensor-card .dt-equipment-search input {
+    height: 34px;
+    font-size: 0.64rem;
+  }
+
+  .dt-asset-tabs button {
+    font-size: 0.48rem;
+  }
+
+  .dt-sensor-card .dt-device-list {
+    gap: 6px;
+    grid-auto-rows: 52px;
+  }
+
+  .dt-sensor-card .dt-device-item {
+    height: 52px;
+    min-height: 52px;
+  }
+
+  .dt-device-copy strong { font-size: 0.59rem; }
+  .dt-device-copy small { font-size: 0.47rem; }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    min-height: 52px;
+    padding: 4px;
+  }
+
+  .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px;
+  }
+
+  .dt-bottom-nav button i { font-size: 1rem; }
+  .dt-bottom-nav button span { display: none; }
+}
+
+/* iPhone SE landscape: preserve the same two-panel workflow in a 667x375
+   viewport without allowing either panel or the tool dock to overlap. */
+@media (max-width: 700px) and (max-height: 430px) and (orientation: landscape) and (pointer: coarse) {
+  body[data-page="twin"] { --dt-topbar-height: 50px; }
+
+  .dt-topbar {
+    padding-inline: 8px;
+    gap: 6px;
+  }
+
+  .dt-back {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  .dt-brand h1 { font-size: 0.74rem; }
+  .dt-platform-clock { font-size: 0.58rem; }
+
+  .dt-data-panel {
+    top: 6px;
+    bottom: 6px;
+    left: 6px;
+    width: 196px;
+  }
+
+  .dt-overview-rail,
+  .dt-workspace.right-panel-open .dt-overview-rail,
+  .dt-workspace.panel-open.right-panel-open .dt-overview-rail {
+    top: 6px;
+    right: 6px;
+    bottom: 6px;
+    width: 196px;
+    gap: 4px;
+  }
+
+  .dt-data-panel .dt-data-header,
+  .dt-rail-card > header,
+  #site-overview-card > header,
+  .dt-sensor-card > header {
+    min-height: 32px;
+    padding: 4px 6px;
+  }
+
+  .dt-data-panel .dt-data-header h2,
+  .dt-rail-card h2,
+  .dt-data-header h2 {
+    font-size: 0.66rem;
+  }
+
+  .dt-panel-close {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    min-height: 26px;
+  }
+
+  .dt-data-panel .dt-detail { padding: 5px; }
+  .dt-detail-heading h2 { font-size: 0.62rem; }
+  .dt-data-panel .dt-status-badge { padding: 2px 5px; font-size: 0.45rem; }
+  .dt-data-panel .dt-metrics { margin-top: 5px; gap: 3px; }
+  .dt-data-panel .dt-metric { min-height: 30px; padding: 2px; }
+  .dt-metric-icon { font-size: 0.7rem; }
+  .dt-metric strong { font-size: 0.62rem; }
+  .dt-data-panel .dt-update-row { margin-top: 4px; }
+  .dt-data-panel .dt-history-toolbar { margin-top: 3px; }
+  .dt-data-panel .dt-history-ranges button,
+  .dt-data-panel .dt-custom-hours {
+    min-width: 29px;
+    min-height: 21px;
+    padding: 2px 3px;
+    font-size: 0.44rem;
+  }
+  .dt-data-panel .dt-history-note { margin-top: 2px; }
+  .dt-data-panel .dt-trend-card { margin-top: 4px; }
+  .dt-data-panel .dt-trend-chart,
+  .dt-data-panel #trend-chart { height: 62px; }
+
+  .dt-site-grid > div { min-height: 30px; padding: 3px; }
+  .dt-site-grid span { font-size: 0.36rem; }
+  .dt-site-grid strong { font-size: 0.52rem; }
+  .dt-sensor-card .dt-equipment-search { margin: 3px 4px 2px; }
+  .dt-sensor-card .dt-equipment-search input {
+    height: 25px;
+    min-height: 25px;
+    padding-left: 24px;
+    font-size: 0.55rem;
+  }
+  .dt-asset-tabs button { min-height: 21px; padding: 2px 4px; font-size: 0.42rem; }
+  .dt-sensor-card .dt-device-list { padding: 2px 4px 4px; gap: 3px; grid-auto-rows: 36px; }
+  .dt-sensor-card .dt-device-item { height: 36px; min-height: 36px; padding: 3px 5px; }
+  .dt-device-copy strong { font-size: 0.52rem; }
+  .dt-device-copy small { font-size: 0.41rem; }
+
+  .dt-layer-switcher,
+  .dt-workspace.panel-open .dt-layer-switcher {
+    top: 6px;
+    left: 50%;
+    max-width: 245px;
+    min-height: 30px;
+    padding: 4px 6px;
+    gap: 6px;
+  }
+  .dt-layer-switcher label { gap: 3px; font-size: 0.52rem; }
+  .dt-layer-switcher input { width: 12px; height: 12px; }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    bottom: 6px;
+    padding: 2px;
+  }
+
+  .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    flex-basis: 33px;
+    width: 33px;
+    height: 33px;
+    min-width: 33px;
+    min-height: 33px;
+  }
+  .dt-bottom-nav button i { font-size: 0.85rem; }
+}
+
+.dt-landscape-required {
+  display: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  body[data-page="twin"] {
+    overflow: hidden;
+  }
+
+  body[data-page="twin"] .dt-app {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .dt-landscape-required {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+    display: grid;
+    place-items: center;
+    color: var(--dt-text);
+    background: var(--dt-canvas-bg);
+  }
+
+  .dt-landscape-prompt {
+    width: min(320px, 100%);
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .dt-landscape-prompt i {
+    color: var(--dt-accent);
+    font-size: 3rem;
+    transform: rotate(90deg);
+  }
+
+  .dt-landscape-prompt strong {
+    font-size: 1rem;
+  }
+
+  .dt-landscape-prompt span {
+    color: var(--dt-text-muted);
+    font-size: 0.75rem;
+    line-height: 1.6;
+  }
+}
+
+/* Unified touch landscape system. This final block intentionally owns all
+   phone and tablet sizing so device-specific rules cannot create jumps. */
+@media (max-width: 1400px) and (orientation: landscape) and (pointer: coarse) {
+  body[data-page="twin"] {
+    --dt-topbar-height: clamp(50px, 6.5vw, 70px);
+    --dt-touch-panel-width: clamp(196px, 25vw, 300px);
+    --dt-touch-edge: clamp(6px, 0.8vw, 10px);
+    --dt-touch-control: clamp(33px, 4vw, 44px);
+    --dt-touch-gap: clamp(4px, 0.6vw, 8px);
+  }
+
+  .dt-topbar {
+    padding-inline: clamp(8px, 1.4vw, 18px);
+    gap: var(--dt-touch-gap);
+  }
+
+  .dt-back {
+    width: clamp(34px, 4vw, 42px);
+    height: clamp(34px, 4vw, 42px);
+    min-width: clamp(34px, 4vw, 42px);
+    min-height: clamp(34px, 4vw, 42px);
+  }
+
+  .dt-brand h1 { font-size: 0.76rem; }
+  .dt-platform-clock { font-size: 0.58rem; }
+
+  .dt-data-panel {
+    top: var(--dt-touch-edge);
+    bottom: var(--dt-touch-edge);
+    left: max(var(--dt-touch-edge), env(safe-area-inset-left));
+    width: min(var(--dt-touch-panel-width), calc(100% - (var(--dt-touch-edge) * 2)));
+    border-width: 1px;
+    border-radius: 10px;
+  }
+
+  .dt-overview-rail,
+  .dt-workspace.right-panel-open .dt-overview-rail,
+  .dt-workspace.panel-open.right-panel-open .dt-overview-rail {
+    top: var(--dt-touch-edge);
+    right: max(var(--dt-touch-edge), env(safe-area-inset-right));
+    bottom: var(--dt-touch-edge);
+    width: min(var(--dt-touch-panel-width), calc(100% - (var(--dt-touch-edge) * 2)));
+    gap: var(--dt-touch-gap);
+  }
+
+  .dt-rail-card {
+    border-width: 1px;
+    border-radius: 10px;
+  }
+
+  .dt-rail-card > header,
+  .dt-data-header,
+  #site-overview-card > header,
+  .dt-sensor-card > header {
+    min-height: clamp(34px, 6vh, 48px);
+    padding: clamp(5px, 0.7vw, 9px) clamp(7px, 0.9vw, 12px);
+    gap: var(--dt-touch-gap);
+  }
+
+  .dt-rail-card h2,
+  .dt-data-header h2 {
+    font-size: 0.76rem;
+  }
+
+  .dt-overline,
+  .dt-sensor-card .dt-overline {
+    font-size: 0.43rem;
+    letter-spacing: 0.14em;
+  }
+
+  .dt-panel-close {
+    width: clamp(28px, 3vw, 34px);
+    height: clamp(28px, 3vw, 34px);
+    min-width: clamp(28px, 3vw, 34px);
+    min-height: clamp(28px, 3vw, 34px);
+  }
+
+  .dt-data-panel .dt-detail {
+    padding: clamp(6px, 0.9vw, 12px);
+  }
+
+  .dt-detail-heading h2 {
+    font-size: 0.69rem;
+    line-height: 1.2;
+  }
+
+  .dt-data-panel .dt-binding-label,
+  .dt-detail-heading p:last-child,
+  .dt-update-row,
+  .dt-history-note {
+    font-size: 0.47rem;
+  }
+
+  .dt-data-panel .dt-status-badge {
+    padding: 3px 6px;
+    font-size: 0.5rem;
+  }
+
+  .dt-data-panel .dt-metrics {
+    margin-top: clamp(6px, 0.8vw, 10px);
+    gap: var(--dt-touch-gap);
+  }
+
+  .dt-data-panel .dt-metric {
+    min-height: clamp(32px, 5vh, 44px);
+    padding: clamp(3px, 0.5vw, 7px);
+  }
+
+  .dt-metric > span { display: none; }
+  .dt-metric-icon {
+    display: inline-block;
+    color: var(--dt-text-muted);
+    font-size: 0.78rem;
+  }
+  .dt-metric strong { font-size: 0.72rem; white-space: nowrap; }
+  .dt-metric small { font-size: 0.45rem; }
+
+  .dt-data-panel .dt-history-toolbar { margin-top: clamp(4px, 0.6vw, 7px); }
+  .dt-data-panel .dt-history-ranges { gap: var(--dt-touch-gap); }
+  .dt-data-panel .dt-history-ranges button,
+  .dt-data-panel .dt-custom-hours {
+    min-width: clamp(30px, 4vw, 38px);
+    min-height: clamp(22px, 3vw, 27px);
+    padding: 3px 5px;
+    font-size: 0.48rem;
+  }
+
+  .dt-data-panel .dt-trend-card { margin-top: clamp(4px, 0.6vw, 7px); }
+  .dt-data-panel .dt-trend-chart,
+  .dt-data-panel #trend-chart {
+    height: clamp(62px, 18vh, 108px);
+  }
+
+  .dt-site-grid > div {
+    min-height: clamp(30px, 5vh, 42px);
+    padding: clamp(3px, 0.5vw, 7px);
+  }
+  .dt-site-grid span { font-size: 0.43rem; }
+  .dt-site-grid strong { font-size: 0.64rem; }
+
+  .dt-sensor-card .dt-equipment-search {
+    margin: clamp(3px, 0.5vw, 6px) clamp(4px, 0.6vw, 8px) 2px;
+  }
+  .dt-sensor-card .dt-equipment-search input {
+    height: clamp(26px, 4vh, 34px);
+    min-height: clamp(26px, 4vh, 34px);
+    font-size: 0.59rem;
+  }
+  .dt-asset-tabs button {
+    min-height: clamp(22px, 3vw, 27px);
+    font-size: 0.48rem;
+  }
+  .dt-sensor-card .dt-device-list {
+    padding: 3px clamp(4px, 0.6vw, 8px) clamp(4px, 0.6vw, 8px);
+    gap: var(--dt-touch-gap);
+    grid-auto-rows: clamp(36px, 5vh, 52px);
+  }
+  .dt-sensor-card .dt-device-item {
+    height: clamp(36px, 5vh, 52px);
+    min-height: clamp(36px, 5vh, 52px);
+    padding: 4px clamp(5px, 0.6vw, 8px);
+  }
+  .dt-device-copy strong { font-size: 0.59rem; }
+  .dt-device-copy small { font-size: 0.47rem; }
+
+  .dt-layer-switcher,
+  .dt-workspace.panel-open .dt-layer-switcher {
+    top: var(--dt-touch-edge);
+    left: 50%;
+    min-height: var(--dt-touch-control);
+    max-width: calc(100% - (var(--dt-touch-panel-width) * 2) - (var(--dt-touch-edge) * 4));
+    padding: 4px clamp(6px, 0.7vw, 9px);
+    gap: clamp(6px, 0.8vw, 10px);
+    transform: translateX(-50%);
+  }
+  .dt-layer-switcher label { gap: 3px; font-size: 0.56rem; }
+  .dt-layer-switcher input { width: 13px; height: 13px; }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    display: flex;
+    grid-template: none;
+    right: auto;
+    bottom: var(--dt-touch-edge);
+    left: 50%;
+    width: auto;
+    height: auto;
+    min-height: 0;
+    max-width: calc(100% - (var(--dt-touch-panel-width) * 2) - (var(--dt-touch-edge) * 4));
+    padding: 3px;
+    gap: 0;
+    transform: translateX(-50%);
+  }
+
+  .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    flex: 0 0 var(--dt-touch-control);
+    width: var(--dt-touch-control);
+    height: var(--dt-touch-control);
+    min-width: var(--dt-touch-control);
+    min-height: var(--dt-touch-control);
+    padding: 3px;
+    align-self: center;
+  }
+  .dt-bottom-nav button i { font-size: 0.95rem; }
+  .dt-bottom-nav button span { display: none; }
 }
