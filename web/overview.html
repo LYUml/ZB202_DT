@@ -24,12 +24,18 @@
       <div class="hero-topbar">
         <p class="eyebrow" data-i18n="overview.eyebrow">ZB202 / 建筑数字孪生</p>
         <div class="hero-actions">
-          <a class="btn" id="room-view-link" href="twin.html" data-i18n="overview.roomView">房间视图</a>
-          <select id="lang-select" class="language-select" aria-label="语言 / Language">
-            <option value="zh">简体中文</option>
-            <option value="zh-Hant">繁體中文</option>
-            <option value="en">English</option>
-          </select>
+          <a class="btn" id="room-view-link" href="twin.html" aria-label="Room View" title="Room View">
+            <i class="ph ph-cube" aria-hidden="true"></i>
+            <span class="room-view-label" data-i18n="overview.roomView">房间视图</span>
+          </a>
+          <div class="language-control">
+            <i class="ph ph-translate" aria-hidden="true"></i>
+            <select id="lang-select" class="language-select" aria-label="语言 / Language">
+              <option value="zh">简体中文</option>
+              <option value="zh-Hant">繁體中文</option>
+              <option value="en">English</option>
+            </select>
+          </div>
           <button id="theme-toggle" class="btn theme-toggle" type="button" aria-label="切换至夜间模式">
             <i id="theme-icon" class="ph ph-moon-stars" aria-hidden="true"></i>
             <span id="theme-toggle-label">夜间模式</span>
@@ -48,18 +54,14 @@
           <p class="kicker" data-i18n="common.devices">传感器</p>
           <p class="hero-value" id="device-count">0</p>
         </div>
-        <div class="hero-note">
-          <p data-i18n="overview.note">InfluxDB 已接入。离线设备会以红色状态显示。</p>
+      </div>
+      <div class="hero-view-switch">
+        <div class="segmented" role="tablist" aria-label="View Mode">
+          <button class="seg active" data-view="card" type="button" data-i18n="overview.viewCard">卡片</button>
+          <button class="seg" data-view="table" type="button" data-i18n="overview.viewTable">表格</button>
         </div>
       </div>
     </header>
-
-    <section class="view-switch-wrap">
-      <div class="segmented" role="tablist" aria-label="View Mode">
-        <button class="seg active" data-view="card" type="button" data-i18n="overview.viewCard">卡片</button>
-        <button class="seg" data-view="table" type="button" data-i18n="overview.viewTable">表格</button>
-      </div>
-    </section>
 
     <main>
       <section id="card-view" class="grid-view"></section>

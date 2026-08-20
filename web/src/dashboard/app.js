@@ -56,8 +56,6 @@ const i18n = {
   zh: {
     "overview.eyebrow": "ZB202 / 建筑数字孪生",
     "overview.title": "空间设备总览",
-    "overview.note": "InfluxDB 已连接。离线传感器以红色显示。",
-    "overview.noteOffline": "InfluxDB 连接中断，当前传感器状态可能不是最新。",
     "overview.viewCard": "卡片",
     "overview.viewTable": "表格",
     "overview.roomView": "房间视图",
@@ -102,8 +100,6 @@ const i18n = {
   "zh-Hant": {
     "overview.eyebrow": "ZB202 / 建築數位孿生",
     "overview.title": "空間設備總覽",
-    "overview.note": "InfluxDB 已連接。離線感測器以紅色顯示。",
-    "overview.noteOffline": "InfluxDB 連線中斷，目前感測器狀態可能不是最新。",
     "overview.viewCard": "卡片",
     "overview.viewTable": "表格",
     "overview.roomView": "房間視圖",
@@ -148,8 +144,6 @@ const i18n = {
   en: {
     "overview.eyebrow": "ZB202 / Building Digital Twin",
     "overview.title": "Indoor Environment Sensors",
-    "overview.note": "InfluxDB is connected. Offline sensors are marked in red.",
-    "overview.noteOffline": "InfluxDB is disconnected. Sensor status may be out of date.",
     "overview.viewCard": "Card",
     "overview.viewTable": "Table",
     "overview.roomView": "Room View",
@@ -247,7 +241,11 @@ function applyLanguage(lang) {
   if (backLink) backLink.href = `overview.html?lang=${activeLang}`;
 
   const roomViewLink = document.getElementById("room-view-link");
-  if (roomViewLink) roomViewLink.href = `twin.html?lang=${activeLang}`;
+  if (roomViewLink) {
+    roomViewLink.href = `twin.html?lang=${activeLang}`;
+    roomViewLink.setAttribute("aria-label", t("overview.roomView"));
+    roomViewLink.title = t("overview.roomView");
+  }
 
   const currentUrl = new URL(window.location.href);
   currentUrl.searchParams.set("lang", activeLang);
@@ -404,11 +402,6 @@ function renderOverview(devices) {
   });
 }
 
-function updateOverviewNote() {
-  const note = document.querySelector('[data-i18n="overview.note"]');
-  if (note) note.textContent = t(overviewConnected ? "overview.note" : "overview.noteOffline");
-}
-
 function connectOverviewBridge(devices) {
   const lastSeenAt = new Map();
   let renderTimer = null;
@@ -436,7 +429,6 @@ function connectOverviewBridge(devices) {
       try { message = JSON.parse(event.data); } catch { return; }
       if (message.type === "bridge-status") {
         overviewConnected = Boolean(message.connected);
-        updateOverviewNote();
         updateStatuses();
         return;
       }
@@ -458,7 +450,6 @@ function connectOverviewBridge(devices) {
     });
     socket.addEventListener("close", () => {
       overviewConnected = false;
-      updateOverviewNote();
       updateStatuses();
       window.setTimeout(connect, 3000);
     });
@@ -663,7 +654,6 @@ async function loadDevices() {
     attachViewSwitch();
     addLanguageControl(() => {
       renderOverview(devices);
-      updateOverviewNote();
     });
     attachThemeControl();
     connectOverviewBridge(devices);
