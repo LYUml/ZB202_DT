@@ -98,7 +98,39 @@ body[data-page="overview"] {
   gap: 6px;
 }
 
-.language-control { display: contents; }
+.language-control {
+  position: relative;
+  height: 36px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid rgba(180, 180, 188, 0.66);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.language-control > i {
+  width: 1rem;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+}
+
+.language-control .language-select {
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background-image: none;
+  background-color: transparent;
+  font-weight: 400;
+}
 
 #room-view-link > i { display: none; }
 
@@ -1989,9 +2021,13 @@ body[data-page="twin"] {
     position: relative;
     width: clamp(32px, 9vw, 38px);
     height: clamp(32px, 9vw, 38px);
+    min-width: clamp(32px, 9vw, 38px);
+    min-height: clamp(32px, 9vw, 38px);
     display: grid;
     place-items: center;
     flex: 0 0 auto;
+    gap: 0;
+    padding: 0;
     border: 1px solid rgba(180, 180, 188, 0.66);
     border-radius: 999px;
     color: var(--text);
