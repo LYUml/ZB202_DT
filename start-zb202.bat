@@ -22,8 +22,22 @@ if errorlevel 1 goto dev_mode
 :dev_mode
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 InfluxDB Bridge" /min cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run influx:bridge"
+  start "ZB202 InfluxDB Bridge" /min cmd.exe /k call ""%~dp0scripts\start-bridge-campus.bat""
 )
+
+echo Waiting for the InfluxDB Bridge...
+for /L %%I in (1,1,30) do (
+  powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+  if not errorlevel 1 goto dev_bridge_ready
+  timeout /t 1 /nobreak >nul
+)
+echo.
+echo The InfluxDB Bridge did not start within 30 seconds.
+echo Check the "ZB202 InfluxDB Bridge" window for details.
+pause
+exit /b 1
+
+:dev_bridge_ready
 
 powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=en' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
 if errorlevel 1 (
@@ -58,8 +72,22 @@ if errorlevel 1 goto build_failed
 set "ZB202_INFLUX_BRIDGE_HOST=0.0.0.0"
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 InfluxDB Bridge" /min cmd.exe /k "cd /d ""%~dp0"" && set ZB202_INFLUX_BRIDGE_HOST=0.0.0.0 && npm.cmd run influx:bridge"
+  start "ZB202 InfluxDB Bridge" /min cmd.exe /k call ""%~dp0scripts\start-bridge-campus.bat""
 )
+
+echo Waiting for the InfluxDB Bridge...
+for /L %%I in (1,1,30) do (
+  powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
+  if not errorlevel 1 goto campus_bridge_ready
+  timeout /t 1 /nobreak >nul
+)
+echo.
+echo The InfluxDB Bridge did not start within 30 seconds.
+echo Check the "ZB202 InfluxDB Bridge" window for details.
+pause
+exit /b 1
+
+:campus_bridge_ready
 
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
