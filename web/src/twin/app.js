@@ -412,6 +412,8 @@ const state = {
   mqttSocket: null,
   lastLiveAt: new Map(),
   seenTelemetry: new Set(),
+  markerSyncTimer: null,
+  markerSyncRunning: false,
 };
 
 function initializeDeviceSnapshots() {
@@ -729,7 +731,63 @@ function createMarker(device, worldPosition = null) {
     );
   }
   helpersGroup.add(label);
-  state.markerObjects.set(device.id, { label, element });
+  state.markerObjects.set(device.id, {
+    label,
+    element,
+    modelId: device.binding.modelId || null,
+    localId: Number.isInteger(device.binding.localId) ? device.binding.localId : null,
+  });
+}
+
+async function syncSensorMarkerAnchors() {
+  if (state.markerSyncRunning || !state.markerObjects.size) return;
+  state.markerSyncRunning = true;
+  try {
+    for (const marker of state.markerObjects.values()) {
+      if (marker.modelId !== "sensor" || !Number.isInteger(marker.localId)) continue;
+      const fragmentsModel = state.fragmentsModels.get(marker.modelId);
+      if (!fragmentsModel) continue;
+      const boxes = await fragmentsModel.getBoxes([marker.localId]);
+      if (!boxes.length) continue;
+      const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
+      const anchor = box.getCenter(new THREE.Vector3());
+      anchor.y = box.max.y + state.modelRadius * 0.008;
+      marker.label.position.copy(anchor);
+    }
+  } finally {
+    state.markerSyncRunning = false;
+  }
+}
+
+function scheduleSensorMarkerSync(delay = 0) {
+  window.clearTimeout(state.markerSyncTimer);
+  state.markerSyncTimer = window.setTimeout(() => {
+    syncSensorMarkerAnchors().catch((error) => console.warn("Failed to sync sensor markers", error));
+  }, delay);
+}
+
+function resolveMobileMarkerCollisions() {
+  const compact = window.innerWidth <= 1180 && window.matchMedia("(pointer: coarse)").matches;
+  const markers = [...state.markerObjects.values()];
+  markers.forEach((marker) => marker.element.classList.remove("is-collided"));
+  if (!compact) return;
+
+  const visible = markers
+    .filter((marker) => marker.label.visible && marker.element.getClientRects().length)
+    .sort((a, b) => {
+      const selectedDelta = Number(b.element.classList.contains("selected")) - Number(a.element.classList.contains("selected"));
+      return selectedDelta || a.element.getBoundingClientRect().top - b.element.getBoundingClientRect().top;
+    });
+  const placed = [];
+  for (const marker of visible) {
+    const rect = marker.element.getBoundingClientRect();
+    const overlaps = placed.some((other) => !(
+      rect.right + 4 < other.left || rect.left - 4 > other.right ||
+      rect.bottom + 4 < other.top || rect.top - 4 > other.bottom
+    ));
+    if (overlaps && !marker.element.classList.contains("selected")) marker.element.classList.add("is-collided");
+    else placed.push(rect);
+  }
 }
 
 async function bindDevices() {
@@ -753,6 +811,7 @@ async function bindDevices() {
       }
     }
   }
+  await syncSensorMarkerAnchors();
   await updateAllVisualStates();
 }
 
@@ -1061,8 +1120,18 @@ function renderSelectedDevice() {
   elements.updateRow.hidden = false;
   elements.faultToggle.hidden = true;
 
+  const metricIcons = {
+    temperature: "ph-thermometer-simple",
+    supplyTemperature: "ph-thermometer-simple",
+    humidity: "ph-drop",
+    co2: "ph-cloud",
+    airflow: "ph-wind",
+    fanPower: "ph-fan",
+    damperPosition: "ph-gauge",
+  };
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
-    <div class="dt-metric">
+    <div class="dt-metric" data-metric="${metric.key}">
+      <i class="ph ${metricIcons[metric.key] || "ph-chart-line"} dt-metric-icon" aria-hidden="true" title="${t(metric.labelKey)}"></i>
       <span>${t(metric.labelKey)}</span>
       <strong>${Number.isFinite(snapshot.values[metric.key]) ? `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
@@ -1112,7 +1181,8 @@ function applyLanguage(lang) {
 }
 
 function setDevicePanelOpen(open) {
-  elements.wrap.closest(".dt-workspace").classList.toggle("panel-open", open);
+  const workspace = elements.wrap.closest(".dt-workspace");
+  workspace.classList.toggle("panel-open", open);
   elements.devicePanel.classList.toggle("is-open", open);
   elements.devicePanel.setAttribute("aria-hidden", String(!open));
   elements.devicePanel.inert = !open;
@@ -1120,6 +1190,7 @@ function setDevicePanelOpen(open) {
   elements.devicePanelButton.classList.toggle("active", open);
   if (open) elements.devicePanelClose.focus({ preventScroll: true });
   else elements.devicePanelButton.focus({ preventScroll: true });
+  scheduleSensorMarkerSync(320);
 }
 
 async function selectDevice(deviceId, focus = false) {
@@ -1197,8 +1268,11 @@ async function isNonSelectableIfcItem(fragmentsModel, localId) {
   const name = [attributes.Name, attributes.ObjectType, attributes.PredefinedType]
     .map((value) => readableIfcValue(value) || "")
     .join(" ");
-  return /^IFCWALL(?:STANDARDCASE)?$/i.test(category)
+  const isWall = /^IFCWALL(?:STANDARDCASE)?$/i.test(category)
     || /(?:^|\b)basic\s+wall\b|\bwall[-_: ]/i.test(name);
+  const isFloor = /^IFCSLAB$/i.test(category)
+    || /(?:^|\b)(?:floor|flooring|slab)(?:\b|[-_: ])/i.test(name);
+  return isWall || isFloor;
 }
 
 function setFault(deviceId, shouldFault) {
@@ -1210,7 +1284,11 @@ function setFault(deviceId, shouldFault) {
 }
 
 function updateMockData() {
-  updateDeviceConnectivity();
+  const connectivityChanged = updateDeviceConnectivity();
+  if (connectivityChanged) {
+    renderDeviceList();
+    updateAllVisualStates().catch((error) => console.error("Failed to sync offline sensor state", error));
+  }
   renderSelectedDevice();
   renderSiteOverview();
   elements.clock.textContent = new Date().toLocaleString(activeLocale(), {
@@ -1220,17 +1298,24 @@ function updateMockData() {
 }
 
 function updateDeviceConnectivity() {
-  if (!state.mqttConnectionKnown) return;
+  if (!state.mqttConnectionKnown) return false;
   const now = Date.now();
+  let changed = false;
   for (const device of DEVICES) {
     const snapshot = state.snapshots.get(device.id);
     if (!snapshot) continue;
     const lastLiveAt = state.lastLiveAt.get(device.id);
     const brokerOffline = !state.mqttConnected;
     const deviceStale = state.mqttConnected && (!lastLiveAt || now - lastLiveAt > MQTT_STALE_AFTER_MS);
-    if (brokerOffline || deviceStale) snapshot.status = "offline";
-    else if (snapshot.status === "offline") snapshot.status = "normal";
+    const nextStatus = brokerOffline || deviceStale
+      ? "offline"
+      : snapshot.status === "offline" ? "normal" : snapshot.status;
+    if (snapshot.status !== nextStatus) {
+      snapshot.status = nextStatus;
+      changed = true;
+    }
   }
+  return changed;
 }
 
 function connectMqttBridge() {
@@ -1449,6 +1534,7 @@ function resizeRenderer() {
   camera.updateProjectionMatrix();
   renderer.setSize(width, height, false);
   labelRenderer.setSize(width, height);
+  scheduleSensorMarkerSync(80);
 }
 
 elements.retryButton.addEventListener("click", loadModel);
@@ -1457,6 +1543,9 @@ elements.layerToggles.forEach((toggle) => {
     const fragmentsModel = state.fragmentsModels.get(toggle.dataset.modelLayer);
     if (!fragmentsModel) return;
     fragmentsModel.object.visible = toggle.checked;
+    if (toggle.dataset.modelLayer === "sensor") {
+      for (const marker of state.markerObjects.values()) marker.label.visible = toggle.checked;
+    }
     await fragments.update(true);
   });
 });
@@ -1474,22 +1563,32 @@ window.addEventListener("storage", (event) => {
 function setPlatformView(view) {
   const workspace = elements.wrap.closest(".dt-workspace");
   if (view === "overview") {
-    const open = !workspace.classList.contains("right-panel-open");
+    const open = !(workspace.classList.contains("right-panel-open") && elements.devicePanel.classList.contains("is-open"));
     workspace.classList.toggle("right-panel-open", open);
+    setDevicePanelOpen(open);
     document.querySelector('[data-view="overview"]')?.classList.toggle("active", open);
   } else if (view === "sensors") {
     setDevicePanelOpen(!elements.devicePanel.classList.contains("is-open"));
-  } else if (view === "bms" || view === "ai" || view === "reserved") {
+  } else if (view === "bms") {
+    workspace.classList.remove("right-panel-open");
+    document.querySelector('[data-view="overview"]')?.classList.remove("active");
+    document.querySelector('[data-view="bms"]')?.classList.remove("active");
+  } else if (view === "ai" || view === "reserved") {
     workspace.classList.add("right-panel-open");
     document.querySelector('[data-view="overview"]')?.classList.add("active");
-    elements.reservedTitle.textContent = view === "ai" ? "AI" : view === "reserved" ? "Reserved" : "BMS";
-    elements.reservedCopy.textContent = t(view === "ai" ? "aiReserved" : view === "reserved" ? "reservedCopy" : "bmsReserved");
+    elements.reservedTitle.textContent = view === "ai" ? "AI" : "Reserved";
+    elements.reservedCopy.textContent = t(view === "ai" ? "aiReserved" : "reservedCopy");
   }
+  scheduleSensorMarkerSync(320);
 }
 
 elements.viewButtons.forEach((button) => button.addEventListener("click", () => setPlatformView(button.dataset.view)));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
-elements.overviewRailClose.addEventListener("click", () => setPlatformView("overview"));
+elements.overviewRailClose.addEventListener("click", () => {
+  elements.wrap.closest(".dt-workspace").classList.remove("right-panel-open");
+  setDevicePanelOpen(false);
+  document.querySelector('[data-view="overview"]')?.classList.remove("active");
+});
 document.querySelector("[data-action='reset']")?.addEventListener("click", () => fitCameraToModel(true));
 elements.historyRangeButtons.forEach((button) => button.addEventListener("click", () => {
   state.historyRange = button.dataset.historyRange;
@@ -1575,6 +1674,7 @@ function animate() {
   controls.update();
   renderer.render(scene, camera);
   labelRenderer.render(scene, camera);
+  resolveMobileMarkerCollisions();
   requestAnimationFrame(animate);
 }
 

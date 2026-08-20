@@ -156,7 +156,7 @@
 
       <nav class="dt-bottom-nav" aria-label="主要功能">
         <button type="button" data-view="overview" title="Overview" aria-label="Overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Overview</span></button>
-        <button type="button" id="device-panel-btn" data-view="sensors" title="Sensor List" aria-label="Sensor List" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>Sensor List</span></button>
+        <button type="button" id="device-panel-btn" data-view="sensors" title="Sensor" aria-label="Sensor" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>Sensor</span></button>
         <button type="button" data-view="bms" title="BMS" aria-label="BMS"><i class="ph ph-hard-drives" aria-hidden="true"></i><span>BMS</span></button>
         <button type="button" data-view="ai" title="AI" aria-label="AI"><i class="ph ph-brain" aria-hidden="true"></i><span>AI</span></button>
         <button type="button" id="reset-view-btn" data-action="reset" title="Reset View" aria-label="Reset View"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span>Reset View</span></button>
@@ -164,6 +164,12 @@
       </nav>
     </main>
   </div>
+  <section class="dt-landscape-required" role="status" aria-live="polite" aria-label="Please rotate your device to landscape orientation">
+    <div class="dt-landscape-prompt">
+      <i class="ph ph-device-mobile-camera" aria-hidden="true"></i>
+      <strong>Please rotate your device</strong>
+    </div>
+  </section>
   <script type="module" src="src/twin/app.js"></script>
 </body>
 </html>
