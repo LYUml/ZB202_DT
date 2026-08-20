@@ -11,6 +11,7 @@ const deviceColumn = process.env.ZB202_INFLUX_DEVICE_COLUMN || "devEui";
 const pollIntervalMs = Math.max(2000, Number(process.env.ZB202_INFLUX_POLL_INTERVAL_MS || 10000));
 const pollLookback = process.env.ZB202_INFLUX_POLL_LOOKBACK || "-15m";
 const historyRange = process.env.ZB202_INFLUX_HISTORY_RANGE || "-24h";
+const websocketHost = process.env.ZB202_INFLUX_BRIDGE_HOST || "127.0.0.1";
 const websocketPort = Number(process.env.ZB202_INFLUX_BRIDGE_PORT || 8787);
 const bridgeStartedAt = new Date().toISOString();
 
@@ -22,7 +23,7 @@ if (missing.length) {
 }
 
 const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
-const websocketServer = new WebSocketServer({ host: "127.0.0.1", port: websocketPort });
+const websocketServer = new WebSocketServer({ host: websocketHost, port: websocketPort });
 const historyByDevice = new Map();
 const seenRows = new Set();
 const maxSeenRows = 10000;
@@ -131,6 +132,6 @@ websocketServer.on("connection", (socket) => {
   for (const history of historyByDevice.values()) for (const telemetry of history) send(socket, telemetry);
 });
 
-console.log(`[Bridge] WebSocket ready at ws://127.0.0.1:${websocketPort}`);
+console.log(`[Bridge] WebSocket ready at ws://${websocketHost}:${websocketPort}`);
 await poll();
 setInterval(poll, pollIntervalMs);

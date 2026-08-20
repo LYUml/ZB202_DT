@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "influx:bridge": "node scripts/influxdb-bridge.mjs",
+    "serve:lan": "python -m http.server 8080 --directory dist --bind 0.0.0.0",
     "test:bridge": "node scripts/bridge-smoke-test.mjs",
     "build": "vite build",
     "bim:convert": "node scripts/ifc-to-fragments.mjs",

@@ -92,6 +92,31 @@ npm run test:bridge
 npm run build
 ```
 
+### 校园网访问
+
+先在服务器或本机的 `.env` 中设置：
+
+```dotenv
+ZB202_INFLUX_BRIDGE_HOST=0.0.0.0
+```
+
+然后分别启动实时桥接和静态网页服务：
+
+```powershell
+npm run build
+npm run influx:bridge
+npm run serve:lan
+```
+
+同一校园网内的设备访问：
+
+```text
+http://服务器校园网IP:8080/overview.html
+http://服务器校园网IP:8080/twin.html
+```
+
+如果使用 Windows 防火墙，需要开放 TCP 端口 `8080` 和 `8787`。部署时 `.env` 中只放服务器本地的 InfluxDB Token，不要提交到 Git。
+
 ## 项目结构
 
 ```text
