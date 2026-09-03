@@ -369,6 +369,16 @@ body[data-page="twin"] *::after {
   background: var(--dt-fault-soft);
 }
 
+.dt-model-marker.unavailable {
+  border-color: var(--dt-border-strong);
+  color: var(--dt-text-soft);
+  background: color-mix(in srgb, var(--dt-panel) 94%, transparent);
+}
+
+.dt-model-marker.unavailable .dt-marker-pulse {
+  background: var(--dt-text-muted);
+}
+
 .dt-model-marker.fault .dt-marker-pulse,
 .dt-model-marker.offline .dt-marker-pulse,
 .dt-device-item.fault .dt-device-status {
@@ -2079,6 +2089,446 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   }
 }
 
+/* Hand-sketch dashboard composition: BIM remains the focal layer while the
+   operational controls sit in two quiet, fixed rails. */
+body[data-page="twin"] {
+  --dt-control-rail: clamp(300px, 24vw, 424px);
+  --dt-rail-gap: 12px;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dt-runtime-data {
+  display: none !important;
+}
+
+.dt-dashboard-rail {
+  position: absolute;
+  z-index: 12;
+  top: 18px;
+  bottom: 18px;
+  width: var(--dt-control-rail);
+  display: grid;
+  gap: var(--dt-rail-gap);
+  pointer-events: none;
+}
+
+.dt-dashboard-left {
+  left: 18px;
+  grid-template-rows: 1.12fr 0.84fr 0.86fr;
+}
+
+.dt-dashboard-right {
+  right: 18px;
+  grid-template-rows: 0.72fr 1.12fr 0.92fr;
+}
+
+.dt-dashboard-card {
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--dt-border-strong);
+  border-radius: 16px;
+  color: var(--dt-text);
+  background: color-mix(in srgb, var(--dt-panel) 97%, transparent);
+  box-shadow: 0 12px 30px rgba(35, 51, 74, 0.1);
+  backdrop-filter: blur(14px);
+  pointer-events: auto;
+}
+
+.dt-card-heading,
+.dt-simple-heading {
+  min-height: 55px;
+  padding: 13px 16px 10px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid var(--dt-border);
+}
+
+.dt-card-heading p,
+.dt-simple-heading p {
+  margin: 0 0 3px;
+  color: var(--dt-text-muted);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.dt-card-heading h2,
+.dt-simple-heading h2 {
+  margin: 0;
+  color: var(--dt-text);
+  font-size: 1rem;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.dt-card-heading > div > span,
+.dt-simple-heading > div > span {
+  display: block;
+  margin-top: 4px;
+  color: var(--dt-text-muted);
+  font-size: 0.64rem;
+}
+
+.dt-simple-heading button {
+  padding: 2px 0;
+  border: 0;
+  color: var(--dt-accent);
+  background: transparent;
+  font: inherit;
+  font-size: 0.64rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dt-live-pill {
+  min-height: 26px;
+  padding: 0 9px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid color-mix(in srgb, var(--dt-ok) 35%, transparent);
+  border-radius: 999px;
+  color: #087e55;
+  background: color-mix(in srgb, var(--dt-ok) 8%, var(--dt-panel));
+  font-size: 0.64rem;
+  font-weight: 650;
+}
+
+.dt-live-pill i,
+.dt-ahu-card .dt-simple-heading span i {
+  width: 7px;
+  height: 7px;
+  display: inline-block;
+  border-radius: 50%;
+  background: var(--dt-ok);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--dt-ok) 12%, transparent);
+}
+
+.dt-socket-grid {
+  padding: 8px 14px 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.dt-socket-grid label {
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px 6px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto 22px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--dt-border);
+  border-radius: 7px;
+  background: var(--dt-panel-raised);
+  cursor: pointer;
+}
+
+.dt-socket-grid label:has(input:checked) {
+  border-color: color-mix(in srgb, var(--dt-ok) 48%, var(--dt-border));
+  background: color-mix(in srgb, var(--dt-ok) 4%, var(--dt-panel));
+}
+
+.dt-socket-grid span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--dt-text);
+  font-size: 0.6rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-socket-grid span i {
+  margin-right: 5px;
+  color: var(--dt-ok);
+}
+
+.dt-socket-grid small {
+  color: var(--dt-text-muted);
+  font-size: 0.52rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dt-socket-grid input {
+  width: 22px;
+  height: 13px;
+  margin: 0;
+  appearance: none;
+  border-radius: 999px;
+  background: var(--dt-border-strong);
+  cursor: pointer;
+  transition: background-color 140ms ease-out;
+}
+
+.dt-socket-grid input::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin: 2px;
+  display: block;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(14, 28, 48, 0.22);
+  transition: transform 140ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.dt-socket-grid input:checked { background: var(--dt-ok); }
+.dt-socket-grid input:checked::after { transform: translateX(9px); }
+
+.dt-socket-actions {
+  padding: 0 14px 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.dt-socket-actions button,
+.dt-mode-toggle button {
+  min-height: 28px;
+  border: 1px solid var(--dt-border);
+  border-radius: 7px;
+  color: var(--dt-text-soft);
+  background: var(--dt-panel);
+  font: inherit;
+  font-size: 0.58rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.dt-socket-actions button:hover,
+.dt-socket-actions button:focus-visible {
+  border-color: var(--dt-accent-border);
+  color: var(--dt-accent);
+  outline: 0;
+}
+
+.dt-demand-row {
+  margin: 0 14px;
+  padding-top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--dt-border);
+  color: var(--dt-text-muted);
+  font-size: 0.58rem;
+}
+
+.dt-demand-row strong { color: var(--dt-text); font-size: 0.66rem; font-variant-numeric: tabular-nums; }
+.dt-demand-chart { width: calc(100% - 28px); height: 38px; margin: 2px 14px 0; overflow: visible; }
+.dt-demand-chart path:last-child { fill: none; stroke: var(--dt-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.dt-demand-area { fill: color-mix(in srgb, var(--dt-accent) 10%, transparent); stroke: none; }
+.dt-chart-range { margin: -2px 14px 8px; display: flex; gap: 12px; color: var(--dt-text-muted); font-size: 0.54rem; }
+.dt-chart-range b { padding: 2px 6px; border-radius: 5px; color: var(--dt-accent); background: var(--dt-accent-soft); }
+
+.dt-mode-toggle {
+  margin: 8px 14px 6px;
+  padding: 2px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  border-radius: 8px;
+  background: var(--dt-panel-subtle);
+}
+
+.dt-mode-toggle button { border-color: transparent; color: var(--dt-text-muted); background: transparent; }
+.dt-mode-toggle button.active { border-color: color-mix(in srgb, var(--dt-ok) 40%, var(--dt-border)); color: #087e55; background: var(--dt-panel); box-shadow: 0 1px 3px rgba(31, 47, 70, 0.08); }
+
+.dt-recommendations { padding: 0 14px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dt-recommendations > div { min-width: 0; padding: 8px; border: 1px solid var(--dt-border); border-radius: 8px; background: var(--dt-panel-raised); }
+.dt-recommendations span { display: block; overflow: hidden; color: var(--dt-text-muted); font-size: 0.52rem; text-overflow: ellipsis; white-space: nowrap; }
+.dt-recommendations strong { display: block; margin-top: 2px; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+.dt-recommendations strong small { margin-left: 2px; font-size: 0.52rem; }
+.dt-recommendations p { margin: 2px 0 0; color: var(--dt-text-muted); font-size: 0.5rem; }
+.dt-recommendations em { display: block; margin-top: 3px; color: #087e55; font-size: 0.48rem; font-style: normal; font-weight: 600; }
+.dt-recommendations em::before { content: "●"; margin-right: 3px; font-size: 0.42rem; }
+.dt-recommendations em.waiting { color: #986200; }
+
+.dt-alert-card { padding-bottom: 8px; }
+.dt-alert-card .dt-simple-heading { min-height: 52px; align-items: center; }
+.dt-health-row { margin: 6px 14px 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.dt-health-row > i { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 8px; color: #0a9c69; background: #eaf9f3; font-size: 0.8rem; }
+.dt-health-row > div { min-width: 0; }
+.dt-health-row strong { display: block; font-size: 0.58rem; }
+.dt-health-row span { display: block; margin-top: 2px; color: var(--dt-text-muted); font-size: 0.48rem; }
+.dt-health-row em { font-size: 0.72rem; font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dt-health-row em small { color: var(--dt-text-muted); font-size: 0.48rem; }
+.dt-health-row b { height: 4px; margin-top: 5px; display: flex; overflow: hidden; border-radius: 999px; background: var(--dt-border); }
+.dt-health-row b u:first-child { width: 90%; background: var(--dt-ok); }
+.dt-health-row b u:last-child { flex: 1; background: var(--dt-fault); }
+.dt-health-row.battery > i { color: #b87500; background: #fff5dc; }
+.dt-health-row.battery b u:first-child { width: 78%; background: var(--dt-ok); }
+.dt-health-row.battery b u:last-child { background: var(--dt-warning); }
+.dt-alert-list { margin: 7px 14px 0; padding-top: 6px; display: grid; gap: 4px; border-top: 1px solid var(--dt-border); }
+.dt-alert-list button { min-height: 34px; padding: 5px 7px; display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 5px; border: 0; border-radius: 7px; color: var(--dt-fault); background: var(--dt-fault-soft); text-align: left; cursor: pointer; }
+.dt-alert-list button.warning { color: #a66a00; background: #fff8e8; }
+.dt-alert-list span { min-width: 0; }
+.dt-alert-list strong, .dt-alert-list small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-alert-list strong { color: var(--dt-text); font-size: 0.54rem; }
+.dt-alert-list small { margin-top: 2px; color: var(--dt-text-muted); font-size: 0.46rem; }
+
+.dt-outdoor-grid { display: grid; grid-template-columns: 1.05fr 0.9fr 0.9fr 1.05fr; }
+.dt-outdoor-grid > div { min-width: 0; min-height: 90px; padding: 13px 11px; border-right: 1px solid var(--dt-border); }
+.dt-outdoor-grid > div:last-child { border: 0; }
+.dt-outdoor-grid span, .dt-indoor-grid span, .dt-ahu-control span, .dt-air-readings span { display: block; color: var(--dt-text-muted); font-size: 0.52rem; line-height: 1.25; }
+.dt-outdoor-grid strong { display: block; margin-top: 6px; color: var(--dt-text); font-size: 1rem; line-height: 1.08; font-variant-numeric: tabular-nums; }
+.dt-outdoor-grid strong small { font-size: 0.58rem; }
+.dt-outdoor-grid strong i { margin-right: 4px; color: var(--dt-accent); font-size: 0.9rem; }
+.dt-outdoor-grid strong.weather { display: grid; grid-template-columns: 22px 1fr; align-items: center; font-size: 0.7rem; }
+.dt-outdoor-grid strong.weather i { grid-row: 1 / 3; font-size: 1.1rem; }
+.dt-outdoor-grid em, .dt-indoor-grid em { display: block; margin-top: 4px; color: #07875b; font-size: 0.45rem; font-style: normal; }
+
+.dt-indoor-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dt-indoor-grid > div { min-width: 0; min-height: 84px; padding: 12px; border-right: 1px solid var(--dt-border); border-bottom: 1px solid var(--dt-border); }
+.dt-indoor-grid > div:nth-child(3n) { border-right: 0; }
+.dt-indoor-grid > div:nth-last-child(-n + 3) { border-bottom: 0; }
+.dt-indoor-grid > div > i { margin-bottom: 8px; display: block; color: var(--dt-accent); font-size: 0.85rem; }
+.dt-indoor-grid strong { display: block; margin-top: 6px; overflow: hidden; font-size: 0.86rem; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.dt-indoor-grid strong small { font-size: 0.52rem; }
+
+.dt-ahu-card .dt-simple-heading span i { margin-right: 5px; }
+.dt-ahu-control { padding: 10px 14px 6px; display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: 6px 12px; align-items: end; }
+.dt-ahu-control > div { grid-column: 1 / -1; }
+.dt-ahu-control strong { display: block; margin-top: 2px; font-size: 1.12rem; font-variant-numeric: tabular-nums; }
+.dt-ahu-control strong small { font-size: 0.58rem; }
+.dt-ahu-control input { width: 100%; accent-color: var(--dt-accent); }
+.dt-ahu-control button { min-height: 34px; border: 0; border-radius: 8px; color: #fff; background: var(--dt-accent); font: inherit; font-size: 0.64rem; font-weight: 650; cursor: pointer; }
+.dt-ahu-control button:active { transform: scale(0.97); }
+.dt-air-readings { padding: 3px 14px 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dt-air-readings > div { padding: 8px; border-radius: 8px; background: var(--dt-panel-subtle); }
+.dt-air-readings strong { display: block; margin-top: 5px; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.dt-ahu-meters { padding: 0 14px 12px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dt-ahu-meters span { display: flex; justify-content: space-between; gap: 4px; color: var(--dt-text-muted); font-size: 0.47rem; white-space: nowrap; }
+.dt-ahu-meters span b { color: var(--dt-text); }
+.dt-ahu-meters i { height: 4px; margin-top: 5px; display: block; overflow: hidden; border-radius: 999px; background: var(--dt-border); }
+.dt-ahu-meters u { height: 100%; display: block; border-radius: inherit; background: var(--dt-accent); }
+
+.dt-layer-switcher {
+  top: 18px;
+  min-height: 42px;
+  padding: 5px;
+  gap: 3px;
+  border-color: var(--dt-border-strong);
+  border-radius: 12px;
+}
+
+.dt-layer-switcher label {
+  min-height: 30px;
+  padding: 0 8px;
+  gap: 5px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--dt-accent);
+  background: var(--dt-accent-soft);
+  font-size: 0.64rem;
+  font-weight: 600;
+  transition: color 140ms ease-out, background-color 140ms ease-out, border-color 140ms ease-out;
+}
+
+.dt-layer-switcher label:hover { border-color: var(--dt-accent-border); }
+.dt-layer-switcher label.is-off { color: var(--dt-text-muted); background: transparent; }
+.dt-layer-switcher input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.dt-layer-switcher label i { width: 15px; height: 15px; display: grid; place-items: center; border-radius: 4px; color: #fff; background: var(--dt-accent); font-size: 0.65rem; }
+.dt-layer-switcher label.is-off i { color: transparent; background: var(--dt-border-strong); }
+
+.dt-bottom-nav,
+.dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+.dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+.dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+  left: 50%;
+  right: auto;
+  bottom: 18px;
+  width: auto;
+  min-height: 62px;
+  max-width: calc(100% - (var(--dt-control-rail) * 2) - 80px);
+  padding: 5px;
+  gap: 2px;
+  transform: translateX(-50%);
+  border-radius: 16px;
+}
+
+.dt-bottom-nav button,
+.dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 72px;
+  min-height: 50px;
+  padding: 6px 10px;
+}
+
+.dt-bottom-nav button:active { transform: scale(0.97); }
+
+.dt-workspace.panel-open #twin-canvas,
+.dt-workspace.panel-open .dt-label-layer,
+.dt-workspace.right-panel-open:not(.panel-open) #twin-canvas,
+.dt-workspace.right-panel-open:not(.panel-open) .dt-label-layer,
+.dt-workspace.panel-open:not(.right-panel-open) #twin-canvas,
+.dt-workspace.panel-open:not(.right-panel-open) .dt-label-layer,
+.dt-workspace.panel-open.right-panel-open #twin-canvas,
+.dt-workspace.panel-open.right-panel-open .dt-label-layer {
+  transform: none;
+}
+
+.dt-data-panel { z-index: 30; }
+
+@media (max-width: 1420px) {
+  body[data-page="twin"] { --dt-control-rail: clamp(278px, 23vw, 326px); }
+  .dt-dashboard-rail { top: 12px; bottom: 12px; gap: 8px; }
+  .dt-dashboard-left { left: 12px; }
+  .dt-dashboard-right { right: 12px; }
+  .dt-card-heading, .dt-simple-heading { min-height: 46px; padding: 9px 11px 7px; }
+  .dt-card-heading h2, .dt-simple-heading h2 { font-size: 0.82rem; }
+  .dt-socket-grid { padding: 6px 9px 3px; gap: 3px; }
+  .dt-socket-grid label { min-height: 24px; padding: 3px 4px; }
+  .dt-socket-actions { padding: 0 9px 4px; }
+  .dt-demand-row { margin-inline: 9px; padding-top: 5px; }
+  .dt-demand-chart { width: calc(100% - 18px); height: 27px; margin-inline: 9px; }
+  .dt-chart-range { margin-inline: 9px; margin-bottom: 4px; }
+  .dt-mode-toggle { margin: 6px 9px 4px; }
+  .dt-recommendations { padding: 0 9px 7px; }
+  .dt-recommendations > div { padding: 6px; }
+  .dt-health-row { margin: 4px 9px 0; }
+  .dt-alert-list { margin: 5px 9px 0; padding-top: 4px; }
+  .dt-alert-list button { min-height: 29px; padding-block: 3px; }
+  .dt-alert-list small { margin-top: 0; }
+  .dt-outdoor-grid > div { min-height: 74px; padding: 9px 7px; }
+  .dt-indoor-grid > div { min-height: 67px; padding: 8px; }
+  .dt-indoor-grid > div > i { margin-bottom: 4px; }
+  .dt-ahu-control { padding: 7px 9px 3px; }
+  .dt-ahu-control { grid-template-columns: minmax(0, 1fr) 68px; gap: 2px 8px; }
+  .dt-air-readings { padding: 1px 9px 3px; }
+  .dt-air-readings > div { padding: 5px 7px; }
+  .dt-air-readings strong { margin-top: 2px; }
+  .dt-ahu-meters { padding: 0 9px 5px; gap: 5px; }
+  .dt-bottom-nav button, .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button { min-width: 58px; padding-inline: 7px; }
+}
+
+@media (max-width: 980px) and (pointer: coarse) {
+  body[data-page="twin"] { --dt-control-rail: min(244px, 32vw); }
+  .dt-dashboard-left { grid-template-rows: 1fr 0.72fr; }
+  .dt-dashboard-right { grid-template-rows: 0.72fr 1fr; }
+  .dt-alert-card, .dt-ahu-card { display: none; }
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav { bottom: 8px; max-width: calc(100% - 24px); }
+  .dt-bottom-nav button, .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button { min-width: 42px; width: 42px; min-height: 42px; height: 42px; padding: 3px; }
+  .dt-bottom-nav button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-layer-switcher label,
+  .dt-socket-grid input,
+  .dt-socket-grid input::after { transition: none; }
+}
+
 /* Unified touch landscape system. This final block intentionally owns all
    phone and tablet sizing so device-specific rules cannot create jumps. */
 @media (max-width: 1400px) and (orientation: landscape) and (pointer: coarse) {
@@ -2288,3 +2738,185 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-bottom-nav button i { font-size: 0.95rem; }
   .dt-bottom-nav button span { display: none; }
 }
+
+/* Browser-panel corrections. Kept last so older responsive rules cannot
+   squeeze labels or override the Overview disclosure state. */
+.dt-dashboard-rail {
+  transition: transform 180ms ease-out, opacity 140ms ease-out;
+}
+
+.dt-workspace.dashboard-collapsed .dt-dashboard-left {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(-100% - 24px));
+}
+
+.dt-workspace.dashboard-collapsed .dt-dashboard-right {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(calc(100% + 24px));
+}
+
+.dt-ahu-meters > div { min-width: 0; }
+.dt-ahu-meters span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dt-ahu-meters span b { flex: 0 0 auto; }
+
+@media (max-width: 1100px) {
+  body[data-page="twin"] { --dt-control-rail: clamp(246px, 30vw, 286px); }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    width: 278px;
+    max-width: calc(100% - 24px);
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    width: auto;
+    min-width: 0;
+    min-height: 48px;
+    padding: 5px 2px;
+  }
+
+  .dt-bottom-nav button span,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button span {
+    position: static;
+    width: auto;
+    height: auto;
+    display: block;
+    overflow: hidden;
+    clip: auto;
+    color: inherit;
+    font-size: 0.55rem;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dt-socket-grid span,
+  .dt-recommendations span,
+  .dt-alert-list strong,
+  .dt-alert-list small {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dt-socket-grid label {
+    grid-template-columns: minmax(0, 1fr) 22px;
+  }
+
+  .dt-socket-grid small { display: none; }
+
+  .dt-ahu-meters span { font-size: 0; }
+  .dt-ahu-meters span::before {
+    content: attr(data-short);
+    overflow: hidden;
+    font-size: 0.43rem;
+    text-overflow: ellipsis;
+  }
+  .dt-ahu-meters span b { font-size: 0.43rem; }
+}
+
+.dt-workspace.dashboard-collapsed .dt-bottom-nav,
+.dt-workspace.dashboard-collapsed.panel-open .dt-bottom-nav {
+  max-width: calc(100% - 24px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dt-dashboard-rail { transition: none; }
+}
+
+/* Every operational card uses one title row. Eyebrows stay available to
+   assistive technology but no longer consume a separate visual line. */
+.dt-dashboard-card .dt-card-heading,
+.dt-dashboard-card .dt-simple-heading {
+  min-height: 50px;
+  align-items: center;
+  padding-block: 9px;
+}
+
+.dt-dashboard-card .dt-card-heading > div,
+.dt-dashboard-card .dt-simple-heading > div {
+  min-width: 0;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.dt-dashboard-card .dt-card-heading p,
+.dt-dashboard-card .dt-simple-heading p {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dt-dashboard-card .dt-card-heading h2,
+.dt-dashboard-card .dt-simple-heading h2 {
+  min-width: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.dt-dashboard-card .dt-card-heading > div > span,
+.dt-dashboard-card .dt-simple-heading > div > span {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dt-dashboard-card .dt-simple-heading > button {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1100px) {
+  .dt-dashboard-card .dt-card-heading > div > span,
+  .dt-dashboard-card .dt-simple-heading > div > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+}
+
+.dt-data-panel .dt-data-header .dt-overline {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.dt-data-panel .dt-data-header h2,
+.dt-data-panel .dt-detail-heading h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.dt-data-panel .dt-detail-heading > div { min-width: 0; }

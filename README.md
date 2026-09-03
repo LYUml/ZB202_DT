@@ -65,6 +65,8 @@ Windows 用户可直接双击：
 start-zb202.bat
 ```
 
+macOS 可双击项目根目录下的 `start-zb202.command`。首次运行若被系统拦截，请在 Finder 中右键该文件并选择“打开”。
+
 也可以分别打开两个终端手动运行：
 
 ```powershell
@@ -141,6 +143,7 @@ ZB202_DT/
 ├── .env.example                  # InfluxDB 配置模板
 ├── package.json                  # npm 命令与依赖
 ├── start-zb202.bat               # Windows 一键启动
+├── start-zb202.command           # macOS 双击启动
 └── vite.config.js                # Vite 构建配置
 ```
 

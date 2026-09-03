@@ -52,9 +52,9 @@
           </div>
 
           <div class="dt-layer-switcher" aria-label="模型可见层">
-            <label><input type="checkbox" data-model-layer="archi" checked><span>Architecture</span></label>
-            <label><input type="checkbox" data-model-layer="mep" checked><span>MEP</span></label>
-            <label><input type="checkbox" data-model-layer="sensor" checked><span>Sensor</span></label>
+            <label><input type="checkbox" data-model-layer="archi" checked><i class="ph ph-check" aria-hidden="true"></i><span>Architecture</span></label>
+            <label><input type="checkbox" data-model-layer="mep" checked><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></label>
+            <label><input type="checkbox" data-model-layer="sensor" checked><i class="ph ph-check" aria-hidden="true"></i><span>Sensor</span></label>
           </div>
           <span class="dt-model-name" hidden>Lab Archi + MEP + Sensors</span><span id="model-name" hidden></span><span id="mesh-count" hidden>0</span>
 
@@ -122,7 +122,85 @@
         </div>
       </aside>
 
-      <aside class="dt-overview-rail" aria-label="平台概览">
+      <aside class="dt-dashboard-rail dt-dashboard-left" id="dashboard-left" aria-label="Controls and alerts">
+        <section class="dt-dashboard-card dt-socket-card">
+          <header class="dt-card-heading">
+            <div><p>Electrical load control</p><h2>Socket Control</h2></div>
+            <span class="dt-live-pill"><i></i>Live</span>
+          </header>
+          <div class="dt-socket-grid">
+            <label><span><i class="ph ph-plug"></i>WS523-01</span><small>0.42 kW</small><input type="checkbox" checked></label>
+            <label><span><i class="ph ph-plug"></i>WS523-02</span><small>0.16 kW</small><input type="checkbox" checked></label>
+            <label><span><i class="ph ph-plug"></i>WS523-03</span><small>0.00 kW</small><input type="checkbox"></label>
+            <label><span><i class="ph ph-plug"></i>WS523-04</span><small>0.31 kW</small><input type="checkbox" checked></label>
+            <label><span><i class="ph ph-plug"></i>WS523-05</span><small>0.00 kW</small><input type="checkbox"></label>
+            <label><span><i class="ph ph-plug"></i>WS523-06</span><small>0.09 kW</small><input type="checkbox" checked></label>
+          </div>
+          <div class="dt-socket-actions"><button type="button" data-socket-action="on">All On</button><button type="button" data-socket-action="off">All Off</button></div>
+          <div class="dt-demand-row"><span>Total electrical demand</span><strong>0.98 kW</strong></div>
+          <svg class="dt-demand-chart" viewBox="0 0 420 52" preserveAspectRatio="none" aria-label="Electrical demand trend">
+            <path class="dt-demand-area" d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33 L420 52 L0 52 Z"></path>
+            <path d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33"></path>
+          </svg>
+          <div class="dt-chart-range"><b>Today</b><span>7D</span><span>30D</span></div>
+        </section>
+
+        <section class="dt-dashboard-card dt-ai-card">
+          <header class="dt-card-heading"><div><p>Predictive HVAC optimisation</p><h2>AI Recommendation</h2></div></header>
+          <div class="dt-mode-toggle" role="group" aria-label="Control mode"><button type="button" class="active"><i class="ph ph-sparkle"></i>AI Auto Mode</button><button type="button"><i class="ph ph-hand"></i>Manual Mode</button></div>
+          <div class="dt-recommendations">
+            <div><span>Recommended supply-air setpoint</span><strong>22.5<small>°C</small></strong><p>Current setpoint 23.0°C</p><em class="waiting">Awaiting execution</em></div>
+            <div><span>Recommended outdoor-air damper</span><strong>46<small>%</small></strong><p>Current position 32%</p><em>Executed successfully</em></div>
+          </div>
+        </section>
+
+        <section class="dt-dashboard-card dt-alert-card">
+          <header class="dt-simple-heading"><h2>Asset Health &amp; Alerts</h2><button type="button">Event centre <i class="ph ph-arrow-up-right"></i></button></header>
+          <div class="dt-health-row"><i class="ph ph-broadcast"></i><div><strong>Sensor connectivity</strong><span>17 online · 1 offline · 1 fault</span><b><u></u><u></u></b></div><em>17<small>/19</small></em></div>
+          <div class="dt-health-row battery"><i class="ph ph-battery-medium"></i><div><strong>Battery condition</strong><span>14 healthy · 4 good · 1 low</span><b><u></u><u></u></b></div><em>14<small>/19</small></em></div>
+          <div class="dt-alert-list">
+            <button type="button" class="critical"><i class="ph ph-warning-circle"></i><span><strong>Door contact abnormal opening</strong><small>Door-01 · 19:42 · after hours</small></span></button>
+            <button type="button" class="warning"><i class="ph ph-battery-warning"></i><span><strong>Battery replacement required</strong><small>WS523-03 · maintenance due</small></span></button>
+          </div>
+        </section>
+      </aside>
+
+      <aside class="dt-dashboard-rail dt-dashboard-right" id="dashboard-right" aria-label="Environment and AHU status">
+        <section class="dt-dashboard-card dt-outdoor-card">
+          <header class="dt-card-heading"><div><p>Local weather station</p><h2>Outdoor Environment</h2><span>ZB202 · North facade</span></div></header>
+          <div class="dt-outdoor-grid">
+            <div><span>Dry-bulb temperature</span><strong>31.8<small>°C</small></strong><em>Feels like 36.2°C</em></div>
+            <div><span>Relative humidity</span><strong>68<small>%</small></strong><em>Outdoor air</em></div>
+            <div><span>Wind</span><strong><i class="ph ph-navigation-arrow"></i>ESE</strong><em>4.2 m/s</em></div>
+            <div><span>Condition</span><strong class="weather"><i class="ph ph-cloud-sun"></i>Partly cloudy</strong><em>UV Index 7 · High</em></div>
+          </div>
+        </section>
+
+        <section class="dt-dashboard-card dt-indoor-card">
+          <header class="dt-simple-heading"><div><p>IAQ &amp; space utilization</p><h2>Indoor Environment</h2><span>Zone AM103 · 5-minute mean</span></div><button type="button">Inspect <i class="ph ph-arrow-up-right"></i></button></header>
+          <div class="dt-indoor-grid">
+            <div><i class="ph ph-thermometer-simple"></i><span>Operative temperature</span><strong>24.2 °C</strong><em>Within comfort band</em></div>
+            <div><i class="ph ph-drop"></i><span>Relative humidity</span><strong>62.2 %</strong><em>Acceptable</em></div>
+            <div><i class="ph ph-wind"></i><span>CO₂ concentration</span><strong>517 ppm</strong><em>Good IAQ</em></div>
+            <div><i class="ph ph-cloud"></i><span>PM₂.₅</span><strong>9 <small>µg/m³</small></strong><em>Good</em></div>
+            <div><i class="ph ph-speaker-high"></i><span>Sound pressure level</span><strong>48 <small>dB(A)</small></strong><em>Normal</em></div>
+            <div><i class="ph ph-users-three"></i><span>Workstation occupancy</span><strong>7 / 12</strong><em>58% occupied</em></div>
+          </div>
+        </section>
+
+        <section class="dt-dashboard-card dt-ahu-card">
+          <header class="dt-simple-heading"><div><p>Building management system</p><h2>AHU Operations</h2><span><i></i>AHU-01 · Normal operation</span></div><button type="button">BMS view <i class="ph ph-arrow-up-right"></i></button></header>
+          <div class="dt-ahu-control">
+            <div><span>Zone temperature setpoint</span><strong>23.0<small>°C</small></strong></div>
+            <input type="range" min="18" max="28" step="0.5" value="23" aria-label="Zone temperature setpoint">
+            <button type="button"><i class="ph ph-paper-plane-tilt"></i>Control</button>
+          </div>
+          <div class="dt-air-readings"><div><span>Supply air</span><strong>17.8 °C</strong></div><div><span>Return air</span><strong>24.1 °C</strong></div></div>
+          <div class="dt-ahu-meters"><div><span data-short="CHW valve">Chilled-water valve <b>46%</b></span><i><u style="width:46%"></u></i></div><div><span data-short="OA damper">Outdoor-air damper <b>32%</b></span><i><u style="width:32%"></u></i></div><div><span data-short="Fan">Supply fan frequency <b>38 Hz</b></span><i><u style="width:63%"></u></i></div></div>
+        </section>
+      </aside>
+
+      <aside class="dt-overview-rail dt-runtime-data" aria-label="平台概览" aria-hidden="true">
         <section class="dt-rail-card" id="site-overview-card">
           <header>
             <div><p class="dt-overline" data-i18n="liveSummary">实时概览</p><div class="dt-site-title"><h2 data-i18n="siteOverview">场地概览</h2><span class="dt-count" id="device-count">0</span></div></div>
@@ -155,12 +233,11 @@
       </aside>
 
       <nav class="dt-bottom-nav" aria-label="主要功能">
-        <button type="button" data-view="overview" title="Overview" aria-label="Overview"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Overview</span></button>
-        <button type="button" id="device-panel-btn" data-view="sensors" title="Sensor" aria-label="Sensor" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-list-bullets" aria-hidden="true"></i><span>Sensor</span></button>
+        <button type="button" class="active" data-view="overview" title="Overview" aria-label="Overview" aria-controls="dashboard-left dashboard-right" aria-expanded="true"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Overview</span></button>
+        <button type="button" id="device-panel-btn" data-view="sensors" title="IoT" aria-label="IoT" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-broadcast" aria-hidden="true"></i><span>IoT</span></button>
         <button type="button" data-view="bms" title="BMS" aria-label="BMS"><i class="ph ph-hard-drives" aria-hidden="true"></i><span>BMS</span></button>
         <button type="button" data-view="ai" title="AI" aria-label="AI"><i class="ph ph-brain" aria-hidden="true"></i><span>AI</span></button>
-        <button type="button" id="reset-view-btn" data-action="reset" title="Reset View" aria-label="Reset View"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span>Reset View</span></button>
-        <button type="button" data-view="reserved" title="Reserved" aria-label="Reserved"><i class="ph ph-plus-circle" aria-hidden="true"></i><span>Reserved</span></button>
+        <button type="button" data-view="alerts" title="Alerts" aria-label="Alerts"><i class="ph ph-warning" aria-hidden="true"></i><span>Alerts</span></button>
       </nav>
     </main>
   </div>

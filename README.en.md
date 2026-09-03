@@ -65,6 +65,8 @@ On Windows, double-click:
 start-zb202.bat
 ```
 
+On macOS, double-click `start-zb202.command` in the project root. If macOS blocks it on the first run, right-click the file in Finder and choose **Open**.
+
 Or run the services in separate terminals:
 
 ```powershell
@@ -116,6 +118,7 @@ ZB202_DT/
 ├── .env.example                  # InfluxDB configuration template
 ├── package.json                  # npm commands and dependencies
 ├── start-zb202.bat               # Windows launcher
+├── start-zb202.command           # macOS double-click launcher
 └── vite.config.js                # Vite build configuration
 ```
 

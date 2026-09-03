@@ -69,7 +69,7 @@ const I18N = {
     zoomHint: "滚轮缩放", components: "构件", copy: "复制", copied: "已复制", sidebarAria: "设备实时信息",
     deviceStatus: "设备状态", deviceListAria: "IFC 设备列表", last48Seconds: "最近 48 秒", trendAria: "实时数据趋势图",
     openDevicePanel: "设备面板", closeDevicePanel: "关闭设备面板", statusLegendAria: "设备状态图例",
-    lastUpdated: "最后更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未绑定",
+    lastUpdated: "最后更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未绑定", dataUnavailable: "数据源未连接",
     noBinding: "当前模型无绑定", objectBinding: "BIM 构件绑定", markerBinding: "空间坐标绑定",
     restoreNormal: "恢复设备正常", simulateFault: "模拟设备故障", readingModel: "读取模型文件…",
     loadingModel: "正在加载 {model}", modelReady: "{count} 个构件 · 模型准备完成",
@@ -100,7 +100,7 @@ const I18N = {
     zoomHint: "滾輪縮放", components: "構件", copy: "複製", copied: "已複製", sidebarAria: "設備即時資訊",
     deviceStatus: "設備狀態", deviceListAria: "IFC 設備列表", last48Seconds: "最近 48 秒", trendAria: "即時資料趨勢圖",
     openDevicePanel: "設備面板", closeDevicePanel: "關閉設備面板", statusLegendAria: "設備狀態圖例",
-    lastUpdated: "最後更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未綁定",
+    lastUpdated: "最後更新", normal: "正常", warning: "注意", fault: "故障", unavailable: "未綁定", dataUnavailable: "資料來源未連線",
     noBinding: "目前模型未綁定", objectBinding: "BIM 構件綁定", markerBinding: "空間座標綁定",
     restoreNormal: "恢復設備正常", simulateFault: "模擬設備故障", readingModel: "讀取模型檔案…",
     loadingModel: "正在載入 {model}", modelReady: "{count} 個構件 · 模型準備完成",
@@ -131,7 +131,7 @@ const I18N = {
     zoomHint: "Scroll to zoom", components: "components", copy: "Copy", copied: "Copied", sidebarAria: "Live device information",
     deviceStatus: "Device Status", deviceListAria: "IFC equipment list", last48Seconds: "Last 48 seconds", trendAria: "Live data trend chart",
     openDevicePanel: "Device Panel", closeDevicePanel: "Close device panel", statusLegendAria: "Device status legend",
-    lastUpdated: "Last updated", normal: "Normal", warning: "Warning", fault: "Fault", unavailable: "Unbound",
+    lastUpdated: "Last updated", normal: "Normal", warning: "Warning", fault: "Fault", unavailable: "Unbound", dataUnavailable: "Data source unavailable",
     noBinding: "Not bound in this model", objectBinding: "BIM Component Binding", markerBinding: "Spatial Coordinate Binding",
     restoreNormal: "Restore Normal Status", simulateFault: "Simulate Device Fault", readingModel: "Reading model file…",
     loadingModel: "Loading {model}", modelReady: "{count} components · Model ready",
@@ -393,6 +393,7 @@ const state = {
   seenTelemetry: new Set(),
   markerSyncTimer: null,
   markerSyncRunning: false,
+  layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
 };
 
 function initializeDeviceSnapshots() {
@@ -401,7 +402,7 @@ function initializeDeviceSnapshots() {
   const values = Object.fromEntries(device.metrics.map((metric) => [metric.key, null]));
     state.snapshots.set(device.id, {
       deviceId: device.id,
-      status: "offline",
+      status: "unavailable",
       updatedAt: new Date(),
       values,
       trends: Object.fromEntries(device.metrics.map((metric) => [metric.key, []])),
@@ -479,7 +480,7 @@ function presentationStatus(status) {
   if (status === "normal") return { key: "online", className: "normal" };
   if (status === "warning") return { key: "maintenance", className: "warning" };
   if (status === "offline") return { key: "offline", className: "fault" };
-  if (status === "unavailable") return { key: "offline", className: "unavailable" };
+  if (status === "unavailable") return { key: "dataUnavailable", className: "unavailable" };
   return { key: "fault", className: "fault" };
 }
 
@@ -1159,6 +1160,18 @@ function applyLanguage(lang) {
   renderUI();
 }
 
+function setDashboardPanelsVisible(visible) {
+  const workspace = elements.wrap.closest(".dt-workspace");
+  workspace.classList.toggle("dashboard-collapsed", !visible);
+  document.querySelector('[data-view="overview"]')?.setAttribute("aria-expanded", String(visible));
+}
+
+function setActivePlatformView(view) {
+  document.querySelectorAll("[data-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === view);
+  });
+}
+
 function setDevicePanelOpen(open) {
   const workspace = elements.wrap.closest(".dt-workspace");
   workspace.classList.toggle("panel-open", open);
@@ -1166,7 +1179,13 @@ function setDevicePanelOpen(open) {
   elements.devicePanel.setAttribute("aria-hidden", String(!open));
   elements.devicePanel.inert = !open;
   elements.devicePanelButton.setAttribute("aria-expanded", String(open));
-  elements.devicePanelButton.classList.toggle("active", open);
+  if (open) {
+    setDashboardPanelsVisible(false);
+    setActivePlatformView("sensors");
+  } else if (elements.devicePanelButton.classList.contains("active")) {
+    setDashboardPanelsVisible(true);
+    setActivePlatformView("overview");
+  }
   if (open) elements.devicePanelClose.focus({ preventScroll: true });
   else elements.devicePanelButton.focus({ preventScroll: true });
   scheduleSensorMarkerSync(320);
@@ -1286,9 +1305,11 @@ function updateDeviceConnectivity() {
     const lastLiveAt = state.lastLiveAt.get(device.id);
     const databaseOffline = !state.influxConnected;
     const deviceStale = state.influxConnected && (!lastLiveAt || now - lastLiveAt > INFLUX_STALE_AFTER_MS);
-    const nextStatus = databaseOffline || deviceStale
-      ? "offline"
-      : snapshot.status === "offline" ? "normal" : snapshot.status;
+    const nextStatus = databaseOffline
+      ? "unavailable"
+      : deviceStale
+        ? "offline"
+        : snapshot.status === "offline" || snapshot.status === "unavailable" ? "normal" : snapshot.status;
     if (snapshot.status !== nextStatus) {
       snapshot.status = nextStatus;
       changed = true;
@@ -1401,6 +1422,7 @@ async function loadFragmentsModel(model, requestId, modelIndex) {
 
   state.fragmentsModels.set(model.id, fragmentsModel);
   modelGroup.add(fragmentsModel.object);
+  fragmentsModel.object.visible = state.layerVisibility[model.id] !== false;
   fragmentsModel.useCamera(camera);
   if (model.hiddenCategories?.length) {
     const hiddenItems = await fragmentsModel.getItemsOfCategories(
@@ -1523,13 +1545,27 @@ function resizeRenderer() {
 elements.retryButton.addEventListener("click", loadModel);
 elements.layerToggles.forEach((toggle) => {
   toggle.addEventListener("change", async () => {
+    state.layerVisibility[toggle.dataset.modelLayer] = toggle.checked;
     const fragmentsModel = state.fragmentsModels.get(toggle.dataset.modelLayer);
-    if (!fragmentsModel) return;
-    fragmentsModel.object.visible = toggle.checked;
+    if (fragmentsModel) fragmentsModel.object.visible = toggle.checked;
     if (toggle.dataset.modelLayer === "sensor") {
       for (const marker of state.markerObjects.values()) marker.label.visible = toggle.checked;
     }
-    await fragments.update(true);
+    toggle.closest("label")?.classList.toggle("is-off", !toggle.checked);
+    if (fragmentsModel) await fragments.update(true);
+  });
+});
+
+document.querySelectorAll("[data-socket-action]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const checked = button.dataset.socketAction === "on";
+    document.querySelectorAll(".dt-socket-grid input").forEach((input) => { input.checked = checked; });
+  });
+});
+
+document.querySelectorAll(".dt-mode-toggle button").forEach((button) => {
+  button.addEventListener("click", () => {
+    document.querySelectorAll(".dt-mode-toggle button").forEach((item) => item.classList.toggle("active", item === button));
   });
 });
 systemThemeQuery.addEventListener("change", (event) => {
@@ -1546,21 +1582,34 @@ window.addEventListener("storage", (event) => {
 function setPlatformView(view) {
   const workspace = elements.wrap.closest(".dt-workspace");
   if (view === "overview") {
-    const open = !(workspace.classList.contains("right-panel-open") && elements.devicePanel.classList.contains("is-open"));
-    workspace.classList.toggle("right-panel-open", open);
-    setDevicePanelOpen(open);
-    document.querySelector('[data-view="overview"]')?.classList.toggle("active", open);
+    const overviewButton = document.querySelector('[data-view="overview"]');
+    const isCurrentView = overviewButton?.classList.contains("active");
+    const isCollapsed = workspace.classList.contains("dashboard-collapsed");
+    if (elements.devicePanel.classList.contains("is-open")) {
+      setDevicePanelOpen(false);
+      setDashboardPanelsVisible(true);
+    } else {
+      setDashboardPanelsVisible(!(isCurrentView && !isCollapsed));
+    }
+    setActivePlatformView("overview");
   } else if (view === "sensors") {
-    setDevicePanelOpen(!elements.devicePanel.classList.contains("is-open"));
+    const opening = !elements.devicePanel.classList.contains("is-open");
+    setDevicePanelOpen(opening);
   } else if (view === "bms") {
-    workspace.classList.remove("right-panel-open");
-    document.querySelector('[data-view="overview"]')?.classList.remove("active");
-    document.querySelector('[data-view="bms"]')?.classList.remove("active");
-  } else if (view === "ai" || view === "reserved") {
-    workspace.classList.add("right-panel-open");
-    document.querySelector('[data-view="overview"]')?.classList.add("active");
-    elements.reservedTitle.textContent = view === "ai" ? "AI" : "Reserved";
-    elements.reservedCopy.textContent = t(view === "ai" ? "aiReserved" : "reservedCopy");
+    setDevicePanelOpen(false);
+    setDashboardPanelsVisible(true);
+    document.querySelector(".dt-ahu-card")?.scrollIntoView({ block: "nearest" });
+  } else if (view === "ai") {
+    setDevicePanelOpen(false);
+    setDashboardPanelsVisible(true);
+    document.querySelector(".dt-ai-card")?.scrollIntoView({ block: "nearest" });
+  } else if (view === "alerts") {
+    setDevicePanelOpen(false);
+    setDashboardPanelsVisible(true);
+    document.querySelector(".dt-alert-card")?.scrollIntoView({ block: "nearest" });
+  }
+  if (view !== "overview" && view !== "sensors") {
+    setActivePlatformView(view);
   }
   scheduleSensorMarkerSync(320);
 }
@@ -1616,7 +1665,7 @@ elements.assetViewButtons.forEach((button) => button.addEventListener("click", (
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
 });
-elements.resetViewButton.addEventListener("click", () => fitCameraToModel(true));
+elements.resetViewButton?.addEventListener("click", () => fitCameraToModel(true));
 elements.faultToggle.addEventListener("click", () => {
   const snapshot = state.snapshots.get(state.selectedDeviceId);
   if (!snapshot) return;
