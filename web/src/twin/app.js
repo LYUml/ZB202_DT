@@ -897,16 +897,6 @@ async function createOccupancySeats() {
         seat.add(border);
       }
 
-      const icon = document.createElement("span");
-      icon.className = "dt-occupancy-marker";
-      icon.setAttribute("aria-label", `Seat ${seatIndex + 1} occupied`);
-      icon.innerHTML = '<i class="ph ph-user" aria-hidden="true"></i>';
-      const label = new CSS2DObject(icon);
-      label.name = `occupancy-seat-label-${seatIndex + 1}`;
-      label.position.y = Math.max(state.modelRadius * 0.006, 0.035);
-      seat.add(label);
-      seat.userData.occupancyLabel = label;
-
       seat.position.set(
         tableBox.min.x + seatWidth * (column + 0.5),
         overlayY,
@@ -921,13 +911,10 @@ async function createOccupancySeats() {
 }
 
 function renderOccupancySeats() {
-  const overlaysVisible = state.debugMockData && state.sensorDisplayMode !== "hidden";
+  const overlaysVisible = state.debugMockData && state.sensorDisplayMode === "labels";
   occupancyGroup.visible = overlaysVisible;
   for (const seat of occupancyGroup.children) {
     seat.visible = overlaysVisible && seat.userData.occupied;
-    if (seat.userData.occupancyLabel) {
-      seat.userData.occupancyLabel.visible = state.sensorDisplayMode === "labels";
-    }
   }
 }
 
