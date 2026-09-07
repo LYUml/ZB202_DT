@@ -27,3 +27,45 @@
 Focused region comparison was used because the panel text and chart segments were too small to judge reliably in a full-dashboard screenshot.
 
 final result: passed
+
+---
+
+# Design QA — Occupancy seat overlays
+
+- Source visual truth: `C:\Users\lyuml\AppData\Local\Temp\codex-clipboard-e8e742e3-be76-49f8-959f-8c5bf54f6d40.png`
+- Implementation: `http://127.0.0.1:5173/twin.html`
+- Implementation screenshot: Codex in-app browser capture at 2026-09-07 23:11 Asia/Shanghai (tool-managed capture; no filesystem path)
+- Viewport: 1274 × 984 CSS px at device density 1
+- Source pixels: 1065 × 820
+- Implementation pixels: 1274 × 984
+- Normalization: compared the tabletop region at equivalent close-up scale; browser chrome and dashboard rails were excluded.
+- State: clock double-click debug mode enabled; 7 of 12 seats occupied.
+
+## Evidence and findings
+
+- Full view: the implementation places a 2 × 6 grid directly on the detected rectangular Monza table. Only occupied seats render.
+- Focused tabletop view: occupied seats use translucent blue fill, a crisp blue perimeter, and a centered circular blue person marker with a white ring.
+- Typography: no new visible copy typography; accessible seat labels follow existing conventions.
+- Spacing: the table bounds are evenly divided into two columns and six rows with consistent insets.
+- Colors: blue fill, blue edge, white ring, and white person icon match the reference state treatment.
+- Asset fidelity: the person symbol uses the installed Phosphor icon library; the overlay itself is native Three.js geometry.
+- Copy/content: numbered accessible labels are present, and the dashboard occupancy value is `7 / 12` in debug mode.
+- P3: CSS2D icons keep a fixed screen size, so extremely distant views compress spacing more than the close-up reference. A 30 px marker minimizes overlap in the default view.
+- No actionable P0/P1/P2 differences remain.
+
+## Interaction checks
+
+- Debug on: seven blue occupied overlays appear and occupancy reads `7 / 12`.
+- Debug off: all overlays hide and occupancy returns to unavailable.
+- Orbit/zoom: overlays remain anchored to the table.
+- Browser console: no errors or warnings observed.
+
+## Comparison history
+
+1. Initial pass generated no overlays because the IFC table name contains hyphens between all words.
+2. Expanded the furniture-name matcher to accept the real IFC naming pattern.
+3. Post-fix evidence showed 12 generated seat objects, seven visible occupied states, and zero visible states after debug mode was disabled.
+4. Follow-up default-view review found the original single-pixel outline too subtle against the white tabletop.
+5. Replaced it with four opaque blue frame meshes per occupied seat, raised the overlay above the tabletop, and disabled depth occlusion. The default dashboard view now visibly shows both blue fill and blue borders.
+
+final result: passed

@@ -5,6 +5,7 @@ import "@phosphor-icons/web/regular";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
+const DEBUG_OCCUPIED_SEATS = new Set([0, 1, 3, 6, 8, 10, 11]);
 const query = new URLSearchParams(window.location.search);
 const requestedSensorId = String(query.get("sensor") || "").replaceAll("_", "-").toUpperCase();
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -473,6 +474,9 @@ const helpersGroup = new THREE.Group();
 helpersGroup.name = "digital-twin-overlays";
 scene.add(helpersGroup);
 
+const occupancyGroup = new THREE.Group();
+occupancyGroup.name = "occupancy-seat-overlays";
+
 let pointerDownPosition = null;
 let gridHelper = null;
 
@@ -805,6 +809,128 @@ async function bindDevices() {
   await updateAllVisualStates();
 }
 
+async function createOccupancySeats() {
+  occupancyGroup.clear();
+  const archiModel = state.fragmentsModels.get("archi");
+  if (!archiModel) return;
+
+  const furniture = await archiModel.getItemsOfCategories([/^IFCFURNISHINGELEMENT$/i]);
+  let tableBox = null;
+  for (const localId of furniture.IFCFURNISHINGELEMENT || []) {
+    const item = archiModel.getItem(localId);
+    const attributes = await item.getAttributes();
+    const name = readableIfcValue(attributes?.object?.Name) || "";
+    if (!/Monza[-_ ]?Table[-_ ]?Rectangular/i.test(name)) continue;
+    const boxes = await archiModel.getBoxes([localId]);
+    if (boxes.length) tableBox = boxes.reduce((combined, box) => combined.union(box), new THREE.Box3());
+    break;
+  }
+  if (!tableBox) return;
+
+  const columns = 2;
+  const rows = 6;
+  const tableSize = tableBox.getSize(new THREE.Vector3());
+  const seatWidth = tableSize.x / columns;
+  const seatDepth = tableSize.z / rows;
+  const inset = Math.min(seatWidth, seatDepth) * 0.055;
+  const overlayY = tableBox.max.y + Math.max(state.modelRadius * 0.003, 0.018);
+  const slabHeight = Math.max(state.modelRadius * 0.006, 0.035);
+  const fillMaterial = new THREE.MeshStandardMaterial({
+    color: 0x86b9d6,
+    opacity: 1,
+    transparent: false,
+    depthTest: true,
+    depthWrite: true,
+    side: THREE.DoubleSide,
+    roughness: 0.4,
+    metalness: 0.05,
+  });
+  const edgeMaterial = new THREE.LineBasicMaterial({
+    color: 0x007ee5,
+    transparent: true,
+    opacity: 1,
+    depthTest: true,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const frameMaterial = new THREE.MeshStandardMaterial({
+    color: 0x007ee5,
+    depthTest: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    roughness: 0.3,
+    metalness: 0.1,
+  });
+
+  for (let row = 0; row < rows; row += 1) {
+    for (let column = 0; column < columns; column += 1) {
+      const seatIndex = row * columns + column;
+      const seat = new THREE.Group();
+      seat.name = `occupancy-seat-${seatIndex + 1}`;
+      seat.userData.seatIndex = seatIndex;
+      seat.userData.occupied = DEBUG_OCCUPIED_SEATS.has(seatIndex);
+
+      const overlayWidth = seatWidth - inset * 2;
+      const overlayDepth = seatDepth - inset * 2;
+      const geometry = new THREE.BoxGeometry(overlayWidth, slabHeight, overlayDepth);
+      const fill = new THREE.Mesh(geometry, fillMaterial);
+      fill.position.y = slabHeight / 2;
+      fill.renderOrder = 20;
+      seat.add(fill);
+
+      const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
+      outline.position.y = slabHeight / 2;
+      outline.renderOrder = 21;
+      seat.add(outline);
+
+      const frameThickness = Math.min(overlayWidth, overlayDepth) * 0.035;
+      const frameParts = [
+        { width: overlayWidth, depth: frameThickness, x: 0, z: -overlayDepth / 2 + frameThickness / 2 },
+        { width: overlayWidth, depth: frameThickness, x: 0, z: overlayDepth / 2 - frameThickness / 2 },
+        { width: frameThickness, depth: overlayDepth, x: -overlayWidth / 2 + frameThickness / 2, z: 0 },
+        { width: frameThickness, depth: overlayDepth, x: overlayWidth / 2 - frameThickness / 2, z: 0 },
+      ];
+      for (const part of frameParts) {
+        const border = new THREE.Mesh(new THREE.BoxGeometry(part.width, slabHeight * 0.92, part.depth), frameMaterial);
+        border.position.set(part.x, slabHeight * 0.46, part.z);
+        border.renderOrder = 22;
+        seat.add(border);
+      }
+
+      const icon = document.createElement("span");
+      icon.className = "dt-occupancy-marker";
+      icon.setAttribute("aria-label", `Seat ${seatIndex + 1} occupied`);
+      icon.innerHTML = '<i class="ph ph-user" aria-hidden="true"></i>';
+      const label = new CSS2DObject(icon);
+      label.name = `occupancy-seat-label-${seatIndex + 1}`;
+      label.position.y = Math.max(state.modelRadius * 0.006, 0.035);
+      seat.add(label);
+      seat.userData.occupancyLabel = label;
+
+      seat.position.set(
+        tableBox.min.x + seatWidth * (column + 0.5),
+        overlayY,
+        tableBox.min.z + seatDepth * (row + 0.5),
+      );
+      seat.visible = false;
+      occupancyGroup.add(seat);
+    }
+  }
+  helpersGroup.add(occupancyGroup);
+  renderOccupancySeats();
+}
+
+function renderOccupancySeats() {
+  const overlaysVisible = state.debugMockData && state.sensorDisplayMode !== "hidden";
+  occupancyGroup.visible = overlaysVisible;
+  for (const seat of occupancyGroup.children) {
+    seat.visible = overlaysVisible && seat.userData.occupied;
+    if (seat.userData.occupancyLabel) {
+      seat.userData.occupancyLabel.visible = state.sensorDisplayMode === "labels";
+    }
+  }
+}
+
 async function styleBoundObject(deviceId) {
   const target = state.boundObjects.get(deviceId);
   if (target === undefined) return;
@@ -991,6 +1117,7 @@ function renderDebugDashboardData() {
   if (state.renderedDebugMockData === state.debugMockData) return;
   state.renderedDebugMockData = state.debugMockData;
   const mock = state.debugMockData;
+  renderOccupancySeats();
 
   const socketPowers = mock ? ["0.42 kW", "0.16 kW", "0.00 kW", "0.31 kW", "0.00 kW", "0.09 kW"] : Array(6).fill("—");
   document.querySelectorAll(".dt-socket-grid small").forEach((element, index) => { element.textContent = socketPowers[index]; });
@@ -1135,7 +1262,7 @@ function renderSiteOverview() {
   elements.siteTemperature.textContent = temperature === null ? "—" : `${formatNumber(temperature)} °C`;
   elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
   elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
-  elements.siteOccupants.textContent = "—";
+  elements.siteOccupants.textContent = state.debugMockData ? `${DEBUG_OCCUPIED_SEATS.size} / 12` : "—";
 
   const sourceDeviceId = "AM103-07";
   const sourceSnapshot = state.snapshots.get(sourceDeviceId);
@@ -1650,6 +1777,7 @@ async function finalizeFederatedModel(componentCount) {
   addGrid();
   fitCameraToModel(false);
   await fragments.update(true);
+  await createOccupancySeats();
   await bindDevices();
   if (initialDevice) {
     await selectDevice(initialDevice.id, Boolean(requestedSensorId));
@@ -1751,6 +1879,7 @@ elements.layerToggles.forEach((toggle) => {
       const fragmentsModel = state.fragmentsModels.get("sensor");
       if (fragmentsModel) fragmentsModel.object.visible = modelVisible;
       for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "labels";
+      renderOccupancySeats();
 
       const modeMeta = {
         labels: { icon: "ph-eye", label: "Sensor: model and labels" },

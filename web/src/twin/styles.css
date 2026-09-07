@@ -357,6 +357,24 @@ body[data-page="twin"] *::after {
   background: var(--dt-ok);
 }
 
+.dt-occupancy-marker {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: #168eea;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #168eea 34%, transparent), 0 4px 12px rgb(22 142 234 / 35%);
+  pointer-events: none;
+}
+
+.dt-occupancy-marker i {
+  font-size: 17px;
+  line-height: 1;
+}
+
 .dt-model-marker.fault {
   border-color: color-mix(in srgb, var(--dt-fault) 55%, transparent);
   color: var(--dt-fault);
