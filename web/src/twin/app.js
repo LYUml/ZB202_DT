@@ -400,6 +400,8 @@ const state = {
     catch { return false; }
   })(),
   renderedDebugMockData: null,
+  socketDemandRange: "today",
+  sensorDisplayMode: "labels",
   layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
 };
 
@@ -718,6 +720,7 @@ function createMarker(device, worldPosition = null) {
     );
   }
   helpersGroup.add(label);
+  label.visible = state.sensorDisplayMode === "labels";
   state.markerObjects.set(device.id, {
     label,
     element,
@@ -944,6 +947,46 @@ function renderDeviceList() {
   }
 }
 
+function renderSocketDemandChart(mock) {
+  const chart = document.querySelector(".dt-demand-chart");
+  const ranges = {
+    today: { values: [0.72, 0.74, 0.69, 0.78, 0.75, 0.86, 0.82, 0.93, 0.89, 0.91, 0.79, 0.75, 0.78, 0.74], labels: ["00:00", "12:00", "Now"] },
+    "7d": { values: [0.76, 0.82, 0.79, 0.91, 0.87, 0.94, 0.88], labels: ["Mon", "Thu", "Sun"] },
+    "30d": { values: [0.71, 0.74, 0.8, 0.77, 0.84, 0.9, 0.86, 0.93, 0.88, 0.96, 0.92, 0.98], labels: ["30d ago", "15d", "Today"] },
+  };
+  document.querySelectorAll("[data-demand-range]").forEach((button) => {
+    const active = button.dataset.demandRange === state.socketDemandRange;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+    button.disabled = !mock;
+  });
+  if (!mock) {
+    chart.innerHTML = "";
+    chart.setAttribute("aria-label", "No InfluxDB electrical demand data");
+    return;
+  }
+  const { values, labels } = ranges[state.socketDemandRange];
+  const left = 28, right = 296, top = 5, bottom = 79;
+  const observedMin = Math.min(...values);
+  const observedMax = Math.max(...values);
+  const padding = Math.max((observedMax - observedMin) * 0.14, 0.03);
+  const min = observedMin - padding;
+  const max = observedMax + padding;
+  const x = (index) => left + (index / (values.length - 1)) * (right - left);
+  const y = (value) => bottom - ((value - min) / (max - min)) * (bottom - top);
+  const points = values.map((value, index) => [x(index), y(value)]);
+  const line = points.map(([px, py], index) => `${index ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`).join(" ");
+  const ticks = [min, (min + max) / 2, max];
+  chart.innerHTML = `
+    <g class="dt-demand-grid">${ticks.map((tick) => `<line x1="${left}" y1="${y(tick)}" x2="${right}" y2="${y(tick)}"></line><text x="${left - 5}" y="${y(tick) + 3}" text-anchor="end">${tick.toFixed(1)}</text>`).join("")}</g>
+    <path class="dt-demand-area" d="${line} L${right} ${bottom} L${left} ${bottom} Z"></path>
+    <path class="dt-demand-line" d="${line}"></path>
+    <g class="dt-demand-points">${points.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.2"></circle>`).join("")}</g>
+    <g class="dt-demand-axis"><text x="${left}" y="96" text-anchor="start">${labels[0]}</text><text x="${(left + right) / 2}" y="96" text-anchor="middle">${labels[1]}</text><text x="${right}" y="96" text-anchor="end">${labels[2]}</text></g>
+  `;
+  chart.setAttribute("aria-label", `${state.socketDemandRange} virtual electrical demand trend`);
+}
+
 function renderDebugDashboardData() {
   if (state.renderedDebugMockData === state.debugMockData) return;
   state.renderedDebugMockData = state.debugMockData;
@@ -955,12 +998,9 @@ function renderDebugDashboardData() {
     input.disabled = !mock;
     input.checked = mock && [0, 1, 3, 5].includes(index);
   });
-  document.querySelectorAll("[data-socket-action]").forEach((button) => { button.disabled = !mock; });
-  document.querySelector(".dt-demand-row strong").textContent = mock ? "0.98 kW" : "—";
-  document.querySelector(".dt-demand-chart").innerHTML = mock ? `
-    <path class="dt-demand-area" d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33 L420 52 L0 52 Z"></path>
-    <path d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33"></path>
-  ` : "";
+  syncSocketMaster();
+  document.querySelector(".dt-demand-row strong").textContent = mock ? "0.98" : "—";
+  renderSocketDemandChart(mock);
 
   document.querySelectorAll(".dt-mode-toggle button").forEach((button, index) => {
     button.disabled = !mock;
@@ -974,14 +1014,18 @@ function renderDebugDashboardData() {
     <div><span>Recommended outdoor-air damper</span><strong>—</strong><p>—</p></div>
   `;
 
-  const healthRows = [...document.querySelectorAll(".dt-health-row")];
-  const healthCopy = mock
-    ? [["17 online · 1 offline · 1 fault", "17/19"], ["14 healthy · 4 good · 1 low", "14/19"]]
-    : [["—", "—"], ["—", "—"]];
-  healthRows.forEach((row, index) => {
-    row.querySelector("div > span").textContent = healthCopy[index][0];
-    row.querySelector(":scope > em").textContent = healthCopy[index][1];
-    row.querySelector("b").innerHTML = mock ? "<u></u><u></u>" : "";
+  const healthData = mock
+    ? { sensor: [17, 1, 1], battery: [14, 4, 1] }
+    : { sensor: [0, 0, 0], battery: [0, 0, 0] };
+  const healthColors = {
+    sensor: ["#18ad78", "#9aabc0", "#ef476f"],
+    battery: ["#18ad78", "#f0a51a", "#ef476f"],
+  };
+  document.querySelectorAll("[data-health-chart]").forEach((chart) => {
+    const key = chart.dataset.healthChart;
+    const values = healthData[key];
+    chart.querySelectorAll("li b").forEach((value, index) => { value.textContent = mock ? values[index] : "—"; });
+    drawDonutChart(chart.querySelector("canvas"), values, healthColors[key]);
   });
   document.querySelector(".dt-alert-list").innerHTML = mock ? `
     <button type="button" class="critical"><i class="ph ph-warning-circle"></i><span><strong>Door contact abnormal opening</strong><small>Door-01 · 19:42 · after hours</small></span></button>
@@ -991,15 +1035,14 @@ function renderDebugDashboardData() {
   const outdoorMockLines = [
     '<strong>31.8<small>°C</small></strong><em>Apparent 36°</em>',
     '<strong>68<small>%</small></strong>',
-    '<strong>ESE</strong><em>4.2 m/s</em>',
-    '<strong class="weather">Partly cloudy</strong><em>UV 7</em>',
+    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas><em>4.2 m/s</em></strong>',
+    '<strong class="weather">Rainy</strong>',
   ];
   document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => {
     line.innerHTML = mock ? outdoorMockLines[index] : "<strong>—</strong>";
   });
+  if (mock) drawWindBarb(document.querySelector(".dt-wind-barb"), 112.5, 4.2);
 
-  const ahuStatus = document.querySelector(".dt-ahu-card .dt-simple-heading > div > span");
-  ahuStatus.innerHTML = mock ? "<i></i>AHU-01 · Normal operation" : "InfluxDB · No data";
   const ahuValues = mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
   document.querySelectorAll(".dt-ahu-control strong, .dt-air-readings strong").forEach((element, index) => { element.textContent = ahuValues[index]; });
   const ahuMeterValues = mock ? ["46%", "32%", "38 Hz"] : ["—", "—", "—"];
@@ -1010,6 +1053,71 @@ function renderDebugDashboardData() {
   ahuRange.disabled = !mock;
   ahuRange.value = mock ? "23" : "18";
   document.querySelector(".dt-ahu-control button").disabled = !mock;
+}
+
+function drawDonutChart(canvas, values, colors) {
+  const context = canvas.getContext("2d");
+  const density = Math.min(window.devicePixelRatio || 1, 2);
+  const size = 66;
+  canvas.width = size * density;
+  canvas.height = size * density;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  context.scale(density, density);
+  context.clearRect(0, 0, size, size);
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const center = size / 2;
+  const radius = 23;
+  context.lineWidth = 9;
+  context.lineCap = "butt";
+  if (!total) {
+    context.strokeStyle = "#dbe3ee";
+    context.beginPath();
+    context.arc(center, center, radius, 0, Math.PI * 2);
+    context.stroke();
+    return;
+  }
+  let start = -Math.PI / 2;
+  values.forEach((value, index) => {
+    if (!value) return;
+    const end = start + (value / total) * Math.PI * 2;
+    context.strokeStyle = colors[index];
+    context.beginPath();
+    context.arc(center, center, radius, start, end);
+    context.stroke();
+    start = end;
+  });
+}
+
+function drawWindBarb(canvas, directionDegrees, speedMetresPerSecond) {
+  const context = canvas.getContext("2d");
+  const density = Math.min(window.devicePixelRatio || 1, 2);
+  const size = 28;
+  canvas.width = size * density;
+  canvas.height = size * density;
+  canvas.style.width = `${size}px`;
+  canvas.style.height = `${size}px`;
+  context.scale(density, density);
+  context.clearRect(0, 0, size, size);
+  context.save();
+  context.translate(size / 2, size / 2);
+  context.rotate((directionDegrees * Math.PI) / 180);
+  context.strokeStyle = "#2f7df4";
+  context.lineWidth = 1.8;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.beginPath();
+  context.moveTo(0, 10);
+  context.lineTo(0, -10);
+  context.moveTo(0, -9);
+  context.lineTo(7, -4);
+  if (speedMetresPerSecond >= 2.5) {
+    const featherLength = speedMetresPerSecond >= 5 ? 7 : 4.5;
+    context.moveTo(0, -5);
+    context.lineTo(featherLength, -1);
+  }
+  context.stroke();
+  context.restore();
 }
 
 function renderSiteOverview() {
@@ -1634,22 +1742,59 @@ function resizeRenderer() {
 
 elements.retryButton.addEventListener("click", loadModel);
 elements.layerToggles.forEach((toggle) => {
+  if (toggle.dataset.modelLayer === "sensor") {
+    toggle.addEventListener("click", async () => {
+      const modes = ["labels", "model", "hidden"];
+      state.sensorDisplayMode = modes[(modes.indexOf(state.sensorDisplayMode) + 1) % modes.length];
+      const modelVisible = state.sensorDisplayMode !== "hidden";
+      state.layerVisibility.sensor = modelVisible;
+      const fragmentsModel = state.fragmentsModels.get("sensor");
+      if (fragmentsModel) fragmentsModel.object.visible = modelVisible;
+      for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "labels";
+
+      const modeMeta = {
+        labels: { icon: "ph-eye", label: "Sensor: model and labels" },
+        model: { icon: "ph-cube", label: "Sensor: model only" },
+        hidden: { icon: "ph-eye-slash", label: "Sensor: hidden" },
+      }[state.sensorDisplayMode];
+      toggle.dataset.sensorMode = state.sensorDisplayMode;
+      toggle.setAttribute("aria-label", modeMeta.label);
+      toggle.title = modeMeta.label;
+      toggle.querySelector("i").className = `ph ${modeMeta.icon}`;
+      if (fragmentsModel) await fragments.update(true);
+    });
+    return;
+  }
+
   toggle.addEventListener("change", async () => {
     state.layerVisibility[toggle.dataset.modelLayer] = toggle.checked;
     const fragmentsModel = state.fragmentsModels.get(toggle.dataset.modelLayer);
     if (fragmentsModel) fragmentsModel.object.visible = toggle.checked;
-    if (toggle.dataset.modelLayer === "sensor") {
-      for (const marker of state.markerObjects.values()) marker.label.visible = toggle.checked;
-    }
     toggle.closest("label")?.classList.toggle("is-off", !toggle.checked);
     if (fragmentsModel) await fragments.update(true);
   });
 });
 
-document.querySelectorAll("[data-socket-action]").forEach((button) => {
+function syncSocketMaster() {
+  const master = document.getElementById("socket-master");
+  const sockets = [...document.querySelectorAll(".dt-socket-grid input")];
+  master.disabled = !state.debugMockData;
+  master.checked = sockets.length > 0 && sockets.every((input) => input.checked);
+  master.indeterminate = state.debugMockData && sockets.some((input) => input.checked) && !master.checked;
+}
+
+document.getElementById("socket-master").addEventListener("change", (event) => {
+  document.querySelectorAll(".dt-socket-grid input").forEach((input) => { input.checked = event.currentTarget.checked; });
+  syncSocketMaster();
+});
+
+document.querySelectorAll(".dt-socket-grid input").forEach((input) => input.addEventListener("change", syncSocketMaster));
+
+document.querySelectorAll("[data-demand-range]").forEach((button) => {
   button.addEventListener("click", () => {
-    const checked = button.dataset.socketAction === "on";
-    document.querySelectorAll(".dt-socket-grid input").forEach((input) => { input.checked = checked; });
+    if (!state.debugMockData) return;
+    state.socketDemandRange = button.dataset.demandRange;
+    renderSocketDemandChart(true);
   });
 });
 

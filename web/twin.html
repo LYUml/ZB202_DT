@@ -54,7 +54,7 @@
           <div class="dt-layer-switcher" aria-label="模型可见层">
             <label><input type="checkbox" data-model-layer="archi" checked><i class="ph ph-check" aria-hidden="true"></i><span>Architecture</span></label>
             <label><input type="checkbox" data-model-layer="mep" checked><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></label>
-            <label><input type="checkbox" data-model-layer="sensor" checked><i class="ph ph-check" aria-hidden="true"></i><span>Sensor</span></label>
+            <button class="dt-layer-mode" type="button" data-model-layer="sensor" data-sensor-mode="labels" aria-label="Sensor: model and labels" title="Sensor: model and labels"><i class="ph ph-eye" aria-hidden="true"></i><span>Sensor</span></button>
           </div>
           <span class="dt-model-name" hidden>Lab Archi + MEP + Sensors</span><span id="model-name" hidden></span><span id="mesh-count" hidden>0</span>
 
@@ -126,6 +126,7 @@
         <section class="dt-dashboard-card dt-socket-card">
           <header class="dt-card-heading">
             <div><p>Electrical load control</p><h2>Socket Control</h2></div>
+            <label class="dt-master-switch" title="All socket control"><span>All</span><input id="socket-master" type="checkbox" aria-label="All socket control" disabled></label>
           </header>
           <div class="dt-socket-grid">
             <label><span><i class="ph ph-plug"></i>WS523-01</span><small>—</small><input type="checkbox" disabled></label>
@@ -135,11 +136,14 @@
             <label><span><i class="ph ph-plug"></i>WS523-05</span><small>—</small><input type="checkbox" disabled></label>
             <label><span><i class="ph ph-plug"></i>WS523-06</span><small>—</small><input type="checkbox" disabled></label>
           </div>
-          <div class="dt-socket-actions"><button type="button" data-socket-action="on" disabled>All On</button><button type="button" data-socket-action="off" disabled>All Off</button></div>
-          <div class="dt-demand-row"><span>Total electrical demand</span><strong>—</strong></div>
-          <svg class="dt-demand-chart" viewBox="0 0 420 52" preserveAspectRatio="none" aria-label="No InfluxDB electrical demand data">
+          <div class="dt-demand-row"><span>Total electrical demand (kW)</span><strong>—</strong></div>
+          <svg class="dt-demand-chart" viewBox="0 0 300 100" preserveAspectRatio="xMidYMid meet" aria-label="No InfluxDB electrical demand data">
           </svg>
-          <div class="dt-chart-range"><b>Today</b><span>7D</span><span>30D</span></div>
+          <div class="dt-chart-range" role="group" aria-label="Electrical demand time range">
+            <button type="button" class="active" data-demand-range="today" aria-pressed="true">Today</button>
+            <button type="button" data-demand-range="7d" aria-pressed="false">7D</button>
+            <button type="button" data-demand-range="30d" aria-pressed="false">30D</button>
+          </div>
         </section>
 
         <section class="dt-dashboard-card dt-ai-card">
@@ -152,10 +156,23 @@
         </section>
 
         <section class="dt-dashboard-card dt-alert-card">
-          <header class="dt-simple-heading"><h2>Asset Health &amp; Alerts</h2><button type="button">Event centre <i class="ph ph-arrow-up-right"></i></button></header>
-          <div class="dt-health-row"><i class="ph ph-broadcast"></i><div><strong>Sensor connectivity</strong><span>—</span><b></b></div><em>—</em></div>
-          <div class="dt-health-row battery"><i class="ph ph-battery-medium"></i><div><strong>Battery condition</strong><span>—</span><b></b></div><em>—</em></div>
-          <div class="dt-alert-list" aria-label="No InfluxDB alert data"></div>
+          <header class="dt-simple-heading"><h2>Alarm</h2></header>
+          <div class="dt-health-summary">
+            <article class="dt-health-chart" data-health-chart="sensor">
+              <h3>Sensor status</h3>
+              <canvas width="72" height="72" aria-label="Sensor status distribution"></canvas>
+              <ul><li><i class="online"></i>Online <b>—</b></li><li><i class="offline"></i>Offline <b>—</b></li><li><i class="fault"></i>Fault <b>—</b></li></ul>
+            </article>
+            <article class="dt-health-chart" data-health-chart="battery">
+              <h3>Battery status</h3>
+              <canvas width="72" height="72" aria-label="Battery status distribution"></canvas>
+              <ul><li><i class="healthy"></i>≥50% <b>—</b></li><li><i class="good"></i>20–49% <b>—</b></li><li><i class="low"></i>&lt;20% <b>—</b></li></ul>
+            </article>
+          </div>
+          <div class="dt-alarm-information">
+            <h3>Alarm information</h3>
+            <div class="dt-alert-list" aria-label="No InfluxDB alert data"></div>
+          </div>
         </section>
       </aside>
 
@@ -165,8 +182,8 @@
           <div class="dt-outdoor-grid">
             <div><i class="ph ph-thermometer-simple"></i><span>Dry-bulb temperature</span><div class="dt-metric-line"><strong>—</strong></div></div>
             <div><i class="ph ph-drop"></i><span>Relative humidity</span><div class="dt-metric-line"><strong>—</strong></div></div>
-            <div><i class="ph ph-navigation-arrow"></i><span>Wind</span><div class="dt-metric-line"><strong>—</strong></div></div>
-            <div><i class="ph ph-cloud-sun"></i><span>Condition</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-wind"></i><span>Wind</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-cloud-rain"></i><span>Weather</span><div class="dt-metric-line"><strong>—</strong></div></div>
           </div>
         </section>
 
@@ -183,14 +200,14 @@
         </section>
 
         <section class="dt-dashboard-card dt-ahu-card">
-          <header class="dt-simple-heading"><div><p>Building management system</p><h2>AHU Operations</h2><span>InfluxDB · No data</span></div><button type="button">BMS view <i class="ph ph-arrow-up-right"></i></button></header>
+          <header class="dt-simple-heading"><div><h2>AHU Operations</h2></div></header>
           <div class="dt-ahu-control">
-            <div><span>Zone temperature setpoint</span><strong>—</strong></div>
+            <div><span>Temperature setpoint</span><strong>—</strong></div>
             <input type="range" min="18" max="28" step="0.5" value="18" aria-label="Zone temperature setpoint unavailable" disabled>
             <button type="button" disabled><i class="ph ph-paper-plane-tilt"></i>Control</button>
           </div>
-          <div class="dt-air-readings"><div><span>Supply air</span><strong>—</strong></div><div><span>Return air</span><strong>—</strong></div></div>
-          <div class="dt-ahu-meters"><div><span data-short="CHW valve">Chilled-water valve <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="OA damper">Outdoor-air damper <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="Fan">Supply fan frequency <b>—</b></span><i><u style="width:0"></u></i></div></div>
+          <div class="dt-air-readings"><div><span>Supply air temperature</span><strong>—</strong></div><div><span>Return air temperature</span><strong>—</strong></div></div>
+          <div class="dt-ahu-meters"><div><span data-short="Water damper">Water damper <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="Fresh-air damper">Fresh-air damper <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="Fan frequency">Fan frequency <b>—</b></span><i><u style="width:0"></u></i></div></div>
         </section>
       </aside>
 
