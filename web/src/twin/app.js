@@ -4,6 +4,7 @@ import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer
 import "@phosphor-icons/web/regular";
 
 const THEME_STORAGE_KEY = "zb202-theme";
+const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
 const query = new URLSearchParams(window.location.search);
 const requestedSensorId = String(query.get("sensor") || "").replaceAll("_", "-").toUpperCase();
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -322,9 +323,7 @@ const elements = {
   assetListTitle: document.getElementById("asset-list-title"),
   assetViewButtons: [...document.querySelectorAll("[data-asset-view]")],
   deviceList: document.getElementById("device-list"),
-  bindingLabel: document.getElementById("binding-label"),
   deviceName: document.getElementById("device-name"),
-  deviceId: document.getElementById("device-id"),
   statusBadge: document.getElementById("status-badge"),
   metricGrid: document.getElementById("metric-grid"),
   componentProperties: document.getElementById("component-properties"),
@@ -344,6 +343,9 @@ const elements = {
   siteHumidity: document.getElementById("site-humidity"),
   siteCo2: document.getElementById("site-co2"),
   siteOccupants: document.getElementById("site-occupants"),
+  overviewIndoorTemperature: document.getElementById("overview-indoor-temperature"),
+  overviewIndoorHumidity: document.getElementById("overview-indoor-humidity"),
+  overviewIndoorCo2: document.getElementById("overview-indoor-co2"),
   reservedTitle: document.getElementById("reserved-title"),
   reservedCopy: document.getElementById("reserved-copy"),
   historyNote: document.getElementById("history-note"),
@@ -393,6 +395,11 @@ const state = {
   seenTelemetry: new Set(),
   markerSyncTimer: null,
   markerSyncRunning: false,
+  debugMockData: (() => {
+    try { return sessionStorage.getItem(DEBUG_MOCK_STORAGE_KEY) === "true"; }
+    catch { return false; }
+  })(),
+  renderedDebugMockData: null,
   layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
 };
 
@@ -937,7 +944,76 @@ function renderDeviceList() {
   }
 }
 
+function renderDebugDashboardData() {
+  if (state.renderedDebugMockData === state.debugMockData) return;
+  state.renderedDebugMockData = state.debugMockData;
+  const mock = state.debugMockData;
+
+  const socketPowers = mock ? ["0.42 kW", "0.16 kW", "0.00 kW", "0.31 kW", "0.00 kW", "0.09 kW"] : Array(6).fill("—");
+  document.querySelectorAll(".dt-socket-grid small").forEach((element, index) => { element.textContent = socketPowers[index]; });
+  document.querySelectorAll(".dt-socket-grid input").forEach((input, index) => {
+    input.disabled = !mock;
+    input.checked = mock && [0, 1, 3, 5].includes(index);
+  });
+  document.querySelectorAll("[data-socket-action]").forEach((button) => { button.disabled = !mock; });
+  document.querySelector(".dt-demand-row strong").textContent = mock ? "0.98 kW" : "—";
+  document.querySelector(".dt-demand-chart").innerHTML = mock ? `
+    <path class="dt-demand-area" d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33 L420 52 L0 52 Z"></path>
+    <path d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33"></path>
+  ` : "";
+
+  document.querySelectorAll(".dt-mode-toggle button").forEach((button, index) => {
+    button.disabled = !mock;
+    button.classList.toggle("active", mock && index === 0);
+  });
+  document.querySelector(".dt-recommendations").innerHTML = mock ? `
+    <div><span>Recommended supply-air setpoint</span><strong>22.5<small>°C</small></strong><p>Current setpoint 23.0°C</p><em class="waiting">Awaiting execution</em></div>
+    <div><span>Recommended outdoor-air damper</span><strong>46<small>%</small></strong><p>Current position 32%</p><em>Executed successfully</em></div>
+  ` : `
+    <div><span>Recommended supply-air setpoint</span><strong>—</strong><p>—</p></div>
+    <div><span>Recommended outdoor-air damper</span><strong>—</strong><p>—</p></div>
+  `;
+
+  const healthRows = [...document.querySelectorAll(".dt-health-row")];
+  const healthCopy = mock
+    ? [["17 online · 1 offline · 1 fault", "17/19"], ["14 healthy · 4 good · 1 low", "14/19"]]
+    : [["—", "—"], ["—", "—"]];
+  healthRows.forEach((row, index) => {
+    row.querySelector("div > span").textContent = healthCopy[index][0];
+    row.querySelector(":scope > em").textContent = healthCopy[index][1];
+    row.querySelector("b").innerHTML = mock ? "<u></u><u></u>" : "";
+  });
+  document.querySelector(".dt-alert-list").innerHTML = mock ? `
+    <button type="button" class="critical"><i class="ph ph-warning-circle"></i><span><strong>Door contact abnormal opening</strong><small>Door-01 · 19:42 · after hours</small></span></button>
+    <button type="button" class="warning"><i class="ph ph-battery-warning"></i><span><strong>Battery replacement required</strong><small>WS523-03 · maintenance due</small></span></button>
+  ` : "";
+
+  const outdoorMockLines = [
+    '<strong>31.8<small>°C</small></strong><em>Apparent 36°</em>',
+    '<strong>68<small>%</small></strong>',
+    '<strong>ESE</strong><em>4.2 m/s</em>',
+    '<strong class="weather">Partly cloudy</strong><em>UV 7</em>',
+  ];
+  document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => {
+    line.innerHTML = mock ? outdoorMockLines[index] : "<strong>—</strong>";
+  });
+
+  const ahuStatus = document.querySelector(".dt-ahu-card .dt-simple-heading > div > span");
+  ahuStatus.innerHTML = mock ? "<i></i>AHU-01 · Normal operation" : "InfluxDB · No data";
+  const ahuValues = mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
+  document.querySelectorAll(".dt-ahu-control strong, .dt-air-readings strong").forEach((element, index) => { element.textContent = ahuValues[index]; });
+  const ahuMeterValues = mock ? ["46%", "32%", "38 Hz"] : ["—", "—", "—"];
+  const ahuMeterWidths = mock ? ["46%", "32%", "63%"] : ["0", "0", "0"];
+  document.querySelectorAll(".dt-ahu-meters b").forEach((element, index) => { element.textContent = ahuMeterValues[index]; });
+  document.querySelectorAll(".dt-ahu-meters u").forEach((element, index) => { element.style.width = ahuMeterWidths[index]; });
+  const ahuRange = document.querySelector(".dt-ahu-control input");
+  ahuRange.disabled = !mock;
+  ahuRange.value = mock ? "23" : "18";
+  document.querySelector(".dt-ahu-control button").disabled = !mock;
+}
+
 function renderSiteOverview() {
+  renderDebugDashboardData();
   const snapshots = [...state.snapshots.values()];
   const metricValues = (keys) => snapshots.flatMap((snapshot) => keys
     .filter((key) => Number.isFinite(snapshot.values[key]))
@@ -952,6 +1028,23 @@ function renderSiteOverview() {
   elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
   elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
   elements.siteOccupants.textContent = "—";
+
+  const sourceDeviceId = "AM103-07";
+  const sourceSnapshot = state.snapshots.get(sourceDeviceId);
+  const lastLiveAt = state.lastLiveAt.get(sourceDeviceId);
+  const sourceIsFresh = state.influxConnected
+    && Number.isFinite(lastLiveAt)
+    && Date.now() - lastLiveAt <= INFLUX_STALE_AFTER_MS;
+  const sourceValue = (key, unit) => sourceIsFresh && Number.isFinite(sourceSnapshot?.values[key])
+    ? `${formatNumber(sourceSnapshot.values[key])} ${unit}`
+    : "—";
+  elements.overviewIndoorTemperature.textContent = state.debugMockData ? "24.2 °C" : sourceValue("temperature", "°C");
+  elements.overviewIndoorHumidity.textContent = state.debugMockData ? "62.2 %" : sourceValue("humidity", "%");
+  elements.overviewIndoorCo2.textContent = state.debugMockData ? "517 ppm" : sourceValue("co2", "ppm");
+  const extraIndoorValues = state.debugMockData ? ["9 µg/m³", "48 dB(A)", "7 / 12"] : ["—", "—", "—"];
+  document.querySelectorAll(".dt-indoor-grid .dt-metric-line strong").forEach((element, index) => {
+    if (index >= 3) element.textContent = extraIndoorValues[index - 3];
+  });
 }
 
 function historyWindowMs() {
@@ -1054,12 +1147,11 @@ function renderSelectedDevice() {
     const item = state.selectedItem;
     elements.dataPanelLabel.textContent = t("componentInfo");
     elements.dataPanelTitle.textContent = t("componentDetails");
-    elements.bindingLabel.textContent = t("staticBimItem");
     elements.deviceName.textContent = item?.name || t("noProperties");
-    elements.deviceId.textContent = item?.guid || (item ? `${t("expressId")} ${item.localId}` : "—");
     elements.deviceName.title = elements.deviceName.textContent;
-    elements.deviceId.title = elements.deviceId.textContent;
-    elements.statusBadge.textContent = "BIM";
+    elements.statusBadge.textContent = "";
+    elements.statusBadge.setAttribute("aria-label", "BIM");
+    elements.statusBadge.title = "BIM";
     elements.statusBadge.className = "dt-status-badge bim";
     elements.metricGrid.hidden = true;
     elements.componentProperties.hidden = !item;
@@ -1088,12 +1180,11 @@ function renderSelectedDevice() {
   const displayStatus = bound ? snapshot.status : "unavailable";
   const presentedStatus = presentationStatus(displayStatus);
 
-  elements.bindingLabel.textContent = device.binding.kind === "object" ? t("objectBinding") : t("markerBinding");
   elements.deviceName.textContent = deviceText(device, "name");
-  elements.deviceId.textContent = device.id;
   elements.deviceName.title = elements.deviceName.textContent;
-  elements.deviceId.title = elements.deviceId.textContent;
-  elements.statusBadge.textContent = t(presentedStatus.key);
+  elements.statusBadge.textContent = "";
+  elements.statusBadge.setAttribute("aria-label", t(presentedStatus.key));
+  elements.statusBadge.title = t(presentedStatus.key);
   elements.statusBadge.className = `dt-status-badge ${presentedStatus.className}`;
   elements.metricGrid.hidden = false;
   elements.metricTrendCards.forEach((chart) => { chart.card.hidden = false; });
@@ -1110,8 +1201,8 @@ function renderSelectedDevice() {
     damperPosition: "ph-gauge",
   };
   elements.metricGrid.innerHTML = device.metrics.map((metric) => `
-    <div class="dt-metric" data-metric="${metric.key}">
-      <i class="ph ${metricIcons[metric.key] || "ph-chart-line"} dt-metric-icon" aria-hidden="true" title="${t(metric.labelKey)}"></i>
+    <div class="dt-metric" data-metric="${metric.key}" role="group" aria-label="${t(metric.labelKey)}" title="${t(metric.labelKey)}">
+      <i class="ph ${metricIcons[metric.key] || "ph-chart-line"} dt-metric-icon" aria-hidden="true"></i>
       <span>${t(metric.labelKey)}</span>
       <strong>${Number.isFinite(snapshot.values[metric.key]) ? `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
@@ -1183,8 +1274,7 @@ function setDevicePanelOpen(open) {
     setDashboardPanelsVisible(false);
     setActivePlatformView("sensors");
   } else if (elements.devicePanelButton.classList.contains("active")) {
-    setDashboardPanelsVisible(true);
-    setActivePlatformView("overview");
+    setActivePlatformView(null);
   }
   if (open) elements.devicePanelClose.focus({ preventScroll: true });
   else elements.devicePanelButton.focus({ preventScroll: true });
@@ -1580,6 +1670,7 @@ window.addEventListener("storage", (event) => {
   }
 });
 function setPlatformView(view) {
+  if (view === "bms") return;
   const workspace = elements.wrap.closest(".dt-workspace");
   if (view === "overview") {
     const overviewButton = document.querySelector('[data-view="overview"]');
@@ -1595,10 +1686,6 @@ function setPlatformView(view) {
   } else if (view === "sensors") {
     const opening = !elements.devicePanel.classList.contains("is-open");
     setDevicePanelOpen(opening);
-  } else if (view === "bms") {
-    setDevicePanelOpen(false);
-    setDashboardPanelsVisible(true);
-    document.querySelector(".dt-ahu-card")?.scrollIntoView({ block: "nearest" });
   } else if (view === "ai") {
     setDevicePanelOpen(false);
     setDashboardPanelsVisible(true);
@@ -1662,6 +1749,14 @@ elements.assetViewButtons.forEach((button) => button.addEventListener("click", (
   });
   renderDeviceList();
 }));
+elements.clock.addEventListener("dblclick", (event) => {
+  event.preventDefault();
+  state.debugMockData = !state.debugMockData;
+  state.renderedDebugMockData = null;
+  try { sessionStorage.setItem(DEBUG_MOCK_STORAGE_KEY, String(state.debugMockData)); } catch { /* Session storage is optional. */ }
+  renderUI();
+  console.info(`[ZB202 debug] Virtual dashboard data ${state.debugMockData ? "enabled" : "disabled"}.`);
+});
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
 });

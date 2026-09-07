@@ -72,8 +72,8 @@
         </header>
         <div class="dt-detail" id="device-detail">
           <div class="dt-detail-heading">
-            <div><p class="dt-binding-label" id="binding-label">BIM 构件绑定</p><h2 id="device-name">IFC BIM</h2><p id="device-id">—</p></div>
-            <span class="dt-status-badge normal" id="status-badge">Online</span>
+            <div><h2 id="device-name">IFC BIM</h2></div>
+            <span class="dt-status-badge normal" id="status-badge" aria-label="Online" title="Online"></span>
           </div>
           <div class="dt-metrics" id="metric-grid"></div>
           <section class="dt-component-properties" id="component-properties" hidden></section>
@@ -126,42 +126,36 @@
         <section class="dt-dashboard-card dt-socket-card">
           <header class="dt-card-heading">
             <div><p>Electrical load control</p><h2>Socket Control</h2></div>
-            <span class="dt-live-pill"><i></i>Live</span>
           </header>
           <div class="dt-socket-grid">
-            <label><span><i class="ph ph-plug"></i>WS523-01</span><small>0.42 kW</small><input type="checkbox" checked></label>
-            <label><span><i class="ph ph-plug"></i>WS523-02</span><small>0.16 kW</small><input type="checkbox" checked></label>
-            <label><span><i class="ph ph-plug"></i>WS523-03</span><small>0.00 kW</small><input type="checkbox"></label>
-            <label><span><i class="ph ph-plug"></i>WS523-04</span><small>0.31 kW</small><input type="checkbox" checked></label>
-            <label><span><i class="ph ph-plug"></i>WS523-05</span><small>0.00 kW</small><input type="checkbox"></label>
-            <label><span><i class="ph ph-plug"></i>WS523-06</span><small>0.09 kW</small><input type="checkbox" checked></label>
+            <label><span><i class="ph ph-plug"></i>WS523-01</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span><i class="ph ph-plug"></i>WS523-02</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span><i class="ph ph-plug"></i>WS523-03</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span><i class="ph ph-plug"></i>WS523-04</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span><i class="ph ph-plug"></i>WS523-05</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span><i class="ph ph-plug"></i>WS523-06</span><small>—</small><input type="checkbox" disabled></label>
           </div>
-          <div class="dt-socket-actions"><button type="button" data-socket-action="on">All On</button><button type="button" data-socket-action="off">All Off</button></div>
-          <div class="dt-demand-row"><span>Total electrical demand</span><strong>0.98 kW</strong></div>
-          <svg class="dt-demand-chart" viewBox="0 0 420 52" preserveAspectRatio="none" aria-label="Electrical demand trend">
-            <path class="dt-demand-area" d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33 L420 52 L0 52 Z"></path>
-            <path d="M0 38 L30 36 L62 39 L94 31 L126 33 L158 23 L190 27 L222 17 L254 20 L286 18 L318 29 L350 33 L382 29 L420 33"></path>
+          <div class="dt-socket-actions"><button type="button" data-socket-action="on" disabled>All On</button><button type="button" data-socket-action="off" disabled>All Off</button></div>
+          <div class="dt-demand-row"><span>Total electrical demand</span><strong>—</strong></div>
+          <svg class="dt-demand-chart" viewBox="0 0 420 52" preserveAspectRatio="none" aria-label="No InfluxDB electrical demand data">
           </svg>
           <div class="dt-chart-range"><b>Today</b><span>7D</span><span>30D</span></div>
         </section>
 
         <section class="dt-dashboard-card dt-ai-card">
           <header class="dt-card-heading"><div><p>Predictive HVAC optimisation</p><h2>AI Recommendation</h2></div></header>
-          <div class="dt-mode-toggle" role="group" aria-label="Control mode"><button type="button" class="active"><i class="ph ph-sparkle"></i>AI Auto Mode</button><button type="button"><i class="ph ph-hand"></i>Manual Mode</button></div>
+          <div class="dt-mode-toggle" role="group" aria-label="Control mode"><button type="button" disabled><i class="ph ph-sparkle"></i>AI Auto Mode</button><button type="button" disabled><i class="ph ph-hand"></i>Manual Mode</button></div>
           <div class="dt-recommendations">
-            <div><span>Recommended supply-air setpoint</span><strong>22.5<small>°C</small></strong><p>Current setpoint 23.0°C</p><em class="waiting">Awaiting execution</em></div>
-            <div><span>Recommended outdoor-air damper</span><strong>46<small>%</small></strong><p>Current position 32%</p><em>Executed successfully</em></div>
+            <div><span>Recommended supply-air setpoint</span><strong>—</strong><p>—</p></div>
+            <div><span>Recommended outdoor-air damper</span><strong>—</strong><p>—</p></div>
           </div>
         </section>
 
         <section class="dt-dashboard-card dt-alert-card">
           <header class="dt-simple-heading"><h2>Asset Health &amp; Alerts</h2><button type="button">Event centre <i class="ph ph-arrow-up-right"></i></button></header>
-          <div class="dt-health-row"><i class="ph ph-broadcast"></i><div><strong>Sensor connectivity</strong><span>17 online · 1 offline · 1 fault</span><b><u></u><u></u></b></div><em>17<small>/19</small></em></div>
-          <div class="dt-health-row battery"><i class="ph ph-battery-medium"></i><div><strong>Battery condition</strong><span>14 healthy · 4 good · 1 low</span><b><u></u><u></u></b></div><em>14<small>/19</small></em></div>
-          <div class="dt-alert-list">
-            <button type="button" class="critical"><i class="ph ph-warning-circle"></i><span><strong>Door contact abnormal opening</strong><small>Door-01 · 19:42 · after hours</small></span></button>
-            <button type="button" class="warning"><i class="ph ph-battery-warning"></i><span><strong>Battery replacement required</strong><small>WS523-03 · maintenance due</small></span></button>
-          </div>
+          <div class="dt-health-row"><i class="ph ph-broadcast"></i><div><strong>Sensor connectivity</strong><span>—</span><b></b></div><em>—</em></div>
+          <div class="dt-health-row battery"><i class="ph ph-battery-medium"></i><div><strong>Battery condition</strong><span>—</span><b></b></div><em>—</em></div>
+          <div class="dt-alert-list" aria-label="No InfluxDB alert data"></div>
         </section>
       </aside>
 
@@ -169,34 +163,34 @@
         <section class="dt-dashboard-card dt-outdoor-card">
           <header class="dt-card-heading"><div><p>Local weather station</p><h2>Outdoor Environment</h2><span>ZB202 · North facade</span></div></header>
           <div class="dt-outdoor-grid">
-            <div><span>Dry-bulb temperature</span><strong>31.8<small>°C</small></strong><em>Feels like 36.2°C</em></div>
-            <div><span>Relative humidity</span><strong>68<small>%</small></strong><em>Outdoor air</em></div>
-            <div><span>Wind</span><strong><i class="ph ph-navigation-arrow"></i>ESE</strong><em>4.2 m/s</em></div>
-            <div><span>Condition</span><strong class="weather"><i class="ph ph-cloud-sun"></i>Partly cloudy</strong><em>UV Index 7 · High</em></div>
+            <div><i class="ph ph-thermometer-simple"></i><span>Dry-bulb temperature</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-drop"></i><span>Relative humidity</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-navigation-arrow"></i><span>Wind</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-cloud-sun"></i><span>Condition</span><div class="dt-metric-line"><strong>—</strong></div></div>
           </div>
         </section>
 
         <section class="dt-dashboard-card dt-indoor-card">
-          <header class="dt-simple-heading"><div><p>IAQ &amp; space utilization</p><h2>Indoor Environment</h2><span>Zone AM103 · 5-minute mean</span></div><button type="button">Inspect <i class="ph ph-arrow-up-right"></i></button></header>
+          <header class="dt-simple-heading"><div><p>IAQ &amp; space utilization</p><h2>Indoor Environment</h2></div></header>
           <div class="dt-indoor-grid">
-            <div><i class="ph ph-thermometer-simple"></i><span>Operative temperature</span><strong>24.2 °C</strong><em>Within comfort band</em></div>
-            <div><i class="ph ph-drop"></i><span>Relative humidity</span><strong>62.2 %</strong><em>Acceptable</em></div>
-            <div><i class="ph ph-wind"></i><span>CO₂ concentration</span><strong>517 ppm</strong><em>Good IAQ</em></div>
-            <div><i class="ph ph-cloud"></i><span>PM₂.₅</span><strong>9 <small>µg/m³</small></strong><em>Good</em></div>
-            <div><i class="ph ph-speaker-high"></i><span>Sound pressure level</span><strong>48 <small>dB(A)</small></strong><em>Normal</em></div>
-            <div><i class="ph ph-users-three"></i><span>Workstation occupancy</span><strong>7 / 12</strong><em>58% occupied</em></div>
+            <div><i class="ph ph-thermometer-simple"></i><span>Temperature</span><div class="dt-metric-line"><strong id="overview-indoor-temperature">—</strong></div></div>
+            <div><i class="ph ph-drop"></i><span>Relative humidity</span><div class="dt-metric-line"><strong id="overview-indoor-humidity">—</strong></div></div>
+            <div><i class="ph ph-wind"></i><span>CO₂ concentration</span><div class="dt-metric-line"><strong id="overview-indoor-co2">—</strong></div></div>
+            <div><i class="ph ph-cloud"></i><span>PM₂.₅</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-speaker-high"></i><span>Sound pressure level</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-users-three"></i><span>Occupancy</span><div class="dt-metric-line"><strong>—</strong></div></div>
           </div>
         </section>
 
         <section class="dt-dashboard-card dt-ahu-card">
-          <header class="dt-simple-heading"><div><p>Building management system</p><h2>AHU Operations</h2><span><i></i>AHU-01 · Normal operation</span></div><button type="button">BMS view <i class="ph ph-arrow-up-right"></i></button></header>
+          <header class="dt-simple-heading"><div><p>Building management system</p><h2>AHU Operations</h2><span>InfluxDB · No data</span></div><button type="button">BMS view <i class="ph ph-arrow-up-right"></i></button></header>
           <div class="dt-ahu-control">
-            <div><span>Zone temperature setpoint</span><strong>23.0<small>°C</small></strong></div>
-            <input type="range" min="18" max="28" step="0.5" value="23" aria-label="Zone temperature setpoint">
-            <button type="button"><i class="ph ph-paper-plane-tilt"></i>Control</button>
+            <div><span>Zone temperature setpoint</span><strong>—</strong></div>
+            <input type="range" min="18" max="28" step="0.5" value="18" aria-label="Zone temperature setpoint unavailable" disabled>
+            <button type="button" disabled><i class="ph ph-paper-plane-tilt"></i>Control</button>
           </div>
-          <div class="dt-air-readings"><div><span>Supply air</span><strong>17.8 °C</strong></div><div><span>Return air</span><strong>24.1 °C</strong></div></div>
-          <div class="dt-ahu-meters"><div><span data-short="CHW valve">Chilled-water valve <b>46%</b></span><i><u style="width:46%"></u></i></div><div><span data-short="OA damper">Outdoor-air damper <b>32%</b></span><i><u style="width:32%"></u></i></div><div><span data-short="Fan">Supply fan frequency <b>38 Hz</b></span><i><u style="width:63%"></u></i></div></div>
+          <div class="dt-air-readings"><div><span>Supply air</span><strong>—</strong></div><div><span>Return air</span><strong>—</strong></div></div>
+          <div class="dt-ahu-meters"><div><span data-short="CHW valve">Chilled-water valve <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="OA damper">Outdoor-air damper <b>—</b></span><i><u style="width:0"></u></i></div><div><span data-short="Fan">Supply fan frequency <b>—</b></span><i><u style="width:0"></u></i></div></div>
         </section>
       </aside>
 
