@@ -13,10 +13,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
     "@phosphor-icons/web": "^2.1.2",
     "@thatopen/fragments": "^3.4.7",
-    "@influxdata/influxdb-client": "^1.35.0",
     "dotenv": "^17.2.1",
+    "mqtt": "^5.15.2",
     "three": "0.185.1",
     "web-ifc": "^0.0.77",
     "ws": "^8.21.3"

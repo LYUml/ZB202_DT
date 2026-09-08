@@ -198,7 +198,7 @@ const statusClassMap = {
 };
 
 const query = new URLSearchParams(window.location.search);
-const initialLang = query.get("lang") || localStorage.getItem("lang") || "en";
+const initialLang = query.get("lang") || "en";
 let activeLang = normalizeLanguage(initialLang);
 let isDeviceTableMode = false;
 
@@ -332,9 +332,70 @@ function formatLatestValues(values) {
     .join(" / ");
 }
 
+const METRIC_INFO = {
+  temperature: { label: { zh: "温度", "zh-Hant": "溫度", en: "Temperature" }, unit: "°C" },
+  humidity: { label: { zh: "湿度", "zh-Hant": "濕度", en: "Humidity" }, unit: "%" },
+  co2: { label: { zh: "CO₂", "zh-Hant": "CO₂", en: "CO₂" }, unit: "ppm" },
+  battery: { label: { zh: "电量", "zh-Hant": "電量", en: "Battery" }, unit: "%" },
+  light: { label: { zh: "光照", "zh-Hant": "光照", en: "Light" }, unit: "lx" },
+  pir: { label: { zh: "PIR", "zh-Hant": "PIR", en: "PIR" }, unit: "" },
+  pm25: { label: { zh: "PM2.5", "zh-Hant": "PM2.5", en: "PM2.5" }, unit: "µg/m³" },
+  pm10: { label: { zh: "PM10", "zh-Hant": "PM10", en: "PM10" }, unit: "µg/m³" },
+  pressure: { label: { zh: "气压", "zh-Hant": "氣壓", en: "Pressure" }, unit: "hPa" },
+  tvoc: { label: { zh: "TVOC 指数", "zh-Hant": "TVOC 指數", en: "TVOC Index" }, unit: "index" },
+  occupancy: { label: { zh: "占用状态", "zh-Hant": "佔用狀態", en: "Occupancy" }, unit: "" },
+  magnetStatus: { label: { zh: "门磁状态", "zh-Hant": "門磁狀態", en: "Magnet Status" }, unit: "" },
+  tamperStatus: { label: { zh: "防拆状态", "zh-Hant": "防拆狀態", en: "Tamper Status" }, unit: "" },
+  noiseLaeq: { label: { zh: "等效噪声", "zh-Hant": "等效噪聲", en: "Noise LAeq" }, unit: "dB(A)" },
+  noiseLai: { label: { zh: "瞬时噪声", "zh-Hant": "瞬時噪聲", en: "Noise LAI" }, unit: "dB(A)" },
+  noiseLaiMax: { label: { zh: "最大噪声", "zh-Hant": "最大噪聲", en: "Noise LAImax" }, unit: "dB(A)" },
+  leakageStatus: { label: { zh: "漏水状态", "zh-Hant": "漏水狀態", en: "Leak Status" }, unit: "" },
+  activePower: { label: { zh: "有功功率", "zh-Hant": "有功功率", en: "Active Power" }, unit: "W" },
+  current: { label: { zh: "电流", "zh-Hant": "電流", en: "Current" }, unit: "mA" },
+  powerConsumption: { label: { zh: "累计用电", "zh-Hant": "累計用電", en: "Energy" }, unit: "Wh" },
+  powerFactor: { label: { zh: "功率因数", "zh-Hant": "功率因數", en: "Power Factor" }, unit: "%" },
+  socketStatus: { label: { zh: "插座状态", "zh-Hant": "插座狀態", en: "Socket Status" }, unit: "" },
+  voltage: { label: { zh: "电压", "zh-Hant": "電壓", en: "Voltage" }, unit: "V" },
+};
+
 function metricLabel(key) {
-  if (key === "co2") return "CO₂";
+  const label = METRIC_INFO[key]?.label;
+  if (label) return getDeviceText(label);
   return key.replace(/^./, (letter) => letter.toUpperCase());
+}
+
+function formatTelemetryValue(key, rawValue, suppliedUnit) {
+  const value = Number(rawValue);
+  if (!Number.isFinite(value)) return String(rawValue ?? "—");
+  const unit = suppliedUnit ?? METRIC_INFO[key]?.unit ?? "";
+  const formatted = Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return `${formatted}${unit === "%" ? "" : " "}${unit}`.trim();
+}
+
+function discoveredDevice(message) {
+  const rawId = String(message.deviceId || message.devEui || "InfluxDB sensor");
+  const id = rawId.replaceAll("-", "_").toUpperCase();
+  const model = id.split("_")[0];
+  const typeByModel = {
+    VS341: { zh: "人体存在传感器", "zh-Hant": "人體存在感測器", en: "Occupancy Sensor" },
+    WS301: { zh: "门磁传感器", "zh-Hant": "門磁感測器", en: "Magnetic Contact Sensor" },
+    WS302: { zh: "噪声传感器", "zh-Hant": "噪聲感測器", en: "Noise Sensor" },
+    WS303: { zh: "漏水传感器", "zh-Hant": "漏水感測器", en: "Leak Detection Sensor" },
+    WS523: { zh: "智能插座", "zh-Hant": "智能插座", en: "Smart Portable Socket" },
+  };
+  const type = typeByModel[model] || { zh: "IoT 传感器", "zh-Hant": "IoT 感測器", en: "IoT Sensor" };
+  return {
+    id,
+    name: { zh: `${id.replaceAll("_", "-")} ${type.zh}`, "zh-Hant": `${id.replaceAll("_", "-")} ${type["zh-Hant"]}`, en: `${id.replaceAll("_", "-")} ${type.en}` },
+    model,
+    type,
+    devEui: String(message.devEui || ""),
+    profile: "InfluxDB",
+    decoder: model,
+    location: { zh: "ZB202 · 新接入点位", "zh-Hant": "ZB202 · 新接入點位", en: "ZB202 · Newly discovered point" },
+    status: "alert",
+    latestValues: {},
+  };
 }
 
 function renderMetricGrid(values) {
@@ -435,17 +496,17 @@ function connectOverviewBridge(devices) {
       if (message.type !== "telemetry") return;
       const normalizedEui = String(message.devEui || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
       const normalizedDeviceId = String(message.deviceId || "").replaceAll("-", "_").toUpperCase();
-      const device = devices.find((item) => item.devEui === normalizedEui || item.id.toUpperCase() === normalizedDeviceId);
-      if (!device) return;
+      let device = devices.find((item) => (normalizedEui && item.devEui === normalizedEui) || item.id.toUpperCase() === normalizedDeviceId);
+      if (!device) {
+        device = discoveredDevice(message);
+        devices.push(device);
+      }
       const receivedAt = Date.parse(message.receivedAt);
       if (!Number.isFinite(receivedAt)) return;
       lastSeenAt.set(device.id, receivedAt);
-      const temperature = Number(message.values?.temperature);
-      const humidity = Number(message.values?.humidity);
-      const co2 = Number(message.values?.co2);
-      if (Number.isFinite(temperature)) device.latestValues.temperature = `${temperature.toFixed(1)} °C`;
-      if (Number.isFinite(humidity)) device.latestValues.humidity = `${humidity.toFixed(1)}%`;
-      if (Number.isFinite(co2)) device.latestValues.co2 = `${Math.round(co2)} ppm`;
+      for (const [key, value] of Object.entries(message.values || {})) {
+        device.latestValues[key] = formatTelemetryValue(key, value, message.metrics?.[key]?.unit);
+      }
       updateStatuses();
     });
     socket.addEventListener("close", () => {

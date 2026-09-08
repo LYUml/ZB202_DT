@@ -67,7 +67,7 @@
 
       <aside class="dt-data-panel" id="device-panel" role="dialog" aria-modal="false" aria-hidden="true" aria-label="传感器数据面板" data-i18n-aria="dataPanelAria" inert>
         <header class="dt-data-header">
-          <div><p class="dt-overline" id="data-panel-label" data-i18n="dataPanelLabel">数据面板</p><h2 id="data-panel-title" data-i18n="sensorData">传感器数据</h2></div>
+          <div><h2 id="data-panel-title" data-i18n="sensorData">传感器数据</h2></div>
           <button class="dt-panel-close" id="device-panel-close" type="button" aria-label="关闭数据面板" data-i18n-aria="closeDataPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
         </header>
         <div class="dt-detail" id="device-detail">
@@ -129,21 +129,22 @@
             <label class="dt-master-switch" title="All socket control"><span>All</span><input id="socket-master" type="checkbox" aria-label="All socket control" disabled></label>
           </header>
           <div class="dt-socket-grid">
-            <label><span><i class="ph ph-plug"></i>WS523-01</span><small>—</small><input type="checkbox" disabled></label>
-            <label><span><i class="ph ph-plug"></i>WS523-02</span><small>—</small><input type="checkbox" disabled></label>
-            <label><span><i class="ph ph-plug"></i>WS523-03</span><small>—</small><input type="checkbox" disabled></label>
-            <label><span><i class="ph ph-plug"></i>WS523-04</span><small>—</small><input type="checkbox" disabled></label>
-            <label><span><i class="ph ph-plug"></i>WS523-05</span><small>—</small><input type="checkbox" disabled></label>
-            <label><span><i class="ph ph-plug"></i>WS523-06</span><small>—</small><input type="checkbox" disabled></label>
+            <label><span>WS523-01</span><small>—</small><input type="checkbox" data-socket-device="WS523-01" aria-label="Control WS523-01" disabled></label>
+            <label><span>WS523-02</span><small>—</small><input type="checkbox" data-socket-device="WS523-02" aria-label="Control WS523-02" disabled></label>
+            <label><span>WS523-03</span><small>—</small><input type="checkbox" data-socket-device="WS523-03" aria-label="Control WS523-03" disabled></label>
+            <label><span>WS523-04</span><small>—</small><input type="checkbox" data-socket-device="WS523-04" aria-label="Control WS523-04" disabled></label>
+            <label><span>WS523-05</span><small>—</small><input type="checkbox" data-socket-device="WS523-05" aria-label="Control WS523-05" disabled></label>
+            <label><span>WS523-06</span><small>—</small><input type="checkbox" data-socket-device="WS523-06" aria-label="Control WS523-06" disabled></label>
           </div>
           <div class="dt-demand-row"><span>Total electrical demand (kW)</span><strong>—</strong></div>
-          <svg class="dt-demand-chart" viewBox="0 0 300 100" preserveAspectRatio="xMidYMid meet" aria-label="No InfluxDB electrical demand data">
-          </svg>
+          <p class="dt-socket-control-status" id="socket-control-status" aria-live="polite"></p>
           <div class="dt-chart-range" role="group" aria-label="Electrical demand time range">
             <button type="button" class="active" data-demand-range="today" aria-pressed="true">Today</button>
             <button type="button" data-demand-range="7d" aria-pressed="false">7D</button>
             <button type="button" data-demand-range="30d" aria-pressed="false">30D</button>
           </div>
+          <svg class="dt-demand-chart" viewBox="0 0 300 100" preserveAspectRatio="xMidYMid meet" aria-label="No InfluxDB electrical demand data">
+          </svg>
         </section>
 
         <section class="dt-dashboard-card dt-ai-card">
@@ -214,7 +215,7 @@
       <aside class="dt-overview-rail dt-runtime-data" aria-label="平台概览" aria-hidden="true">
         <section class="dt-rail-card" id="site-overview-card">
           <header>
-            <div><p class="dt-overline" data-i18n="liveSummary">实时概览</p><div class="dt-site-title"><h2 data-i18n="siteOverview">场地概览</h2><span class="dt-count" id="device-count">0</span></div></div>
+            <div class="dt-site-title"><h2 data-i18n="siteOverview">场地概览</h2><span class="dt-count hidden" id="device-count" aria-hidden="true">0</span></div>
             <button class="dt-panel-close" id="overview-rail-close" type="button" aria-label="关闭概览面板" data-i18n-aria="closeOverviewPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
           </header>
           <div class="dt-site-grid">
@@ -227,18 +228,20 @@
 
         <section class="dt-rail-card dt-sensor-card" id="sensor-list-card">
           <header>
-            <div><p class="dt-overline" data-i18n="liveAssets">实时设备</p><div class="dt-sensor-title"><h2 id="asset-list-title" data-i18n="iotSensorsList">IoT 传感器列表</h2><span id="equipment-search-count">0/0</span></div></div>
+            <div class="dt-sensor-title"><h2 id="asset-list-title" data-i18n="iotSensorsList">IoT 传感器列表</h2></div>
+          </header>
+          <div class="dt-sensor-toolbar">
+            <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
             <div class="dt-asset-tabs" role="tablist" aria-label="Asset type">
               <button type="button" class="active" role="tab" aria-selected="true" data-asset-view="sensors"><i class="ph ph-check" aria-hidden="true"></i><span>Sensor</span></button>
               <button type="button" role="tab" aria-selected="false" data-asset-view="mep"><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></button>
             </div>
-          </header>
-          <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索名称、类型或 ID" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
+          </div>
           <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
         </section>
 
         <section class="dt-rail-card dt-reserved-card" id="bms-card">
-          <header><div><p class="dt-overline" data-i18n="reservedModule">预留模块</p><h2 id="reserved-title">BMS</h2></div><i class="ph ph-hard-drives" aria-hidden="true"></i></header>
+          <header><div><h2 id="reserved-title">BMS</h2></div><i class="ph ph-hard-drives" aria-hidden="true"></i></header>
           <p id="reserved-copy" data-i18n="bmsReserved">AHU 运行数据将在后续版本接入。</p>
         </section>
       </aside>

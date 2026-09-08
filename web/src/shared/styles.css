@@ -129,7 +129,8 @@ body[data-page="overview"] {
   border-radius: 0;
   background-image: none;
   background-color: transparent;
-  font-weight: 400;
+  font: inherit;
+  font-weight: 520;
 }
 
 #room-view-link > i { display: none; }
@@ -270,6 +271,12 @@ body[data-page="overview"] {
 .btn:hover {
   border-color: #a9a9b2;
   background: rgba(255, 255, 255, 0.96);
+}
+
+body[data-page="overview"] .hero-actions .btn,
+body[data-page="overview"] .language-control,
+body[data-page="overview"] .language-control .language-select {
+  font-weight: 600 !important;
 }
 
 .btn-quiet {

@@ -118,13 +118,6 @@ body[data-page="twin"] *::after {
   transform: none;
 }
 
-.dt-overline {
-  margin-bottom: 2px;
-  color: var(--dt-text-muted);
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
-}
-
 .dt-brand h1 {
   color: var(--dt-text);
   font-size: 1.12rem;
@@ -912,7 +905,6 @@ body[data-page="twin"] *::after {
     gap: 8px;
   }
 
-  .dt-overline,
   .dt-live-status > span:not(.dt-live-dot) {
     display: none;
   }
@@ -1401,8 +1393,8 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 }
 
 #site-overview-card > header {
-  min-height: 48px;
-  padding-block: 8px;
+  min-height: 42px;
+  padding: 5px 10px 5px 12px;
 }
 
 .dt-site-grid {
@@ -1410,8 +1402,8 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 }
 
 .dt-site-grid > div {
-  min-height: 54px;
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 6px 9px;
   border-bottom: 0;
 }
 
@@ -1434,11 +1426,6 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-sensor-card > header {
   min-height: 52px;
   padding: 9px 14px;
-}
-
-.dt-sensor-card .dt-overline {
-  margin-bottom: 0;
-  font-size: 0.55rem;
 }
 
 .dt-sensor-card .dt-equipment-search {
@@ -1592,10 +1579,6 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
     padding: 5px 7px;
   }
 
-  .dt-data-panel .dt-data-header .dt-overline {
-    display: none;
-  }
-
   .dt-data-panel .dt-data-header h2 {
     font-size: 0.72rem;
   }
@@ -1616,12 +1599,6 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-rail-card h2,
   .dt-data-header h2 {
     font-size: 0.76rem;
-  }
-
-  .dt-overline,
-  .dt-sensor-card .dt-overline {
-    font-size: 0.43rem;
-    letter-spacing: 0.14em;
   }
 
   .dt-panel-close {
@@ -1835,12 +1812,6 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
   .dt-rail-card h2,
   .dt-data-header h2 {
     font-size: 0.76rem;
-  }
-
-  .dt-overline,
-  .dt-sensor-card .dt-overline {
-    font-size: 0.43rem;
-    letter-spacing: 0.14em;
   }
 
   .dt-data-panel .dt-detail {
@@ -2098,7 +2069,7 @@ body[data-page="twin"] {
 }
 
 .dt-runtime-data {
-  display: none !important;
+  display: grid;
 }
 
 .dt-dashboard-rail {
@@ -2293,6 +2264,22 @@ body[data-page="twin"] {
 
 .dt-socket-grid input:checked { background: var(--dt-ok); }
 .dt-socket-grid input:checked::after { transform: translateX(9px); }
+.dt-socket-grid input.pending,
+.dt-socket-grid input.pending:checked { background: var(--dt-accent-soft); opacity: 1; }
+.dt-socket-grid input.pending::after,
+.dt-socket-grid input.pending:checked::after {
+  width: 9px;
+  height: 9px;
+  margin: 2px auto;
+  border: 2px solid color-mix(in srgb, var(--dt-accent) 24%, transparent);
+  border-top-color: var(--dt-accent);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  animation: dt-socket-control-spin 700ms linear infinite;
+}
+
+@keyframes dt-socket-control-spin { to { transform: rotate(360deg); } }
 
 .dt-master-switch {
   flex: 0 0 auto;
@@ -2375,11 +2362,22 @@ body[data-page="twin"] {
 }
 
 .dt-demand-row strong { color: var(--dt-text); font-size: 0.66rem; font-variant-numeric: tabular-nums; }
+.dt-socket-control-status {
+  min-height: 12px;
+  margin: 2px 14px 0;
+  color: var(--dt-text-muted);
+  font-size: 0.48rem;
+  line-height: 1.2;
+}
+.dt-socket-control-status.pending { color: var(--dt-accent); }
+.dt-socket-control-status.success { color: #07875b; }
+.dt-socket-control-status.error { color: var(--dt-fault); }
 .dt-demand-chart { width: calc(100% - 28px); height: 38px; margin: 0 14px; overflow: visible; }
 .dt-demand-line { fill: none; stroke: var(--dt-accent); stroke-width: 2; vector-effect: non-scaling-stroke; }
 .dt-demand-area { fill: color-mix(in srgb, var(--dt-accent) 10%, transparent); stroke: none; }
 .dt-demand-grid line { stroke: var(--dt-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .dt-demand-grid text, .dt-demand-axis text { fill: var(--dt-text-muted); font-size: 8px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+.dt-demand-empty { fill: var(--dt-text-muted); font-size: 9px; }
 .dt-demand-points circle { fill: var(--dt-panel); stroke: var(--dt-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .dt-chart-range { margin: 0 14px 7px; display: flex; gap: 4px; }
 .dt-chart-range button { min-height: 17px; padding: 0 7px; border: 0; border-radius: 5px; color: var(--dt-text-muted); background: transparent; font: inherit; font-size: 0.54rem; cursor: pointer; }
@@ -2388,7 +2386,7 @@ body[data-page="twin"] {
 
 .dt-socket-card {
   display: grid;
-  grid-template-rows: 50px auto auto minmax(88px, 1fr) auto;
+  grid-template-rows: 50px auto auto auto auto minmax(88px, 1fr);
 }
 
 .dt-socket-card .dt-demand-chart {
@@ -2741,12 +2739,6 @@ body[data-page="twin"] {
     font-size: 0.76rem;
   }
 
-  .dt-overline,
-  .dt-sensor-card .dt-overline {
-    font-size: 0.43rem;
-    letter-spacing: 0.14em;
-  }
-
   .dt-panel-close {
     width: clamp(28px, 3vw, 34px);
     height: clamp(28px, 3vw, 34px);
@@ -2982,6 +2974,7 @@ body[data-page="twin"] {
 
 @media (prefers-reduced-motion: reduce) {
   .dt-dashboard-rail { transition: none; }
+  .dt-socket-grid input.pending::after { animation: none; }
 }
 
 /* Every operational card uses one title row. Eyebrows stay available to
@@ -3047,16 +3040,6 @@ body[data-page="twin"] {
     overflow: hidden;
     clip: rect(0 0 0 0);
   }
-}
-
-.dt-data-panel .dt-data-header .dt-overline {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
 }
 
 .dt-data-panel .dt-data-header h2,
@@ -3360,6 +3343,68 @@ body[data-page="twin"] {
 .dt-layer-switcher .dt-layer-mode[data-sensor-mode="hidden"] { color: var(--dt-text-muted); background: transparent; }
 .dt-layer-switcher .dt-layer-mode[data-sensor-mode="hidden"] i { color: var(--dt-text-muted); background: transparent; }
 
+/* Desktop overlays and the navigation dock use one shared edge so their
+   lower boundaries stay aligned without overlapping horizontally. */
+@media (min-width: 821px) and (pointer: fine) {
+  body[data-page="twin"] { --dt-panel-edge: 18px; }
+
+  .dt-dashboard-rail {
+    top: var(--dt-panel-edge);
+    bottom: var(--dt-panel-edge);
+  }
+
+  .dt-data-panel,
+  .dt-overview-rail {
+    top: var(--dt-panel-edge);
+    bottom: var(--dt-panel-edge);
+    width: var(--dt-control-rail);
+  }
+
+  .dt-data-panel {
+    left: var(--dt-panel-edge);
+  }
+
+  .dt-overview-rail {
+    right: var(--dt-panel-edge);
+  }
+
+  .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    bottom: var(--dt-panel-edge);
+  }
+
+  .dt-data-panel .dt-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Socket name, live device power and control must remain visible together. */
+.dt-socket-grid label {
+  grid-template-columns: max-content minmax(0, 1fr) 22px;
+  column-gap: 4px;
+  padding-right: 7px;
+}
+
+.dt-socket-grid span {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.dt-socket-grid small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: clip;
+  font-size: 0.46rem;
+}
+
+@media (min-width: 821px) and (max-width: 1420px) and (pointer: fine) {
+  body[data-page="twin"] { --dt-panel-edge: 12px; }
+}
+
 /* Keep all AHU card typography consistent with the two air-reading cards. */
 .dt-ahu-control span,
 .dt-air-readings span,
@@ -3423,7 +3468,7 @@ body[data-page="twin"] {
   min-height: 0;
   padding-bottom: 0;
   display: grid;
-  grid-template-rows: 40px 92px minmax(0, 1fr);
+  grid-template-rows: 40px 126px minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -3439,16 +3484,19 @@ body[data-page="twin"] {
   min-width: 0;
   padding: 4px 6px;
   display: grid;
-  grid-template-columns: 66px minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 78px auto;
   align-items: center;
-  column-gap: 2px;
+  justify-items: center;
+  row-gap: 2px;
 }
 
 .dt-health-chart + .dt-health-chart { border-left: 1px solid var(--dt-border); }
 
 .dt-health-chart h3 {
-  grid-column: 1 / -1;
+  width: 100%;
+  grid-column: 1;
+  justify-self: start;
   margin: 0;
   font-size: 0.58rem;
   line-height: 1.2;
@@ -3457,27 +3505,31 @@ body[data-page="twin"] {
 .dt-health-chart canvas {
   grid-column: 1;
   grid-row: 2;
-  width: 66px !important;
-  height: 66px !important;
+  width: 78px !important;
+  height: 78px !important;
 }
 
 .dt-health-chart ul {
+  width: 100%;
+  grid-column: 1;
+  grid-row: 3;
   min-width: 0;
   margin: 0;
   padding: 0;
-  display: grid;
-  gap: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
   list-style: none;
 }
 
 .dt-health-chart li {
   min-width: 0;
-  display: grid;
-  grid-template-columns: 5px minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 2px;
   color: var(--dt-text-muted);
-  font-size: 0.4rem;
+  font-size: 0.42rem;
   line-height: 1.15;
   white-space: nowrap;
 }
@@ -3529,4 +3581,88 @@ body[data-page="twin"] {
   border-top: 0;
   scrollbar-width: thin;
   scrollbar-color: var(--dt-border-strong) transparent;
+}
+
+/* Keep the three desktop overview cards aligned while giving the demand
+   chart enough vertical room for its range selector. */
+@media (min-width: 821px) and (pointer: fine) {
+  .dt-dashboard-left {
+    grid-template-rows: 1.22fr 0.8fr 0.8fr;
+  }
+}
+
+.dt-sensor-card > header {
+  justify-content: flex-start;
+}
+
+.dt-sensor-title,
+.dt-sensor-title h2 {
+  width: 100%;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.dt-sensor-toolbar {
+  min-width: 0;
+  padding: 8px 10px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dt-sensor-card .dt-sensor-toolbar .dt-equipment-search {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+
+.dt-sensor-toolbar .dt-asset-tabs {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 980px) and (pointer: coarse) {
+  .dt-sensor-toolbar {
+    padding: 3px 4px 2px;
+    gap: 3px;
+  }
+}
+
+@media (min-width: 821px) and (pointer: fine) {
+  .dt-rail-card > header,
+  .dt-data-header,
+  #site-overview-card > header,
+  .dt-sensor-card > header {
+    height: 52px;
+    min-height: 52px;
+    padding: 9px 14px;
+    gap: 8px;
+  }
+
+  .dt-data-header .dt-panel-close,
+  .dt-rail-card > header .dt-panel-close {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+}
+
+/* Final toolbar sizing: search and tabs share one baseline and height. */
+.dt-sensor-toolbar {
+  align-items: stretch;
+}
+
+.dt-sensor-card .dt-sensor-toolbar .dt-equipment-search input,
+.dt-sensor-toolbar .dt-asset-tabs button {
+  height: 36px;
+  min-height: 36px;
+}
+
+.dt-sensor-card .dt-sensor-toolbar .dt-equipment-search input {
+  padding-right: 8px;
+  font-size: 0.6rem;
+}
+
+.dt-sensor-toolbar .dt-asset-tabs button {
+  padding-inline: 6px;
 }
