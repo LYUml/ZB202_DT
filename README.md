@@ -123,8 +123,9 @@ http://服务器校园网IP:8080/twin.html
 
 ```text
 ZB202_DT/
-├── docs/                         # 架构与质量文档
-├── dvc/                          # 设备清单备份
+├── .github/workflows/            # GitHub Pages 自动部署
+├── docs/architecture/            # 架构说明与技术路线
+├── dvc/                          # 设备清单备份（CSV / XLSX）
 ├── models/
 │   ├── ifc/                      # IFC 源模型
 │   └── rvt/                      # Revit 源模型
@@ -133,10 +134,12 @@ ZB202_DT/
 │   ├── bridge-smoke-test.mjs     # 数据链路测试
 │   └── ifc-to-fragments.mjs      # IFC 转 Fragments
 ├── web/
-│   ├── public/models/fragments/  # 浏览器运行模型
-│   ├── src/dashboard/            # 总览页面
-│   ├── src/shared/               # 共享样式与主题
-│   ├── src/twin/                 # 三维孪生页面
+│   ├── public/models/fragments/  # 浏览器运行时模型
+│   ├── src/
+│   │   ├── dashboard/            # 总览页面逻辑
+│   │   ├── shared/               # 共享样式与主题
+│   │   └── twin/                 # 三维孪生页面逻辑
+│   ├── index.html                # 默认入口
 │   ├── overview.html
 │   ├── device.html
 │   └── twin.html
@@ -147,4 +150,6 @@ ZB202_DT/
 └── vite.config.js                # Vite 构建配置
 ```
 
-`node_modules/`、`dist/`、`.cache/` 和 `.env` 是本地生成内容，不提交到 Git。
+根目录只保留项目入口、配置文件和一键启动脚本。运行时模型统一放在 `web/public/models/fragments/`，源模型统一放在 `models/`。
+
+`node_modules/`、`dist/`、`.cache/`、`.env` 和 `.zb202-*.log` 是本地生成内容，不提交到 Git。

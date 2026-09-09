@@ -98,8 +98,9 @@ npm run build
 
 ```text
 ZB202_DT/
-├── docs/                         # Architecture and quality notes
-├── dvc/                          # Device-list backups
+├── .github/workflows/            # GitHub Pages deployment
+├── docs/architecture/            # Architecture and technical routes
+├── dvc/                          # Device-list backups (CSV / XLSX)
 ├── models/
 │   ├── ifc/                      # IFC source models
 │   └── rvt/                      # Revit source models
@@ -109,9 +110,11 @@ ZB202_DT/
 │   └── ifc-to-fragments.mjs      # IFC-to-Fragments conversion
 ├── web/
 │   ├── public/models/fragments/  # Browser runtime models
-│   ├── src/dashboard/            # Overview page
-│   ├── src/shared/               # Shared styles and themes
-│   ├── src/twin/                 # 3D twin page
+│   ├── src/
+│   │   ├── dashboard/            # Overview page logic
+│   │   ├── shared/               # Shared styles and themes
+│   │   └── twin/                 # 3D twin page logic
+│   ├── index.html                # Default entry point
 │   ├── overview.html
 │   ├── device.html
 │   └── twin.html
@@ -122,4 +125,6 @@ ZB202_DT/
 └── vite.config.js                # Vite build configuration
 ```
 
-`node_modules/`, `dist/`, `.cache/`, and `.env` are local generated content and are not committed to Git.
+The project root is reserved for entry points, configuration, and launchers. Browser runtime models belong in `web/public/models/fragments/`, and source models in `models/`.
+
+`node_modules/`, `dist/`, `.cache/`, `.env`, and `.zb202-*.log` are generated locally and are not committed to Git.
