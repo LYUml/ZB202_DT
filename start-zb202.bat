@@ -22,7 +22,7 @@ if errorlevel 1 goto dev_mode
 :dev_mode
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 InfluxDB Bridge" /min cmd.exe /k call ""%~dp0scripts\start-bridge-campus.bat""
+  start "ZB202 InfluxDB Bridge" /min /D "%~dp0" cmd.exe /k call scripts\start-bridge-campus.bat
 )
 
 echo Waiting for the InfluxDB Bridge...
@@ -41,7 +41,7 @@ exit /b 1
 
 powershell.exe -NoProfile -Command "try { $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:5173/overview.html?lang=en' -TimeoutSec 1; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } } catch {}; exit 1"
 if errorlevel 1 (
-  start "ZB202 Dev Server" cmd.exe /k "cd /d ""%~dp0"" && npm.cmd run dev -- --host 127.0.0.1 --strictPort"
+  start "ZB202 Dev Server" /D "%~dp0" cmd.exe /k npm.cmd run dev -- --host 127.0.0.1 --strictPort
 )
 
 echo Waiting for the ZB202 development server...
@@ -72,7 +72,7 @@ if errorlevel 1 goto build_failed
 set "ZB202_INFLUX_BRIDGE_HOST=0.0.0.0"
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 InfluxDB Bridge" /min cmd.exe /k call ""%~dp0scripts\start-bridge-campus.bat""
+  start "ZB202 InfluxDB Bridge" /min /D "%~dp0" cmd.exe /k call scripts\start-bridge-campus.bat
 )
 
 echo Waiting for the InfluxDB Bridge...
@@ -91,7 +91,7 @@ exit /b 1
 
 powershell.exe -NoProfile -Command "if (Get-NetTCPConnection -LocalPort 8080 -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }"
 if errorlevel 1 (
-  start "ZB202 HTTP Server" cmd.exe /k "cd /d ""%~dp0"" && python -m http.server 8080 --directory dist --bind 0.0.0.0"
+  start "ZB202 HTTP Server" /D "%~dp0" cmd.exe /k python -m http.server 8080 --directory dist --bind 0.0.0.0
 )
 
 echo.
