@@ -55,6 +55,16 @@ ZB202_INFLUX_ORG=PolyU
 ZB202_INFLUX_BUCKET=zb202_iot
 ```
 
+如果气象站数据位于独立的 InfluxDB bucket，可追加：
+
+```dotenv
+ZB202_WEATHER_INFLUX_BUCKET=weather_bucket_name
+ZB202_WEATHER_INFLUX_MEASUREMENT=weather_measurement_name
+ZB202_WEATHER_INFLUX_TOKEN=weather_bucket_token
+```
+
+气象数据沿用同一 URL 和组织；独立 Token 可填入 `ZB202_WEATHER_INFLUX_TOKEN`，留空时沿用主 Token。measurement 留空时会自动匹配名称中包含 `weather`、`outdoor`、`meteorological`、`aws` 或 `wx` 的数据。
+
 `.env` 已被 Git 忽略，请勿把真实 Token 写入代码或提交到仓库。
 
 ### 3. 启动项目
@@ -67,14 +77,16 @@ start-zb202.bat
 
 macOS 可双击项目根目录下的 `start-zb202.command`。首次运行若被系统拦截，请在 Finder 中右键该文件并选择“打开”。
 
-也可以分别打开两个终端手动运行：
-
-```powershell
-npm run influx:bridge
-```
+也可以直接运行统一启动命令；它会自动启动 InfluxDB bridge 和 Vite，并在退出时关闭由它启动的 bridge：
 
 ```powershell
 npm run dev -- --host 127.0.0.1
+```
+
+如需单独排查 bridge，仍可运行：
+
+```powershell
+npm run influx:bridge
 ```
 
 访问页面：

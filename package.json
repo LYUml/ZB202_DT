@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
     "influx:bridge": "node scripts/influxdb-bridge.mjs",
     "serve:lan": "python -m http.server 8080 --directory dist --bind 0.0.0.0",
     "test:bridge": "node scripts/bridge-smoke-test.mjs",

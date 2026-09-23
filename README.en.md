@@ -67,14 +67,16 @@ start-zb202.bat
 
 On macOS, double-click `start-zb202.command` in the project root. If macOS blocks it on the first run, right-click the file in Finder and choose **Open**.
 
-Or run the services in separate terminals:
-
-```powershell
-npm run influx:bridge
-```
+Or run the combined development command. It starts the InfluxDB bridge and Vite together, and closes the bridge it started when the command exits:
 
 ```powershell
 npm run dev -- --host 127.0.0.1
+```
+
+For bridge troubleshooting, it can still be started separately:
+
+```powershell
+npm run influx:bridge
 ```
 
 Open:

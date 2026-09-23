@@ -720,10 +720,8 @@ body[data-page="twin"] *::after {
 }
 
 .dt-trend-points circle {
-  fill: var(--dt-panel);
-  stroke: var(--dt-accent);
-  stroke-width: 2.5;
-  vector-effect: non-scaling-stroke;
+  fill: var(--dt-accent);
+  stroke: none;
 }
 
 .dt-trend-heading strong {
@@ -2378,7 +2376,7 @@ body[data-page="twin"] {
 .dt-demand-grid line { stroke: var(--dt-border); stroke-width: 1; vector-effect: non-scaling-stroke; }
 .dt-demand-grid text, .dt-demand-axis text { fill: var(--dt-text-muted); font-size: 8px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
 .dt-demand-empty { fill: var(--dt-text-muted); font-size: 9px; }
-.dt-demand-points circle { fill: var(--dt-panel); stroke: var(--dt-accent); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.dt-demand-points circle { fill: var(--dt-accent); stroke: none; }
 .dt-chart-range { margin: 0 14px 7px; display: flex; gap: 4px; }
 .dt-chart-range button { min-height: 17px; padding: 0 7px; border: 0; border-radius: 5px; color: var(--dt-text-muted); background: transparent; font: inherit; font-size: 0.54rem; cursor: pointer; }
 .dt-chart-range button.active { color: var(--dt-accent); background: var(--dt-accent-soft); }
@@ -2449,7 +2447,7 @@ body[data-page="twin"] {
 }
 .dt-outdoor-grid > div {
   min-width: 0;
-  min-height: 90px;
+  min-height: 0;
   padding: 7px 10px;
   display: flex;
   flex-direction: column;
@@ -3128,7 +3126,7 @@ body[data-page="twin"] {
 
 .dt-ai-card .dt-recommendations {
   padding: 0 10px 6px;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-content: start;
   gap: 5px;
 }
@@ -3137,24 +3135,34 @@ body[data-page="twin"] {
   padding: 4px 7px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  align-items: start;
   gap: 1px 8px;
 }
 
 .dt-ai-card .dt-recommendations span,
-.dt-ai-card .dt-recommendations p {
-  grid-column: 1;
+.dt-ai-card .dt-recommendations em {
+  grid-column: 1 / -1;
 }
+
+.dt-ai-card .dt-recommendations span {
+  min-height: 2.3em;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
+}
+
+.dt-ai-card .dt-recommendations p { grid-column: 1; }
 
 .dt-ai-card .dt-recommendations strong {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 2;
   margin: 0;
-  font-size: 0.86rem;
+  font-size: 0.76rem;
 }
 
 .dt-ai-card .dt-recommendations em {
-  grid-column: 1 / -1;
   margin-top: 0;
 }
 
@@ -3437,16 +3445,22 @@ body[data-page="twin"] {
 
 /* Wind direction is communicated by the arrow; speed keeps full value weight. */
 .dt-outdoor-grid .wind-value {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+  position: relative;
+  display: block;
+  width: 100%;
+  padding-right: 28px;
 }
-.dt-outdoor-grid .wind-value > canvas { flex: 0 0 28px; }
+.dt-outdoor-grid .wind-value > canvas {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
 .dt-outdoor-grid .wind-value > em {
   color: var(--dt-text);
   font-size: 0.86rem;
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.08;
 }
 
 /* Final AHU hierarchy tuning. */
@@ -3468,11 +3482,25 @@ body[data-page="twin"] {
   min-height: 0;
   padding-bottom: 0;
   display: grid;
-  grid-template-rows: 40px 126px minmax(0, 1fr);
+  grid-template-rows: 48px 126px minmax(0, 1fr);
   overflow: hidden;
 }
 
-.dt-alert-card .dt-simple-heading { min-height: 40px; }
+.dt-alert-card .dt-simple-heading { min-height: 48px; }
+.dt-alarm-close { display: none; }
+
+.dt-alarm-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.dt-alarm-heading h2 { margin: 0; }
+.dt-alarm-heading p { margin: 2px 0 0; color: var(--dt-text-muted); font-size: 0.46rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.dt-connection-status { display: flex; gap: 5px; }
+.dt-dashboard-card .dt-alarm-heading > .dt-connection-status { flex: 0 0 auto; overflow: visible; }
+.dt-dashboard-card .dt-simple-heading > .dt-connection-status > span { min-width: max-content; overflow: visible; }
+.dt-connection-status span { padding: 3px 5px; display: inline-flex; align-items: center; gap: 3px; border: 1px solid var(--dt-border); border-radius: 999px; color: var(--dt-text-muted); font-size: 0.43rem; white-space: nowrap; }
+.dt-connection-status span i { width: 5px; height: 5px; border-radius: 50%; background: #9aabc0; }
+.dt-connection-status span.online { color: #07875b; border-color: color-mix(in srgb, #18ad78 34%, var(--dt-border)); background: color-mix(in srgb, #18ad78 8%, transparent); }
+.dt-connection-status span.online i { background: #18ad78; box-shadow: 0 0 0 2px color-mix(in srgb, #18ad78 18%, transparent); }
+.dt-connection-status span.offline { color: #b73750; }
+.dt-connection-status span.offline i { background: #ef476f; }
 
 .dt-health-summary {
   display: grid;
@@ -3561,16 +3589,15 @@ body[data-page="twin"] {
   gap: 3px;
 }
 
-.dt-alarm-information .dt-alert-list button {
-  min-height: 28px;
-  padding-block: 3px;
-}
-
-.dt-alarm-information > h3 {
+.dt-alarm-list-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.dt-alarm-list-heading > h3 {
   margin: 0;
   font-size: 0.58rem;
   line-height: 1.2;
 }
+.dt-alarm-filters { display: flex; gap: 2px; }
+.dt-alarm-filters button { padding: 2px 5px; border: 0; border-radius: 5px; color: var(--dt-text-muted); background: transparent; font: inherit; font-size: 0.43rem; cursor: pointer; }
+.dt-alarm-filters button.active { color: var(--dt-accent); background: var(--dt-accent-soft); }
 
 .dt-alarm-information .dt-alert-list {
   min-height: 0;
@@ -3583,17 +3610,59 @@ body[data-page="twin"] {
   scrollbar-color: var(--dt-border-strong) transparent;
 }
 
+.dt-alert-item { min-height: 34px; padding: 4px 2px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 5px; border-bottom: 1px solid var(--dt-border); }
+.dt-alert-item > i { color: #f0a51a; font-size: 0.8rem; }
+.dt-alert-item.critical > i { color: #ef476f; }
+.dt-alert-item > span { min-width: 0; }
+.dt-alert-item strong, .dt-alert-item small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dt-alert-item strong { font-size: 0.53rem; }
+.dt-alert-item small { margin-top: 1px; color: var(--dt-text-muted); font-size: 0.43rem; }
+.dt-alert-list .dt-alert-item > button { min-height: 0; padding: 3px 5px; display: inline-flex; grid-template-columns: none; border: 1px solid var(--dt-border); border-radius: 5px; color: var(--dt-accent); background: var(--dt-panel-raised); font: inherit; font-size: 0.42rem; text-align: center; cursor: pointer; }
+.dt-alert-item.acknowledged { opacity: 0.64; }
+.dt-alert-empty { margin: 12px 0; color: var(--dt-text-muted); font-size: 0.52rem; text-align: center; }
+
+/* The overview card prioritizes one actionable alarm row over oversized
+   summaries. The dedicated Alerts rail keeps the full-size charts below. */
+.dt-workspace:not(.alarm-focus) .dt-alert-card {
+  grid-template-rows: 48px 96px minmax(64px, 1fr);
+}
+.dt-workspace:not(.alarm-focus) .dt-health-chart {
+  padding-block: 3px;
+  grid-template-rows: auto 58px auto;
+}
+.dt-workspace:not(.alarm-focus) .dt-health-chart canvas {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+.dt-workspace.alarm-focus .dt-dashboard-left {
+  grid-template-rows: minmax(0, 1fr);
+  width: var(--dt-control-rail);
+}
+.dt-workspace.alarm-focus .dt-dashboard-left > :not(.dt-alert-card),
+.dt-workspace.alarm-focus .dt-dashboard-right { display: none; }
+.dt-workspace.alarm-focus .dt-alert-card { grid-template-rows: 52px 126px minmax(0, 1fr); }
+.dt-workspace.alarm-focus .dt-alarm-close { display: grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; }
+.dt-workspace.alarm-focus .dt-connection-status { display: none; }
+
 /* Keep the three desktop overview cards aligned while giving the demand
    chart enough vertical room for its range selector. */
 @media (min-width: 821px) and (pointer: fine) {
   .dt-dashboard-left {
-    grid-template-rows: 1.22fr 0.8fr 0.8fr;
+    grid-template-rows: 1.16fr 0.68fr 0.98fr;
   }
 }
 
 .dt-sensor-card > header {
   justify-content: flex-start;
 }
+
+.dt-overview-rail { grid-template-rows: minmax(0, 1fr) auto; }
+.dt-sensor-card .dt-device-list.is-grouped { display: block; }
+.dt-device-group { min-width: 0; }
+.dt-device-group > header { min-height: 24px; padding: 3px 4px; display: flex; align-items: center; color: var(--dt-text-muted); font-size: 0.52rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.045em; }
+.dt-device-group-list { display: grid; grid-auto-rows: max-content; gap: 5px; }
+.dt-device-group + .dt-device-group { margin-top: 6px; padding-top: 4px; border-top: 1px solid var(--dt-border); }
 
 .dt-sensor-title,
 .dt-sensor-title h2 {
@@ -3658,6 +3727,49 @@ body[data-page="twin"] {
   min-height: 36px;
 }
 
+.dt-sensor-tags {
+  min-width: 0;
+  padding: 3px 10px 7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.dt-sensor-tags::-webkit-scrollbar { display: none; }
+.dt-sensor-tag {
+  flex: 0 0 auto;
+  min-height: 26px;
+  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid var(--dt-border);
+  border-radius: 999px;
+  color: var(--dt-text-muted);
+  background: var(--dt-panel-raised);
+  font: inherit;
+  font-size: 0.52rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.dt-sensor-tag i { display: none; font-size: 0.58rem; }
+.dt-sensor-tag.active {
+  border-color: var(--dt-accent-border);
+  color: var(--dt-accent);
+  background: var(--dt-accent-soft);
+}
+.dt-sensor-tag.active i { display: inline-block; }
+.dt-sensor-tag:focus-visible { outline: 2px solid var(--dt-accent); outline-offset: 1px; }
+.dt-sensor-tags[hidden] { display: none; }
+
+@media (max-width: 980px) and (pointer: coarse) {
+  .dt-sensor-tags { padding: 2px 4px 4px; gap: 3px; }
+  .dt-sensor-tag { min-height: 24px; padding-inline: 6px; font-size: 0.48rem; }
+}
+
 .dt-sensor-card .dt-sensor-toolbar .dt-equipment-search input {
   padding-right: 8px;
   font-size: 0.6rem;
@@ -3665,4 +3777,95 @@ body[data-page="twin"] {
 
 .dt-sensor-toolbar .dt-asset-tabs button {
   padding-inline: 6px;
+}
+
+/* Compact, coordinated filter controls. Category tags wrap inside the rail
+   instead of exposing a clipped horizontal row. */
+.dt-sensor-toolbar {
+  padding: 6px 10px 3px;
+  gap: 5px;
+}
+.dt-sensor-card .dt-sensor-toolbar .dt-equipment-search input,
+.dt-sensor-toolbar .dt-asset-tabs button {
+  height: 30px;
+  min-height: 30px;
+  border-radius: 7px;
+}
+.dt-sensor-toolbar .dt-asset-tabs button,
+.dt-sensor-tag {
+  border-color: var(--dt-border);
+  color: var(--dt-text-muted);
+  background: var(--dt-panel-raised);
+}
+.dt-sensor-toolbar .dt-asset-tabs button.active,
+.dt-sensor-tag.active {
+  border-color: var(--dt-accent-border);
+  color: var(--dt-accent);
+  background: var(--dt-accent-soft);
+}
+.dt-sensor-tags {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  padding: 2px 10px 6px;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+  gap: 4px;
+  overflow: hidden;
+}
+.dt-sensor-tag {
+  min-height: 24px;
+  padding: 2px 7px;
+  border-radius: 7px;
+  line-height: 1;
+}
+
+@media (max-width: 980px) and (pointer: coarse) {
+  .dt-sensor-toolbar { padding: 4px 6px 2px; }
+  .dt-sensor-card .dt-sensor-toolbar .dt-equipment-search input,
+  .dt-sensor-toolbar .dt-asset-tabs button { height: 28px; min-height: 28px; }
+  .dt-sensor-tags { padding: 2px 6px 5px; }
+  .dt-sensor-tag { min-height: 22px; padding-inline: 5px; }
+}
+
+/* Balanced category matrix: two compact rows with equal-width controls. */
+.dt-sensor-tags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
+}
+.dt-sensor-tag {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 5px;
+}
+.dt-sensor-tag span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Icon-only category filters fit on one row; labels remain available through
+   title and aria-label attributes. */
+.dt-sensor-tags {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  padding-block: 2px 6px;
+}
+.dt-sensor-tag {
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  padding: 0;
+  border-radius: 7px;
+}
+.dt-sensor-tag i,
+.dt-sensor-tag.active i {
+  display: block;
+  font-size: 0.82rem;
 }

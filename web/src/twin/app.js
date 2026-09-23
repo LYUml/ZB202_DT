@@ -239,20 +239,20 @@ let MEP_COMPONENTS = [];
 const INFLUX_METRICS = {
   temperature: { label: { zh: "室内温度", "zh-Hant": "室內溫度", en: "Indoor Temperature" }, unit: "°C", icon: "ph-thermometer-simple" },
   humidity: { label: { zh: "相对湿度", "zh-Hant": "相對濕度", en: "Relative Humidity" }, unit: "%", icon: "ph-drop" },
-  co2: { label: { zh: "CO₂", "zh-Hant": "CO₂", en: "CO₂" }, unit: "ppm", icon: "ph-cloud" },
+  co2: { label: { zh: "CO₂", "zh-Hant": "CO₂", en: "CO₂" }, unit: "ppm", icon: "ph-atom" },
   battery: { label: { zh: "电池电量", "zh-Hant": "電池電量", en: "Battery" }, unit: "%", icon: "ph-battery-high" },
   light: { label: { zh: "光照度", "zh-Hant": "光照度", en: "Light Level" }, unit: "lx", icon: "ph-sun" },
   pir: { label: { zh: "PIR 状态", "zh-Hant": "PIR 狀態", en: "PIR Status" }, unit: "", icon: "ph-person-simple" },
-  pm25: { label: { zh: "PM2.5", "zh-Hant": "PM2.5", en: "PM2.5" }, unit: "µg/m³", icon: "ph-wind" },
-  pm10: { label: { zh: "PM10", "zh-Hant": "PM10", en: "PM10" }, unit: "µg/m³", icon: "ph-wind" },
+  pm25: { label: { zh: "PM2.5", "zh-Hant": "PM2.5", en: "PM2.5" }, unit: "µg/m³", icon: "ph-circles-three" },
+  pm10: { label: { zh: "PM10", "zh-Hant": "PM10", en: "PM10" }, unit: "µg/m³", icon: "ph-circles-three" },
   pressure: { label: { zh: "大气压力", "zh-Hant": "大氣壓力", en: "Pressure" }, unit: "hPa", icon: "ph-gauge" },
   tvoc: { label: { zh: "TVOC 指数", "zh-Hant": "TVOC 指數", en: "TVOC Index" }, unit: "index", icon: "ph-chart-line" },
-  occupancy: { label: { zh: "人体存在", "zh-Hant": "人體存在", en: "Occupancy" }, unit: "", icon: "ph-person-simple" },
+  occupancy: { label: { zh: "人体存在", "zh-Hant": "人體存在", en: "Occupancy" }, unit: "", icon: "ph-user-circle" },
   magnetStatus: { label: { zh: "门磁状态", "zh-Hant": "門磁狀態", en: "Magnet Status" }, unit: "", icon: "ph-door" },
   tamperStatus: { label: { zh: "防拆状态", "zh-Hant": "防拆狀態", en: "Tamper Status" }, unit: "", icon: "ph-shield-warning" },
-  noiseLaeq: { label: { zh: "等效噪声", "zh-Hant": "等效噪聲", en: "Noise LAeq" }, unit: "dB(A)", icon: "ph-speaker-high" },
-  noiseLai: { label: { zh: "瞬时噪声", "zh-Hant": "瞬時噪聲", en: "Noise LAI" }, unit: "dB(A)", icon: "ph-speaker-high" },
-  noiseLaiMax: { label: { zh: "最大噪声", "zh-Hant": "最大噪聲", en: "Noise LAImax" }, unit: "dB(A)", icon: "ph-speaker-high" },
+  noiseLaeq: { label: { zh: "等效噪声", "zh-Hant": "等效噪聲", en: "Noise LAeq" }, unit: "dB(A)", icon: "ph-waveform" },
+  noiseLai: { label: { zh: "瞬时噪声", "zh-Hant": "瞬時噪聲", en: "Noise LAI" }, unit: "dB(A)", icon: "ph-waveform" },
+  noiseLaiMax: { label: { zh: "最大噪声", "zh-Hant": "最大噪聲", en: "Noise LAImax" }, unit: "dB(A)", icon: "ph-waveform" },
   leakageStatus: { label: { zh: "漏水状态", "zh-Hant": "漏水狀態", en: "Leak Status" }, unit: "", icon: "ph-drop" },
   activePower: { label: { zh: "有功功率", "zh-Hant": "有功功率", en: "Active Power" }, unit: "W", icon: "ph-lightning" },
   current: { label: { zh: "电流", "zh-Hant": "電流", en: "Current" }, unit: "mA", icon: "ph-lightning" },
@@ -260,7 +260,30 @@ const INFLUX_METRICS = {
   powerFactor: { label: { zh: "功率因数", "zh-Hant": "功率因數", en: "Power Factor" }, unit: "%", icon: "ph-gauge" },
   socketStatus: { label: { zh: "插座状态", "zh-Hant": "插座狀態", en: "Socket Status" }, unit: "", icon: "ph-plug" },
   voltage: { label: { zh: "电压", "zh-Hant": "電壓", en: "Voltage" }, unit: "V", icon: "ph-lightning" },
+  windSpeed: { label: { zh: "风速", "zh-Hant": "風速", en: "Wind Speed" }, unit: "m/s", icon: "ph-wind" },
+  windDirection: { label: { zh: "风向", "zh-Hant": "風向", en: "Wind Direction" }, unit: "°", icon: "ph-navigation-arrow" },
+  rainfall: { label: { zh: "降雨量", "zh-Hant": "降雨量", en: "Rainfall" }, unit: "mm", icon: "ph-cloud-rain" },
+  weatherCode: { label: { zh: "天气代码", "zh-Hant": "天氣代碼", en: "Weather Code" }, unit: "", icon: "ph-cloud-sun" },
 };
+
+const SENSOR_GROUPS = [
+  { key: "environment", label: "Environment", tagLabel: "Environment", icon: "ph-thermometer-simple", models: ["AM103", "AM308", "WS302"] },
+  { key: "occupancy", label: "Occupancy", tagLabel: "Occupancy", icon: "ph-user-circle", models: ["VS341"] },
+  { key: "door", label: "Door Contact", tagLabel: "Door Contact", icon: "ph-door-open", models: ["WS301"] },
+  { key: "leak", label: "Leak Detection", tagLabel: "Leak Detection", icon: "ph-drop", models: ["WS303"] },
+  { key: "socket", label: "Smart Socket", tagLabel: "Smart Socket", icon: "ph-plug", models: ["WS523"] },
+  { key: "weather", label: "Weather Station", tagLabel: "Weather Station", icon: "ph-cloud-sun", models: ["WEATHER", "WEATHERSTATION", "WX"] },
+  { key: "other", label: "Other Devices", tagLabel: "Other Devices", icon: "ph-dots-three", models: [] },
+];
+
+function sensorGroupFor(device) {
+  const model = String(device.sensorModel || "").toUpperCase();
+  const metricKeys = new Set(device.metrics?.map((metric) => metric.key));
+  if (["windSpeed", "windDirection", "rainfall", "weatherCode"].some((key) => metricKeys.has(key))) {
+    return SENSOR_GROUPS.find((group) => group.key === "weather");
+  }
+  return SENSOR_GROUPS.find((group) => group.models.includes(model)) || SENSOR_GROUPS.at(-1);
+}
 
 function metricText(metric) {
   return metric.label?.[activeLang] || metric.label?.zh || metric.label?.en || t(metric.labelKey || metric.key);
@@ -273,6 +296,9 @@ function influxDeviceType(model) {
     WS302: { zh: "噪声传感器", "zh-Hant": "噪聲感測器", en: "Noise Sensor" },
     WS303: { zh: "漏水传感器", "zh-Hant": "漏水感測器", en: "Leak Detection Sensor" },
     WS523: { zh: "智能插座", "zh-Hant": "智能插座", en: "Smart Portable Socket" },
+    WEATHER: { zh: "室外气象站", "zh-Hant": "室外氣象站", en: "Outdoor Weather Station" },
+    WEATHERSTATION: { zh: "室外气象站", "zh-Hant": "室外氣象站", en: "Outdoor Weather Station" },
+    WX: { zh: "室外气象站", "zh-Hant": "室外氣象站", en: "Outdoor Weather Station" },
   };
   return types[model] || { zh: "IoT 传感器", "zh-Hant": "IoT 感測器", en: "IoT Sensor" };
 }
@@ -310,13 +336,16 @@ function ensureTelemetryDevice(message) {
     };
     DEVICES.push(device);
     state.snapshots.set(device.id, { deviceId: device.id, status: "unavailable", updatedAt: new Date(), values: {}, trends: {} });
-    elements.deviceCount.textContent = String(DEVICES.length);
   }
   const snapshot = state.snapshots.get(device.id);
   for (const key of Object.keys(message.values || {})) {
     if (!device.metrics.some((metric) => metric.key === key)) device.metrics.push(telemetryMetric(key, message));
     if (!(key in snapshot.values)) snapshot.values[key] = null;
     if (!snapshot.trends[key]) snapshot.trends[key] = [];
+  }
+  if (device.sensorModel === "VS341") {
+    const priority = { occupancy: 0, battery: 1 };
+    device.metrics.sort((a, b) => (priority[a.key] ?? 2) - (priority[b.key] ?? 2));
   }
   return device;
 }
@@ -381,6 +410,7 @@ const elements = {
   devicePanel: document.getElementById("device-panel"),
   devicePanelClose: document.getElementById("device-panel-close"),
   overviewRailClose: document.getElementById("overview-rail-close"),
+  overviewRail: document.querySelector(".dt-overview-rail"),
   wrap: document.getElementById("viewer-wrap"),
   canvas: document.getElementById("twin-canvas"),
   loading: document.getElementById("model-loading"),
@@ -399,7 +429,6 @@ const elements = {
   modelLabel: document.querySelector(".dt-model-name"),
   layerToggles: [...document.querySelectorAll("[data-model-layer]")],
   meshCount: document.getElementById("mesh-count"),
-  deviceCount: document.getElementById("device-count"),
   viewerCard: document.querySelector(".dt-viewer-card"),
   technologyLabel: document.querySelector(".dt-side-footer span"),
   equipmentSearch: document.getElementById("equipment-search"),
@@ -429,6 +458,9 @@ const elements = {
   overviewIndoorTemperature: document.getElementById("overview-indoor-temperature"),
   overviewIndoorHumidity: document.getElementById("overview-indoor-humidity"),
   overviewIndoorCo2: document.getElementById("overview-indoor-co2"),
+  alarmDbStatus: document.getElementById("alarm-db-status"),
+  alarmLoraStatus: document.getElementById("alarm-lora-status"),
+  alarmPanelClose: document.getElementById("alarm-panel-close"),
   reservedTitle: document.getElementById("reserved-title"),
   reservedCopy: document.getElementById("reserved-copy"),
   historyNote: document.getElementById("history-note"),
@@ -446,7 +478,6 @@ const elements = {
 };
 
 elements.modelLabel.textContent = MODEL.label;
-elements.deviceCount.textContent = String(DEVICES.length);
 elements.viewerCard.setAttribute("aria-label", "IFC / Fragments 三维模型");
 if (elements.technologyLabel) elements.technologyLabel.textContent = "WebGL / Three.js / IFC / Fragments";
 
@@ -460,6 +491,7 @@ const state = {
   selectedIfcItem: null,
   equipmentQuery: "",
   assetView: "sensors",
+  sensorGroupFilters: new Set(SENSOR_GROUPS.map((group) => group.key)),
   calibrating: false,
   boundObjects: new Map(),
   markerObjects: new Map(),
@@ -486,6 +518,13 @@ const state = {
   })(),
   renderedDebugMockData: null,
   socketDemandRange: "today",
+  socketDemandHistory: new Map(),
+  socketDemandHistoryLoading: new Set(),
+  alarmFilter: "active",
+  alarmStates: (() => {
+    try { return JSON.parse(localStorage.getItem("zb202-alarm-states") || "{}"); }
+    catch { return {}; }
+  })(),
   iotOpenedFromOverview: true,
   sensorDisplayMode: "labels",
   layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
@@ -1072,8 +1111,9 @@ function normalizedSearchText(value) {
 function visibleDevices() {
   const collection = state.assetView === "mep" ? MEP_COMPONENTS : DEVICES;
   const queryText = normalizedSearchText(state.equipmentQuery);
-  if (!queryText) return collection;
   return collection.filter((device) => {
+    if (state.assetView !== "mep" && !state.sensorGroupFilters.has(sensorGroupFor(device).key)) return false;
+    if (!queryText) return true;
     const searchable = [
       deviceText(device, "name"),
       deviceText(device, "subtitle"),
@@ -1086,8 +1126,40 @@ function visibleDevices() {
   });
 }
 
+function renderSensorCategoryTags() {
+  const container = document.getElementById("sensor-category-tags");
+  if (!container) return;
+  container.hidden = state.assetView === "mep";
+  if (container.hidden) return;
+  const availableGroups = SENSOR_GROUPS.filter((group) => DEVICES.some((device) => sensorGroupFor(device).key === group.key));
+  const allSelected = availableGroups.every((group) => state.sensorGroupFilters.has(group.key));
+  const tags = [{ key: "all", tagLabel: "All sensors", icon: "ph-squares-four", selected: allSelected }, ...availableGroups.map((group) => ({
+    ...group,
+    selected: state.sensorGroupFilters.has(group.key),
+  }))];
+  container.innerHTML = tags.map((group) => `
+    <button type="button" class="dt-sensor-tag${group.selected ? " active" : ""}" data-sensor-group="${group.key}" aria-label="${group.tagLabel}" title="${group.tagLabel}" aria-pressed="${group.selected}">
+      <i class="ph ${group.icon}" aria-hidden="true"></i>
+    </button>
+  `).join("");
+  container.querySelectorAll("[data-sensor-group]").forEach((button) => button.addEventListener("click", () => {
+    const key = button.dataset.sensorGroup;
+    if (key === "all") {
+      const shouldSelectAll = !availableGroups.every((group) => state.sensorGroupFilters.has(group.key));
+      availableGroups.forEach((group) => shouldSelectAll ? state.sensorGroupFilters.add(group.key) : state.sensorGroupFilters.delete(group.key));
+    } else if (state.sensorGroupFilters.has(key)) {
+      state.sensorGroupFilters.delete(key);
+    } else {
+      state.sensorGroupFilters.add(key);
+    }
+    renderDeviceList();
+  }));
+}
+
 function renderDeviceList() {
   elements.deviceList.innerHTML = "";
+  elements.deviceList.classList.toggle("is-grouped", state.assetView !== "mep");
+  renderSensorCategoryTags();
   const matchedDevices = visibleDevices();
   const total = state.assetView === "mep" ? MEP_COMPONENTS.length : DEVICES.length;
   elements.assetListTitle.textContent = state.assetView === "mep" ? "MEP Components" : t("iotSensorsList");
@@ -1101,7 +1173,7 @@ function renderDeviceList() {
     elements.deviceList.appendChild(empty);
     return;
   }
-  for (const device of matchedDevices) {
+  const appendDevice = (device, target = elements.deviceList) => {
     if (state.assetView === "mep") {
       const button = document.createElement("button");
       button.type = "button";
@@ -1120,8 +1192,8 @@ function renderDeviceList() {
         await selectIfcItem(device.binding.localId, device.binding.modelId);
         focusDevice(device).catch((error) => console.error("Failed to focus MEP component", error));
       });
-      elements.deviceList.appendChild(button);
-      continue;
+      target.appendChild(button);
+      return;
     }
     const snapshot = state.snapshots.get(device.id);
     const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id) || state.liveDevices.has(device.id);
@@ -1143,7 +1215,21 @@ function renderDeviceList() {
       selectDevice(device.id, true);
       setDevicePanelOpen(true);
     });
-    elements.deviceList.appendChild(button);
+    target.appendChild(button);
+  };
+  if (state.assetView === "mep") {
+    matchedDevices.forEach((device) => appendDevice(device));
+    return;
+  }
+  for (const group of SENSOR_GROUPS) {
+    const devices = matchedDevices.filter((device) => sensorGroupFor(device).key === group.key);
+    if (!devices.length) continue;
+    const section = document.createElement("section");
+    section.className = "dt-device-group";
+    section.innerHTML = `<header><span>${group.label}</span></header><div class="dt-device-group-list"></div>`;
+    const list = section.querySelector(".dt-device-group-list");
+    devices.sort((a, b) => a.id.localeCompare(b.id)).forEach((device) => appendDevice(device, list));
+    elements.deviceList.appendChild(section);
   }
 }
 
@@ -1180,6 +1266,14 @@ function demandTimeLabel(time) {
   return date.toLocaleDateString(activeLocale(), { month: "short", day: "numeric" });
 }
 
+function requestSocketDemandHistory(range = state.socketDemandRange) {
+  if (state.debugMockData || state.socketDemandHistoryLoading.has(range)) return;
+  const socket = state.influxSocket;
+  if (!socket || socket.readyState !== WebSocket.OPEN) return;
+  state.socketDemandHistoryLoading.add(range);
+  socket.send(JSON.stringify({ type: "demand-history-request", range }));
+}
+
 function renderSocketDemandChart(mock) {
   const chart = document.querySelector(".dt-demand-chart");
   const mockRanges = {
@@ -1193,10 +1287,14 @@ function renderSocketDemandChart(mock) {
     button.setAttribute("aria-pressed", String(active));
     button.disabled = false;
   });
-  const liveSeries = mock ? [] : liveSocketDemandSeries();
+  const requestedSeries = state.socketDemandHistory.get(state.socketDemandRange);
+  const liveSeries = mock
+    ? []
+    : requestedSeries || (state.socketDemandRange === "today" ? liveSocketDemandSeries() : []);
   if (!mock && !liveSeries.length) {
-    chart.innerHTML = '<text class="dt-demand-empty" x="150" y="52" text-anchor="middle">Waiting for power history</text>';
-    chart.setAttribute("aria-label", "Waiting for InfluxDB electrical demand history");
+    const loading = state.socketDemandHistoryLoading.has(state.socketDemandRange);
+    chart.innerHTML = `<text class="dt-demand-empty" x="150" y="52" text-anchor="middle">${loading ? "Loading power history…" : "No power history for this range"}</text>`;
+    chart.setAttribute("aria-label", loading ? "Loading InfluxDB electrical demand history" : "No InfluxDB electrical demand history for this range");
     return;
   }
   const values = mock ? mockRanges[state.socketDemandRange].values : liveSeries.map((sample) => sample.value);
@@ -1227,7 +1325,7 @@ function renderSocketDemandChart(mock) {
     <g class="dt-demand-grid">${ticks.map((tick) => `<line x1="${left}" y1="${y(tick)}" x2="${right}" y2="${y(tick)}"></line><text x="${left - 5}" y="${y(tick) + 3}" text-anchor="end">${formatTick(tick)}</text>`).join("")}</g>
     <path class="dt-demand-area" d="${line} L${right} ${bottom} L${left} ${bottom} Z"></path>
     <path class="dt-demand-line" d="${line}"></path>
-    <g class="dt-demand-points">${points.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.2"></circle>`).join("")}</g>
+    <g class="dt-demand-points">${points.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="1.7"></circle>`).join("")}</g>
     <g class="dt-demand-axis"><text x="${left}" y="96" text-anchor="start">${labels[0]}</text><text x="${(left + right) / 2}" y="96" text-anchor="middle">${labels[1]}</text><text x="${right}" y="96" text-anchor="end">${labels[2]}</text></g>
   `;
   chart.setAttribute("aria-label", `${state.socketDemandRange} ${mock ? "virtual" : "InfluxDB"} electrical demand trend`);
@@ -1282,7 +1380,7 @@ function renderDebugDashboardData() {
   const outdoorMockLines = [
     '<strong>31.8<small>°C</small></strong><em>Apparent 36°</em>',
     '<strong>68<small>%</small></strong>',
-    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas><em>4.2 m/s</em></strong>',
+    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><em>4.2 m/s</em><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas></strong>',
     '<strong class="weather">Rainy</strong>',
   ];
   document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => {
@@ -1379,14 +1477,23 @@ function renderSiteOverview() {
   const temperature = average(metricValues(["temperature", "supplyTemperature"]));
   const humidity = average(metricValues(["humidity"]));
   const co2 = average(metricValues(["co2"]));
-  elements.siteTemperature.textContent = temperature === null ? "—" : `${formatNumber(temperature)} °C`;
-  elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
-  elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
-  const occupancySnapshots = snapshots.filter((snapshot) => Number.isFinite(snapshot.values.occupancy));
+  if (elements.siteTemperature) elements.siteTemperature.textContent = temperature === null ? "—" : `${formatNumber(temperature)} °C`;
+  if (elements.siteHumidity) elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
+  if (elements.siteCo2) elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
+  const occupancyDevices = DEVICES.filter((device) => device.sensorModel === "VS341");
+  const occupancySnapshots = occupancyDevices.map((device) => state.snapshots.get(device.id)).filter((snapshot) => {
+    const lastLiveAt = state.lastLiveAt.get(snapshot?.deviceId);
+    return state.influxConnected && Number.isFinite(snapshot?.values.occupancy)
+      && Number.isFinite(lastLiveAt) && Date.now() - lastLiveAt <= INFLUX_STALE_AFTER_MS;
+  });
   const occupiedCount = occupancySnapshots.reduce((sum, snapshot) => sum + (snapshot.values.occupancy > 0 ? 1 : 0), 0);
-  elements.siteOccupants.textContent = state.debugMockData
-    ? `${DEBUG_OCCUPIED_SEATS.size} / 12`
-    : occupancySnapshots.length ? `${occupiedCount} / ${occupancySnapshots.length}` : "—";
+  const unknownOccupancyCount = occupancyDevices.length - occupancySnapshots.length;
+  if (elements.siteOccupants) {
+    elements.siteOccupants.textContent = state.debugMockData
+      ? `${DEBUG_OCCUPIED_SEATS.size} / 12`
+      : occupancySnapshots.length ? `${occupiedCount} / ${occupancySnapshots.length}` : "—";
+    elements.siteOccupants.title = state.debugMockData ? "" : `${occupancySnapshots.length} recent readings; ${unknownOccupancyCount} unconfirmed`;
+  }
 
   const sourceDeviceId = "AM103-07";
   const sourceSnapshot = state.snapshots.get(sourceDeviceId);
@@ -1411,7 +1518,29 @@ function renderSiteOverview() {
     ];
   document.querySelectorAll(".dt-indoor-grid .dt-metric-line strong").forEach((element, index) => {
     if (index >= 3) element.textContent = extraIndoorValues[index - 3];
+    if (index === 5) element.title = state.debugMockData ? "" : `${occupancySnapshots.length} recent readings; ${unknownOccupancyCount} unconfirmed`;
   });
+
+  if (!state.debugMockData) {
+    const weatherDevice = DEVICES.find((device) => sensorGroupFor(device).key === "weather");
+    const weatherSnapshot = weatherDevice ? state.snapshots.get(weatherDevice.id) : null;
+    const weatherValues = weatherSnapshot?.values || {};
+    const weatherUpdatedAt = weatherDevice ? state.lastLiveAt.get(weatherDevice.id) : null;
+    const weatherFresh = state.influxConnected && Number.isFinite(weatherUpdatedAt)
+      && Date.now() - weatherUpdatedAt <= INFLUX_STALE_AFTER_MS;
+    const weatherCode = Number(weatherValues.weatherCode);
+    const weatherLabels = { 0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 51: "Drizzle", 61: "Rain", 63: "Moderate rain", 65: "Heavy rain", 80: "Rain showers", 95: "Thunderstorm" };
+    const weatherLines = [
+      weatherFresh && Number.isFinite(weatherValues.temperature) ? `<strong>${formatNumber(weatherValues.temperature)}<small>°C</small></strong>` : "<strong>—</strong>",
+      weatherFresh && Number.isFinite(weatherValues.humidity) ? `<strong>${formatNumber(weatherValues.humidity)}<small>%</small></strong>` : "<strong>—</strong>",
+      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)} m/s</em><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas></strong>` : "<strong>—</strong>",
+      weatherFresh && (Number.isFinite(weatherValues.weatherCode) || (Number.isFinite(weatherValues.rainfall) && weatherValues.rainfall > 0))
+        ? `<strong class="weather">${weatherLabels[weatherCode] || "Rain"}</strong>` : "<strong>—</strong>",
+    ];
+    document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => { line.innerHTML = weatherLines[index]; });
+    const windCanvas = document.querySelector(".dt-outdoor-grid .dt-wind-barb");
+    if (windCanvas) drawWindBarb(windCanvas, Number(weatherValues.windDirection) || 0, Number(weatherValues.windSpeed) || 0);
+  }
 
   if (!state.debugMockData) {
     const socketDevices = DEVICES.filter((device) => device.sensorModel === "WS523").sort((a, b) => a.id.localeCompare(b.id));
@@ -1439,7 +1568,7 @@ function renderSiteOverview() {
 
     const online = DEVICES.filter((device) => state.snapshots.get(device.id)?.status === "normal").length;
     const fault = DEVICES.filter((device) => state.snapshots.get(device.id)?.status === "fault").length;
-    const offline = Math.max(0, DEVICES.length - online - fault);
+    const offline = DEVICES.filter((device) => ["offline", "unavailable"].includes(state.snapshots.get(device.id)?.status)).length;
     const batteries = snapshots.map((snapshot) => snapshot.values.battery).filter(Number.isFinite);
     const healthData = {
       sensor: [online, offline, fault],
@@ -1452,17 +1581,48 @@ function renderSiteOverview() {
       drawDonutChart(chart.querySelector("canvas"), values, healthColors[chart.dataset.healthChart]);
     });
 
+    const now = Date.now();
+    const freshDevices = DEVICES.filter((device) => {
+      const at = state.lastLiveAt.get(device.id);
+      return Number.isFinite(at) && now - at <= INFLUX_STALE_AFTER_MS;
+    });
+    const setConnectionStatus = (element, connected, detail) => {
+      if (!element) return;
+      element.classList.toggle("online", connected);
+      element.classList.toggle("offline", !connected);
+      element.title = detail;
+    };
+    setConnectionStatus(elements.alarmDbStatus, state.influxConnected, state.influxConnected ? "InfluxDB connected" : "InfluxDB disconnected");
+    setConnectionStatus(elements.alarmLoraStatus, freshDevices.length > 0, `${freshDevices.length}/${DEVICES.length} devices reporting within 15 minutes`);
+
     const alarms = [];
+    const addAlarm = (type, level, title, device, detail) => alarms.push({ id: `${type}:${device.id}`, type, level, title, deviceId: device.id, detail });
     for (const device of DEVICES) {
       const values = state.snapshots.get(device.id)?.values || {};
-      if (values.leakageStatus > 0) alarms.push(["critical", "Water leakage detected", device.id]);
-      if (values.tamperStatus > 0) alarms.push(["critical", "Sensor tamper detected", device.id]);
-      if (Number.isFinite(values.battery) && values.battery < 20) alarms.push(["warning", "Battery replacement required", device.id]);
+      if (values.magnetStatus > 0) addAlarm("door", "critical", "Door contact opened", device, "Door magnetic contact alarm");
+      if (values.leakageStatus > 0) addAlarm("leak", "critical", "Water leakage detected", device, "Leak detector alarm");
+      if (values.tamperStatus > 0) addAlarm("tamper", "critical", "Sensor tamper detected", device, "Device enclosure or installation changed");
+      if (Number.isFinite(values.battery) && values.battery < 20) addAlarm("battery", "warning", "Battery replacement required", device, `${formatNumber(values.battery)}% remaining`);
+      if (device.sensorModel === "WS523" && Number.isFinite(values.activePower) && values.activePower > 2500) addAlarm("socket-load", "critical", "Socket load exceeds threshold", device, `${formatNumber(values.activePower)} W`);
+      if (device.sensorModel === "WS523" && Number.isFinite(values.voltage) && (values.voltage < 200 || values.voltage > 250)) addAlarm("socket-voltage", "warning", "Socket voltage abnormal", device, `${formatNumber(values.voltage)} V`);
     }
+    if (!state.influxConnected) alarms.unshift({ id: "connection:database", type: "connection", level: "critical", title: "InfluxDB connection lost", deviceId: "Data service", detail: "Telemetry and history are unavailable" });
+    const withState = alarms.map((alarm) => ({ ...alarm, state: state.alarmStates[alarm.id] || "active" }));
+    const filtered = withState.filter((alarm) => state.alarmFilter === "all" || alarm.state === state.alarmFilter);
     const alertList = document.querySelector(".dt-alert-list");
-    alertList.innerHTML = alarms.map(([level, title, id]) => `
-      <button type="button" class="${level}"><i class="ph ph-warning-circle"></i><span><strong>${title}</strong><small>${id} · InfluxDB live data</small></span></button>
-    `).join("");
+    alertList.innerHTML = filtered.length ? filtered.map((alarm) => `
+      <article class="dt-alert-item ${alarm.level} ${alarm.state}" data-alarm-id="${alarm.id}">
+        <i class="ph ${alarm.type === "battery" ? "ph-battery-warning" : alarm.type.startsWith("socket") ? "ph-plug" : alarm.type === "door" ? "ph-door-open" : alarm.type === "leak" ? "ph-drop" : "ph-warning-circle"}"></i>
+        <span><strong>${alarm.title}</strong><small>${alarm.deviceId} · ${alarm.detail}</small></span>
+        <button type="button" data-alarm-action="${alarm.state === "active" ? "acknowledged" : "active"}">${alarm.state === "active" ? "Acknowledge" : "Reopen"}</button>
+      </article>
+    `).join("") : `<p class="dt-alert-empty">No ${state.alarmFilter === "all" ? "current" : state.alarmFilter} alarms</p>`;
+    alertList.querySelectorAll("[data-alarm-action]").forEach((button) => button.addEventListener("click", () => {
+      const item = button.closest("[data-alarm-id]");
+      state.alarmStates[item.dataset.alarmId] = button.dataset.alarmAction;
+      localStorage.setItem("zb202-alarm-states", JSON.stringify(state.alarmStates));
+      renderSiteOverview();
+    }));
     alertList.setAttribute("aria-label", alarms.length ? `${alarms.length} live alarms` : "No active InfluxDB alarms");
   }
 }
@@ -1546,8 +1706,8 @@ function renderMetricTrend(snapshot, chart, metric) {
   chart.value.innerHTML = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>`;
   chart.line.setAttribute("d", paths.line);
   chart.area.setAttribute("d", paths.area);
-  chart.points.innerHTML = paths.points.map(([x, y], index) => `
-    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${index === paths.points.length - 1 ? 4.5 : 3.2}"></circle>
+  chart.points.innerHTML = paths.points.map(([x, y]) => `
+    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"></circle>
   `).join("");
   chart.grid.innerHTML = paths.ticks.map((tick) => `
     <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
@@ -1597,6 +1757,7 @@ function renderSelectedDevice() {
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id) || state.liveDevices.has(device.id);
   const displayStatus = bound ? snapshot.status : "unavailable";
   const presentedStatus = presentationStatus(displayStatus);
+  const occupancyMetric = device.sensorModel === "VS341";
 
   elements.deviceName.textContent = deviceText(device, "name");
   elements.deviceName.title = elements.deviceName.textContent;
@@ -1613,7 +1774,7 @@ function renderSelectedDevice() {
     <div class="dt-metric" data-metric="${metric.key}" role="group" aria-label="${metricText(metric)}" title="${metricText(metric)}">
       <i class="ph ${metric.icon || INFLUX_METRICS[metric.key]?.icon || "ph-chart-line"} dt-metric-icon" aria-hidden="true"></i>
       <span>${metricText(metric)}</span>
-      <strong>${Number.isFinite(snapshot.values[metric.key]) ? `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
+      <strong>${Number.isFinite(snapshot.values[metric.key]) ? metric.key === "occupancy" && occupancyMetric ? (snapshot.values[metric.key] > 0 ? "1" : "0") : `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
   `).join("");
 
@@ -1622,7 +1783,7 @@ function renderSelectedDevice() {
   const selectedRangeLabel = state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange;
   elements.historyNote.textContent = t("readingsInRange", { count: primarySamples.length, range: selectedRangeLabel });
   elements.updatedAt.textContent = state.lastLiveAt.has(device.id)
-    ? snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false })
+    ? occupancyMetric ? snapshot.updatedAt.toLocaleString(activeLocale(), { hour12: false }) : snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false })
     : "—";
   elements.faultButtonText.textContent = snapshot.status === "fault" ? t("restoreNormal") : t("simulateFault");
   elements.faultToggle.classList.toggle("is-recovery", snapshot.status === "fault");
@@ -1807,8 +1968,8 @@ function updateDeviceConnectivity() {
     const nextStatus = databaseOffline
       ? "unavailable"
       : deviceStale
-        ? "offline"
-        : snapshot.status === "offline" || snapshot.status === "unavailable" ? "normal" : snapshot.status;
+        ? device.sensorModel === "VS341" ? "normal" : "offline"
+        : ["offline", "unavailable"].includes(snapshot.status) ? "normal" : snapshot.status;
     if (snapshot.status !== nextStatus) {
       snapshot.status = nextStatus;
       changed = true;
@@ -1841,6 +2002,17 @@ function connectInfluxBridge() {
       }
       updateDeviceConnectivity();
       renderUI();
+      if (state.influxConnected) requestSocketDemandHistory(state.socketDemandRange);
+      return;
+    }
+    if (message.type === "demand-history") {
+      const range = ["today", "7d", "30d"].includes(message.range) ? message.range : "today";
+      state.socketDemandHistoryLoading.delete(range);
+      const samples = (message.samples || [])
+        .map((sample) => ({ time: Date.parse(sample.time), value: Number(sample.value) }))
+        .filter((sample) => Number.isFinite(sample.time) && Number.isFinite(sample.value));
+      state.socketDemandHistory.set(range, samples);
+      renderSocketDemandChart(state.debugMockData);
       return;
     }
     if (message.type === "control-status") {
@@ -2011,7 +2183,6 @@ async function finalizeFederatedModel(componentCount) {
   const initialDevice = DEVICES.find((device) => device.id.toUpperCase() === requestedSensorId) || DEVICES[0];
   state.selectedDeviceId = initialDevice?.id || null;
   state.selectedItem = initialDevice?.ifc || null;
-  elements.deviceCount.textContent = String(DEVICES.length);
   addGrid();
   fitCameraToModel(false);
   await fragments.update(true);
@@ -2207,7 +2378,16 @@ document.querySelectorAll(".dt-socket-grid input[data-socket-device]").forEach((
 document.querySelectorAll("[data-demand-range]").forEach((button) => {
   button.addEventListener("click", () => {
     state.socketDemandRange = button.dataset.demandRange;
+    requestSocketDemandHistory(state.socketDemandRange);
     renderSocketDemandChart(state.debugMockData);
+  });
+});
+
+document.querySelectorAll("[data-alarm-filter]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.alarmFilter = button.dataset.alarmFilter;
+    document.querySelectorAll("[data-alarm-filter]").forEach((item) => item.classList.toggle("active", item === button));
+    renderSiteOverview();
   });
 });
 
@@ -2230,6 +2410,7 @@ window.addEventListener("storage", (event) => {
 function setPlatformView(view) {
   if (view === "bms") return;
   const workspace = elements.wrap.closest(".dt-workspace");
+  workspace.classList.toggle("alarm-focus", view === "alerts");
   if (view === "overview") {
     const overviewButton = document.querySelector('[data-view="overview"]');
     const isCurrentView = overviewButton?.classList.contains("active");
@@ -2238,6 +2419,7 @@ function setPlatformView(view) {
     // the Overview dashboard; otherwise both layouts remain mounted together.
     const wasSensorRailOpen = workspace.classList.contains("right-panel-open");
     workspace.classList.remove("right-panel-open");
+    elements.overviewRail.setAttribute("aria-hidden", "true");
     if (elements.devicePanel.classList.contains("is-open")) {
       setDevicePanelOpen(false);
       setDashboardPanelsVisible(true);
@@ -2254,13 +2436,18 @@ function setPlatformView(view) {
     }
     if (elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
     workspace.classList.toggle("right-panel-open", opening);
+    elements.overviewRail.setAttribute("aria-hidden", String(!opening));
     setDashboardPanelsVisible(opening ? false : state.iotOpenedFromOverview);
     setActivePlatformView(opening ? "sensors" : state.iotOpenedFromOverview ? "overview" : null);
   } else if (view === "ai") {
+    workspace.classList.remove("right-panel-open");
+    elements.overviewRail.setAttribute("aria-hidden", "true");
     setDevicePanelOpen(false);
     setDashboardPanelsVisible(true);
     document.querySelector(".dt-ai-card")?.scrollIntoView({ block: "nearest" });
   } else if (view === "alerts") {
+    workspace.classList.remove("right-panel-open");
+    elements.overviewRail.setAttribute("aria-hidden", "true");
     setDevicePanelOpen(false);
     setDashboardPanelsVisible(true);
     document.querySelector(".dt-alert-card")?.scrollIntoView({ block: "nearest" });
@@ -2273,8 +2460,10 @@ function setPlatformView(view) {
 
 elements.viewButtons.forEach((button) => button.addEventListener("click", () => setPlatformView(button.dataset.view)));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
+elements.alarmPanelClose.addEventListener("click", () => setPlatformView("overview"));
 elements.overviewRailClose.addEventListener("click", () => {
   elements.wrap.closest(".dt-workspace").classList.remove("right-panel-open");
+  elements.overviewRail.setAttribute("aria-hidden", "true");
   setDevicePanelOpen(false);
   setDashboardPanelsVisible(state.iotOpenedFromOverview);
   setActivePlatformView(state.iotOpenedFromOverview ? "overview" : null);

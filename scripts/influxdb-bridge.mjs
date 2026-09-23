@@ -12,6 +12,9 @@ const deviceColumn = process.env.ZB202_INFLUX_DEVICE_COLUMN || "devEui";
 const pollIntervalMs = Math.max(2000, Number(process.env.ZB202_INFLUX_POLL_INTERVAL_MS || 10000));
 const pollLookback = process.env.ZB202_INFLUX_POLL_LOOKBACK || "-15m";
 const historyRange = process.env.ZB202_INFLUX_HISTORY_RANGE || "-24h";
+const weatherBucket = process.env.ZB202_WEATHER_INFLUX_BUCKET || "";
+const weatherMeasurement = process.env.ZB202_WEATHER_INFLUX_MEASUREMENT || "";
+const weatherToken = process.env.ZB202_WEATHER_INFLUX_TOKEN || token;
 const websocketHost = process.env.ZB202_INFLUX_BRIDGE_HOST || "127.0.0.1";
 const websocketPort = Number(process.env.ZB202_INFLUX_BRIDGE_PORT || 8787);
 const bridgeStartedAt = new Date().toISOString();
@@ -35,6 +38,7 @@ if (missing.length) {
 }
 
 const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
+const weatherQueryApi = weatherBucket ? new InfluxDB({ url, token: weatherToken }).getQueryApi(org) : null;
 const websocketServer = new WebSocketServer({ host: websocketHost, port: websocketPort });
 const historyByDevice = new Map();
 const seenRows = new Set();
@@ -92,6 +96,48 @@ function buildInventoryQuery() {
   return `from(bucket: ${fluxString(bucket)})
   |> range(start: 0)${measurementFilter}
   |> last()`;
+}
+
+function buildWeatherQuery(range) {
+  const measurementFilter = weatherMeasurement
+    ? `\n  |> filter(fn: (r) => r._measurement == ${fluxString(weatherMeasurement)})`
+    : `\n  |> filter(fn: (r) => r._measurement =~ /(?i:weather|outdoor|meteorological|aws|wx)/)`;
+  return `from(bucket: ${fluxString(weatherBucket)})
+  |> range(start: ${range})${measurementFilter}
+  |> sort(columns: ["_time"])
+  |> tail(n: 96)`;
+}
+
+function demandRangeConfig(range) {
+  if (range === "7d") return { start: "-7d", every: "30m" };
+  if (range === "30d") return { start: "-30d", every: "2h" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return { start: `time(v: ${fluxString(today.toISOString())})`, every: "5m" };
+}
+
+function buildDemandHistoryQuery(range) {
+  const { start, every } = demandRangeConfig(range);
+  return `from(bucket: ${fluxString(bucket)})
+  |> range(start: ${start})
+  |> filter(fn: (r) => r._field =~ /(?i:^active[_ -]?power$)/)
+  |> aggregateWindow(every: ${every}, fn: mean, createEmpty: false)
+  |> group(columns: ["_time"])
+  |> sum(column: "_value")
+  |> sort(columns: ["_time"])`;
+}
+
+async function sendDemandHistory(socket, requestedRange) {
+  const range = ["today", "7d", "30d"].includes(requestedRange) ? requestedRange : "today";
+  try {
+    const rows = await queryApi.collectRows(buildDemandHistoryQuery(range));
+    const samples = rows
+      .map((row) => ({ time: row._time, value: Number(row._value) / 1000 }))
+      .filter((sample) => Number.isFinite(Date.parse(sample.time)) && Number.isFinite(sample.value));
+    send(socket, { type: "demand-history", range, samples });
+  } catch (error) {
+    send(socket, { type: "demand-history", range, samples: [], error: error.message });
+  }
 }
 
 function send(socket, message) {
@@ -192,6 +238,11 @@ function normalizeField(field) {
     noiselaimaxdb: ["noiseLaiMax", "dB(A)"], leakagestatus: ["leakageStatus", ""],
     activepower: ["activePower", "W"], current: ["current", "mA"], powerconsumption: ["powerConsumption", "Wh"],
     powerfactor: ["powerFactor", "%"], socketstatus: ["socketStatus", ""], voltage: ["voltage", "V"],
+    windspeed: ["windSpeed", "m/s"], windspeedms: ["windSpeed", "m/s"], windspeedmps: ["windSpeed", "m/s"],
+    winddirection: ["windDirection", "°"], winddirectiondeg: ["windDirection", "°"], winddir: ["windDirection", "°"],
+    winddirction: ["windDirection", "°"],
+    rainfall: ["rainfall", "mm"], rainfallmm: ["rainfall", "mm"], precipitation: ["rainfall", "mm"],
+    weathercode: ["weatherCode", ""], conditioncode: ["weatherCode", ""],
   };
   const known = knownFields[compact];
   if (known) return { key: known[0], unit: known[1], sourceField: rawField };
@@ -230,14 +281,22 @@ async function poll() {
     const range = hasLoadedHistory ? pollLookback : historyRange;
     const recentRows = await queryApi.collectRows(buildQuery(range));
     const inventoryRows = hasLoadedHistory ? [] : await queryApi.collectRows(buildInventoryQuery());
-    const rows = [...inventoryRows, ...recentRows];
+    let weatherRows = [];
+    if (weatherQueryApi) {
+      try {
+        weatherRows = await weatherQueryApi.collectRows(buildWeatherQuery(range));
+      } catch (error) {
+        console.error(`[Weather] ${error.message}`);
+      }
+    }
+    const rows = [...inventoryRows, ...recentRows, ...weatherRows];
     const changedTelemetry = new Set();
     for (const row of rows) {
       const telemetry = acceptRow(row);
       if (telemetry) changedTelemetry.add(telemetry);
     }
     for (const telemetry of changedTelemetry) broadcast(telemetry);
-    if (!databaseConnected) console.log(`[InfluxDB] Connected to ${url}; loaded ${rows.length} rows from ${bucket}`);
+    if (!databaseConnected) console.log(`[InfluxDB] Connected to ${url}; loaded ${rows.length} rows from ${bucket}${weatherBucket ? ` + ${weatherBucket}` : ""}`);
     hasLoadedHistory = true;
     updateDatabaseStatus(true);
   } catch (error) {
@@ -256,6 +315,7 @@ websocketServer.on("connection", (socket) => {
     let message;
     try { message = JSON.parse(data.toString()); } catch { return; }
     if (message.type === "socket-control") enqueueSocketControl(socket, message);
+    if (message.type === "demand-history-request") void sendDemandHistory(socket, message.range);
   });
 });
 

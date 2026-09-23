@@ -157,7 +157,14 @@
         </section>
 
         <section class="dt-dashboard-card dt-alert-card">
-          <header class="dt-simple-heading"><h2>Alarm</h2></header>
+          <header class="dt-simple-heading dt-alarm-heading">
+            <div><h2>Alarm</h2><p>Connectivity, battery &amp; safety</p></div>
+            <div class="dt-connection-status" aria-label="Service connection status">
+              <span id="alarm-db-status" class="offline"><i></i>Database</span>
+              <span id="alarm-lora-status" class="offline"><i></i>LoRa</span>
+            </div>
+            <button class="dt-panel-close dt-alarm-close" id="alarm-panel-close" type="button" aria-label="Close alarm panel"><i class="ph ph-x" aria-hidden="true"></i></button>
+          </header>
           <div class="dt-health-summary">
             <article class="dt-health-chart" data-health-chart="sensor">
               <h3>Sensor status</h3>
@@ -171,7 +178,14 @@
             </article>
           </div>
           <div class="dt-alarm-information">
-            <h3>Alarm information</h3>
+            <div class="dt-alarm-list-heading">
+              <h3>Alarm information</h3>
+              <div class="dt-alarm-filters" role="group" aria-label="Alarm filter">
+                <button type="button" class="active" data-alarm-filter="active">Active</button>
+                <button type="button" data-alarm-filter="acknowledged">Acknowledged</button>
+                <button type="button" data-alarm-filter="all">All</button>
+              </div>
+            </div>
             <div class="dt-alert-list" aria-label="No InfluxDB alert data"></div>
           </div>
         </section>
@@ -179,12 +193,12 @@
 
       <aside class="dt-dashboard-rail dt-dashboard-right" id="dashboard-right" aria-label="Environment and AHU status">
         <section class="dt-dashboard-card dt-outdoor-card">
-          <header class="dt-card-heading"><div><p>Local weather station</p><h2>Outdoor Environment</h2><span>ZB202 · North facade</span></div></header>
+          <header class="dt-card-heading"><div><p>Hong Kong weather feed</p><h2>Outdoor Environment</h2><span>Latest observation</span></div></header>
           <div class="dt-outdoor-grid">
             <div><i class="ph ph-thermometer-simple"></i><span>Dry-bulb temperature</span><div class="dt-metric-line"><strong>—</strong></div></div>
             <div><i class="ph ph-drop"></i><span>Relative humidity</span><div class="dt-metric-line"><strong>—</strong></div></div>
             <div><i class="ph ph-wind"></i><span>Wind</span><div class="dt-metric-line"><strong>—</strong></div></div>
-            <div><i class="ph ph-cloud-rain"></i><span>Weather</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-cloud"></i><span>Weather</span><div class="dt-metric-line"><strong>—</strong></div></div>
           </div>
         </section>
 
@@ -193,9 +207,9 @@
           <div class="dt-indoor-grid">
             <div><i class="ph ph-thermometer-simple"></i><span>Temperature</span><div class="dt-metric-line"><strong id="overview-indoor-temperature">—</strong></div></div>
             <div><i class="ph ph-drop"></i><span>Relative humidity</span><div class="dt-metric-line"><strong id="overview-indoor-humidity">—</strong></div></div>
-            <div><i class="ph ph-wind"></i><span>CO₂ concentration</span><div class="dt-metric-line"><strong id="overview-indoor-co2">—</strong></div></div>
-            <div><i class="ph ph-cloud"></i><span>PM₂.₅</span><div class="dt-metric-line"><strong>—</strong></div></div>
-            <div><i class="ph ph-speaker-high"></i><span>Sound pressure level</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-atom"></i><span>CO₂ concentration</span><div class="dt-metric-line"><strong id="overview-indoor-co2">—</strong></div></div>
+            <div><i class="ph ph-circles-three"></i><span>PM₂.₅</span><div class="dt-metric-line"><strong>—</strong></div></div>
+            <div><i class="ph ph-waveform"></i><span>Sound pressure level</span><div class="dt-metric-line"><strong>—</strong></div></div>
             <div><i class="ph ph-users-three"></i><span>Occupancy</span><div class="dt-metric-line"><strong>—</strong></div></div>
           </div>
         </section>
@@ -213,22 +227,10 @@
       </aside>
 
       <aside class="dt-overview-rail dt-runtime-data" aria-label="平台概览" aria-hidden="true">
-        <section class="dt-rail-card" id="site-overview-card">
-          <header>
-            <div class="dt-site-title"><h2 data-i18n="siteOverview">场地概览</h2><span class="dt-count hidden" id="device-count" aria-hidden="true">0</span></div>
-            <button class="dt-panel-close" id="overview-rail-close" type="button" aria-label="关闭概览面板" data-i18n-aria="closeOverviewPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
-          </header>
-          <div class="dt-site-grid">
-            <div><span data-i18n="siteTemperature">温度</span><strong id="site-temperature">—</strong></div>
-            <div><span data-i18n="siteHumidity">湿度</span><strong id="site-humidity">—</strong></div>
-            <div><span data-i18n="siteCo2">CO₂</span><strong id="site-co2">—</strong></div>
-            <div><span data-i18n="occupants">人数</span><strong id="site-occupants">—</strong></div>
-          </div>
-        </section>
-
         <section class="dt-rail-card dt-sensor-card" id="sensor-list-card">
           <header>
             <div class="dt-sensor-title"><h2 id="asset-list-title" data-i18n="iotSensorsList">IoT 传感器列表</h2></div>
+            <button class="dt-panel-close" id="overview-rail-close" type="button" aria-label="关闭概览面板" data-i18n-aria="closeOverviewPanel"><i class="ph ph-x" aria-hidden="true"></i></button>
           </header>
           <div class="dt-sensor-toolbar">
             <div class="dt-equipment-search"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="equipment-search" type="search" autocomplete="off" placeholder="搜索" aria-label="搜索 IFC 设备" data-i18n-placeholder="searchEquipmentPlaceholder" data-i18n-aria="searchEquipmentAria" /></div>
@@ -237,6 +239,7 @@
               <button type="button" role="tab" aria-selected="false" data-asset-view="mep"><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></button>
             </div>
           </div>
+          <div class="dt-sensor-tags" id="sensor-category-tags" role="group" aria-label="Filter sensors by category"></div>
           <section class="dt-device-list" id="device-list" aria-label="IFC 设备列表" data-i18n-aria="deviceListAria"></section>
         </section>
 
