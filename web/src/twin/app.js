@@ -218,6 +218,7 @@ const STATUS = {
 };
 
 const INFLUX_STALE_AFTER_MS = 15 * 60 * 1000;
+const PANEL_TRANSITION_MS = 150;
 const MAX_SEEN_TELEMETRY = 5000;
 const SOCKET_CONTROL_TIMEOUT_MS = 60000;
 
@@ -1380,13 +1381,12 @@ function renderDebugDashboardData() {
   const outdoorMockLines = [
     '<strong>31.8<small>°C</small></strong><em>Apparent 36°</em>',
     '<strong>68<small>%</small></strong>',
-    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><em>4.2 m/s</em><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas></strong>',
+    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><em>4.2 m/s</em><i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:112.5deg" aria-hidden="true"></i></strong>',
     '<strong class="weather">Rainy</strong>',
   ];
   document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => {
     line.innerHTML = mock ? outdoorMockLines[index] : "<strong>—</strong>";
   });
-  if (mock) drawWindBarb(document.querySelector(".dt-wind-barb"), 112.5, 4.2);
 
   const ahuValues = mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
   document.querySelectorAll(".dt-ahu-control strong, .dt-air-readings strong").forEach((element, index) => { element.textContent = ahuValues[index]; });
@@ -1432,37 +1432,6 @@ function drawDonutChart(canvas, values, colors) {
     context.stroke();
     start = end;
   });
-}
-
-function drawWindBarb(canvas, directionDegrees, speedMetresPerSecond) {
-  const context = canvas.getContext("2d");
-  const density = Math.min(window.devicePixelRatio || 1, 2);
-  const size = 28;
-  canvas.width = size * density;
-  canvas.height = size * density;
-  canvas.style.width = `${size}px`;
-  canvas.style.height = `${size}px`;
-  context.scale(density, density);
-  context.clearRect(0, 0, size, size);
-  context.save();
-  context.translate(size / 2, size / 2);
-  context.rotate((directionDegrees * Math.PI) / 180);
-  context.strokeStyle = "#2f7df4";
-  context.lineWidth = 1.8;
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.beginPath();
-  context.moveTo(0, 10);
-  context.lineTo(0, -10);
-  context.moveTo(0, -9);
-  context.lineTo(7, -4);
-  if (speedMetresPerSecond >= 2.5) {
-    const featherLength = speedMetresPerSecond >= 5 ? 7 : 4.5;
-    context.moveTo(0, -5);
-    context.lineTo(featherLength, -1);
-  }
-  context.stroke();
-  context.restore();
 }
 
 function renderSiteOverview() {
@@ -1529,17 +1498,20 @@ function renderSiteOverview() {
     const weatherFresh = state.influxConnected && Number.isFinite(weatherUpdatedAt)
       && Date.now() - weatherUpdatedAt <= INFLUX_STALE_AFTER_MS;
     const weatherCode = Number(weatherValues.weatherCode);
+    const windDirection = Number(weatherValues.windDirection);
+    const hasWindDirection = Number.isFinite(weatherValues.windDirection);
+    const windArrow = hasWindDirection
+      ? `<i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:${windDirection}deg" aria-hidden="true"></i>`
+      : "";
     const weatherLabels = { 0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 51: "Drizzle", 61: "Rain", 63: "Moderate rain", 65: "Heavy rain", 80: "Rain showers", 95: "Thunderstorm" };
     const weatherLines = [
       weatherFresh && Number.isFinite(weatherValues.temperature) ? `<strong>${formatNumber(weatherValues.temperature)}<small>°C</small></strong>` : "<strong>—</strong>",
       weatherFresh && Number.isFinite(weatherValues.humidity) ? `<strong>${formatNumber(weatherValues.humidity)}<small>%</small></strong>` : "<strong>—</strong>",
-      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)} m/s</em><canvas class="dt-wind-barb" width="56" height="56" aria-hidden="true"></canvas></strong>` : "<strong>—</strong>",
+      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind ${hasWindDirection ? `from ${Math.round(windDirection)} degrees ` : ""}at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)} m/s</em>${windArrow}</strong>` : "<strong>—</strong>",
       weatherFresh && (Number.isFinite(weatherValues.weatherCode) || (Number.isFinite(weatherValues.rainfall) && weatherValues.rainfall > 0))
         ? `<strong class="weather">${weatherLabels[weatherCode] || "Rain"}</strong>` : "<strong>—</strong>",
     ];
     document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => { line.innerHTML = weatherLines[index]; });
-    const windCanvas = document.querySelector(".dt-outdoor-grid .dt-wind-barb");
-    if (windCanvas) drawWindBarb(windCanvas, Number(weatherValues.windDirection) || 0, Number(weatherValues.windSpeed) || 0);
   }
 
   if (!state.debugMockData) {
@@ -2408,8 +2380,81 @@ window.addEventListener("storage", (event) => {
   }
 });
 function setPlatformView(view) {
-  if (view === "bms") return;
+  if (view === "bms" || view === "ai") return;
   const workspace = elements.wrap.closest(".dt-workspace");
+  if (workspace.classList.contains("view-transitioning")) return;
+  if (view === "alerts" && workspace.classList.contains("alarm-focus")) {
+    setPlatformView("overview");
+    return;
+  }
+  const returningFromAlerts = view === "overview" && workspace.classList.contains("alarm-focus")
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (returningFromAlerts) {
+    workspace.classList.add("view-transitioning");
+    setDashboardPanelsVisible(false);
+    setActivePlatformView("overview");
+    window.setTimeout(() => {
+      workspace.classList.remove("alarm-focus");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setDashboardPanelsVisible(true);
+        window.setTimeout(() => workspace.classList.remove("view-transitioning"), PANEL_TRANSITION_MS);
+        scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
+      }));
+    }, PANEL_TRANSITION_MS);
+    return;
+  }
+  const enteringAlertsFromOverview = view === "alerts"
+    && document.querySelector('[data-view="overview"]')?.classList.contains("active")
+    && !workspace.classList.contains("dashboard-collapsed")
+    && !workspace.classList.contains("right-panel-open")
+    && !workspace.classList.contains("panel-open")
+    && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (enteringAlertsFromOverview) {
+    workspace.classList.add("view-transitioning");
+    setDashboardPanelsVisible(false);
+    setActivePlatformView("alerts");
+    window.setTimeout(() => {
+      workspace.classList.add("alarm-focus");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        setDashboardPanelsVisible(true);
+        window.setTimeout(() => workspace.classList.remove("view-transitioning"), PANEL_TRANSITION_MS);
+        document.querySelector(".dt-alert-card")?.scrollIntoView({ block: "nearest" });
+        scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
+      }));
+    }, PANEL_TRANSITION_MS);
+    return;
+  }
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const sensorRailOpen = workspace.classList.contains("right-panel-open");
+  const overviewVisible = document.querySelector('[data-view="overview"]')?.classList.contains("active")
+    && !workspace.classList.contains("dashboard-collapsed");
+  if (!reducedMotion && !workspace.classList.contains("panel-open")
+    && ((view === "sensors" && overviewVisible && !sensorRailOpen)
+      || (view === "overview" && sensorRailOpen)
+      || (view === "sensors" && sensorRailOpen && state.iotOpenedFromOverview))) {
+    workspace.classList.add("view-transitioning");
+    if (!sensorRailOpen) {
+      state.iotOpenedFromOverview = true;
+      setDashboardPanelsVisible(false);
+      setActivePlatformView("sensors");
+      window.setTimeout(() => {
+        workspace.classList.add("right-panel-open");
+        elements.overviewRail.setAttribute("aria-hidden", "false");
+        window.setTimeout(() => workspace.classList.remove("view-transitioning"), PANEL_TRANSITION_MS);
+        scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
+      }, PANEL_TRANSITION_MS);
+    } else {
+      workspace.classList.remove("right-panel-open");
+      elements.overviewRail.setAttribute("aria-hidden", "true");
+      setActivePlatformView("overview");
+      window.setTimeout(() => {
+        setDashboardPanelsVisible(true);
+        window.setTimeout(() => workspace.classList.remove("view-transitioning"), PANEL_TRANSITION_MS);
+        scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
+      }, PANEL_TRANSITION_MS);
+    }
+    return;
+  }
   workspace.classList.toggle("alarm-focus", view === "alerts");
   if (view === "overview") {
     const overviewButton = document.querySelector('[data-view="overview"]');
@@ -2439,12 +2484,6 @@ function setPlatformView(view) {
     elements.overviewRail.setAttribute("aria-hidden", String(!opening));
     setDashboardPanelsVisible(opening ? false : state.iotOpenedFromOverview);
     setActivePlatformView(opening ? "sensors" : state.iotOpenedFromOverview ? "overview" : null);
-  } else if (view === "ai") {
-    workspace.classList.remove("right-panel-open");
-    elements.overviewRail.setAttribute("aria-hidden", "true");
-    setDevicePanelOpen(false);
-    setDashboardPanelsVisible(true);
-    document.querySelector(".dt-ai-card")?.scrollIntoView({ block: "nearest" });
   } else if (view === "alerts") {
     workspace.classList.remove("right-panel-open");
     elements.overviewRail.setAttribute("aria-hidden", "true");
@@ -2455,13 +2494,17 @@ function setPlatformView(view) {
   if (view !== "overview" && view !== "sensors") {
     setActivePlatformView(view);
   }
-  scheduleSensorMarkerSync(320);
+  scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
 }
 
 elements.viewButtons.forEach((button) => button.addEventListener("click", () => setPlatformView(button.dataset.view)));
 elements.devicePanelClose.addEventListener("click", () => setDevicePanelOpen(false));
 elements.alarmPanelClose.addEventListener("click", () => setPlatformView("overview"));
 elements.overviewRailClose.addEventListener("click", () => {
+  if (state.iotOpenedFromOverview) {
+    setPlatformView("overview");
+    return;
+  }
   elements.wrap.closest(".dt-workspace").classList.remove("right-panel-open");
   elements.overviewRail.setAttribute("aria-hidden", "true");
   setDevicePanelOpen(false);

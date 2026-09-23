@@ -2880,7 +2880,24 @@ body[data-page="twin"] {
 /* Browser-panel corrections. Kept last so older responsive rules cannot
    squeeze labels or override the Overview disclosure state. */
 .dt-dashboard-rail {
-  transition: transform 180ms ease-out, opacity 140ms ease-out;
+  transition: transform 150ms ease-out, opacity 150ms ease-out;
+}
+
+.dt-overview-rail,
+.dt-data-panel,
+.dt-bottom-nav,
+#twin-canvas,
+.dt-label-layer {
+  transition-duration: 150ms;
+}
+
+.dt-bottom-nav button:disabled,
+.dt-bottom-nav button:disabled:hover {
+  border-color: transparent;
+  color: var(--dt-text-muted);
+  background: transparent;
+  opacity: 0.46;
+  cursor: not-allowed;
 }
 
 .dt-workspace.dashboard-collapsed .dt-dashboard-left {
@@ -2971,7 +2988,12 @@ body[data-page="twin"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dt-dashboard-rail { transition: none; }
+  .dt-dashboard-rail,
+  .dt-overview-rail,
+  .dt-data-panel,
+  .dt-bottom-nav,
+  #twin-canvas,
+  .dt-label-layer { transition: none; }
   .dt-socket-grid input.pending::after { animation: none; }
 }
 
@@ -3450,11 +3472,14 @@ body[data-page="twin"] {
   width: 100%;
   padding-right: 28px;
 }
-.dt-outdoor-grid .wind-value > canvas {
+.dt-outdoor-grid .wind-value > .dt-wind-arrow {
   position: absolute;
   right: 0;
   top: 50%;
-  transform: translateY(-50%);
+  color: var(--dt-accent);
+  font-size: 1.2rem;
+  line-height: 1;
+  transform: translateY(-50%) rotate(var(--wind-direction, 0deg));
 }
 .dt-outdoor-grid .wind-value > em {
   color: var(--dt-text);
