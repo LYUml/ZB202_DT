@@ -3993,3 +3993,75 @@ body[data-page="twin"] {
   display: block;
   font-size: 0.82rem;
 }
+
+/* Fit the desktop Overview into the available browser height. The trend plot
+   yields space before the controls or card headings do. */
+@media (min-width: 821px) and (pointer: fine) and (max-height: 1100px) {
+  .dt-dashboard-rail {
+    overflow-x: hidden;
+    overflow-y: hidden;
+  }
+
+  .dt-dashboard-left {
+    grid-template-rows: minmax(0, 1.1fr) minmax(0, 0.66fr) minmax(0, 0.94fr);
+  }
+
+  .dt-dashboard-right {
+    grid-template-rows: minmax(0, 161px) minmax(0, 216px) minmax(0, 1fr);
+  }
+
+  .dt-workspace.alarm-focus .dt-dashboard-left {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .dt-socket-card { grid-template-rows: 46px auto auto auto auto minmax(0, 1fr); }
+  .dt-socket-card .dt-card-heading { min-height: 46px; }
+  .dt-socket-grid { padding-block: 5px 2px; gap: 3px; }
+  .dt-socket-grid label { min-height: 24px; padding-block: 3px; }
+  .dt-socket-control-status:empty { min-height: 0; margin-top: 0; }
+  .dt-chart-range { margin-bottom: 2px; }
+  .dt-socket-card .dt-demand-chart { min-height: 0; }
+
+  .dt-ahu-control {
+    padding: 7px 9px;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    align-content: stretch;
+    gap: 4px;
+  }
+  .dt-ahu-control strong { margin-top: 3px; }
+  .dt-ahu-control button { min-height: 28px; }
+}
+
+@media (max-width: 980px) and (pointer: coarse) {
+  .dt-dashboard-rail {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    pointer-events: auto;
+  }
+
+  .dt-dashboard-left {
+    grid-template-rows: minmax(370px, auto) minmax(160px, auto) minmax(220px, auto);
+  }
+
+  .dt-dashboard-right {
+    grid-template-rows: 161px 216px minmax(410px, auto);
+  }
+
+  .dt-alert-card,
+  .dt-ahu-card { display: grid; }
+
+  .dt-ahu-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 50px auto auto auto;
+  }
+
+  .dt-ahu-control,
+  .dt-air-readings,
+  .dt-ahu-meters { grid-column: 1; }
+
+  .dt-ahu-control { margin: 7px 9px; }
+  .dt-air-readings { padding: 0 9px 7px; }
+  .dt-ahu-meters { grid-template-columns: 1fr; grid-template-rows: repeat(3, auto); }
+}

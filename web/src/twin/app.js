@@ -1469,6 +1469,9 @@ function requestSocketDemandHistory(range = state.socketDemandRange) {
 
 function renderSocketDemandChart(mock) {
   const chart = document.querySelector(".dt-demand-chart");
+  const { width, height } = chart.getBoundingClientRect();
+  const chartWidth = width > 0 && height > 0 ? (width / height) * 100 : 300;
+  chart.setAttribute("viewBox", `0 0 ${chartWidth} 100`);
   const mockRanges = {
     today: { values: [0.72, 0.74, 0.69, 0.78, 0.75, 0.86, 0.82, 0.93, 0.89, 0.91, 0.79, 0.75, 0.78, 0.74], labels: ["00:00", "12:00", "Now"] },
     "7d": { values: [0.76, 0.82, 0.79, 0.91, 0.87, 0.94, 0.88], labels: ["Mon", "Thu", "Sun"] },
@@ -1486,7 +1489,7 @@ function renderSocketDemandChart(mock) {
     : requestedSeries || (state.socketDemandRange === "today" ? liveSocketDemandSeries() : []);
   if (!mock && !liveSeries.length) {
     const loading = state.socketDemandHistoryLoading.has(state.socketDemandRange);
-    chart.innerHTML = `<text class="dt-demand-empty" x="150" y="52" text-anchor="middle">${loading ? "Loading power history…" : "No power history for this range"}</text>`;
+    chart.innerHTML = `<text class="dt-demand-empty" x="${chartWidth / 2}" y="52" text-anchor="middle">${loading ? "Loading power history…" : "No power history for this range"}</text>`;
     chart.setAttribute("aria-label", loading ? "Loading InfluxDB electrical demand history" : "No InfluxDB electrical demand history for this range");
     return;
   }
@@ -1495,7 +1498,7 @@ function renderSocketDemandChart(mock) {
     ? mockRanges[state.socketDemandRange].labels
     : [liveSeries[0], liveSeries[Math.floor((liveSeries.length - 1) / 2)], liveSeries.at(-1)].map((sample) => demandTimeLabel(sample.time));
   if (values.length === 1) values.unshift(values[0]);
-  const left = 28, right = 296, top = 5, bottom = 79;
+  const left = 28, right = chartWidth - 4, top = 5, bottom = 79;
   const observedMax = Math.max(...values);
   const min = 0;
   const { max, ticks, digits } = demandAxis(observedMax);
@@ -2809,6 +2812,8 @@ window.addEventListener("beforeunload", () => {
 
 const resizeObserver = new ResizeObserver(resizeRenderer);
 resizeObserver.observe(elements.wrap);
+const demandChartResizeObserver = new ResizeObserver(() => renderSocketDemandChart(state.debugMockData));
+demandChartResizeObserver.observe(document.querySelector(".dt-demand-chart"));
 
 function animate() {
   controls.update();
