@@ -383,6 +383,71 @@ body[data-page="twin"] *::after {
   background: var(--dt-warning);
 }
 
+/* Keep every sensor anchored to a compact point; reveal its name on approach. */
+.dt-model-marker {
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.dt-model-marker .dt-marker-pulse {
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--dt-ok) 18%, transparent), 0 0 16px 5px color-mix(in srgb, var(--dt-ok) 58%, transparent);
+}
+
+.dt-model-marker.fault .dt-marker-pulse,
+.dt-model-marker.offline .dt-marker-pulse {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--dt-fault) 18%, transparent), 0 0 16px 5px color-mix(in srgb, var(--dt-fault) 58%, transparent);
+}
+
+.dt-model-marker.warning .dt-marker-pulse {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--dt-warning) 18%, transparent), 0 0 16px 5px color-mix(in srgb, var(--dt-warning) 58%, transparent);
+}
+
+.dt-model-marker .dt-marker-name {
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  padding: 7px 11px;
+  border: 1px solid var(--dt-border-strong);
+  border-radius: 999px;
+  color: var(--dt-text);
+  background: var(--dt-panel);
+  box-shadow: var(--dt-floating-shadow);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-50%) translateX(-4px);
+  transition: opacity 130ms ease, transform 130ms ease, visibility 130ms;
+  pointer-events: none;
+}
+
+.dt-model-marker.is-near .dt-marker-name,
+.dt-model-marker:focus-visible .dt-marker-name {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%);
+}
+
+.dt-model-marker:hover,
+.dt-model-marker.selected {
+  transform: none;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dt-model-marker:focus-visible { outline: 2px solid var(--dt-accent); outline-offset: 3px; }
+
 .dt-sidebar {
   top: 14px;
   right: 14px;
@@ -1516,18 +1581,18 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
    cannot accidentally enlarge the touch layout. */
 @media (max-width: 1180px) and (pointer: coarse) {
   .dt-model-marker {
+    width: 36px;
+    height: 36px;
     min-height: 0;
-    padding: 4px 7px 4px 16px;
-    border-radius: 999px;
-    font-size: 0.5rem;
-    line-height: 1;
-    box-shadow: 0 4px 12px rgba(31, 45, 67, 0.13);
+    padding: 0;
+    border-radius: 50%;
+    box-shadow: none;
   }
 
   .dt-marker-pulse {
-    left: 6px;
-    width: 5px;
-    height: 5px;
+    left: 50%;
+    width: 12px;
+    height: 12px;
   }
 
   .dt-model-marker:hover,

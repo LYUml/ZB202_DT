@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
+import { safetySensorStatus } from "../shared/sensor-status.js";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
@@ -561,7 +562,7 @@ const state = {
     catch { return {}; }
   })(),
   iotOpenedFromOverview: true,
-  sensorDisplayMode: "labels",
+  sensorDisplayMode: "model",
   layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
 };
 
@@ -648,10 +649,14 @@ function statusFor(deviceId) {
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
+function sensorStatusFromValues(device, values) {
+  return safetySensorStatus(device.sensorModel, values) || "normal";
+}
+
 function presentationStatus(status) {
   if (status === "normal") return { key: "online", className: "normal" };
   if (status === "warning") return { key: "maintenance", className: "warning" };
-  if (status === "offline") return { key: "offline", className: "fault" };
+  if (status === "offline") return { key: "offline", className: "unavailable" };
   if (status === "unavailable") return { key: "dataUnavailable", className: "unavailable" };
   return { key: "fault", className: "fault" };
 }
@@ -862,7 +867,9 @@ function createMarker(device, worldPosition = null) {
   const element = document.createElement("button");
   element.type = "button";
   element.className = "dt-model-marker normal";
-  element.innerHTML = `<span class="dt-marker-pulse"></span><span>${device.id}</span>`;
+  element.innerHTML = `<span class="dt-marker-pulse"></span><span class="dt-marker-name">${device.id}</span>`;
+  element.setAttribute("aria-label", device.id);
+  element.querySelector(".dt-marker-name").textContent = deviceText(device, "name");
   element.addEventListener("click", (event) => {
     event.stopPropagation();
     selectDevice(device.id, true);
@@ -892,6 +899,32 @@ function createMarker(device, worldPosition = null) {
   });
 }
 
+let nearbyMarkerId = null;
+elements.wrap.addEventListener("pointermove", (event) => {
+  if (event.pointerType === "touch" || state.sensorDisplayMode !== "labels") return;
+  let nearestId = null;
+  let nearestDistance = 44 * 44;
+  for (const [id, marker] of state.markerObjects) {
+    if (!marker.label.visible) continue;
+    const rect = marker.element.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+    const distance = (event.clientX - x) ** 2 + (event.clientY - y) ** 2;
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearestId = id;
+    }
+  }
+  if (nearbyMarkerId === nearestId) return;
+  if (nearbyMarkerId) state.markerObjects.get(nearbyMarkerId)?.element.classList.remove("is-near");
+  nearbyMarkerId = nearestId;
+  if (nearbyMarkerId) state.markerObjects.get(nearbyMarkerId)?.element.classList.add("is-near");
+});
+elements.wrap.addEventListener("pointerleave", () => {
+  if (nearbyMarkerId) state.markerObjects.get(nearbyMarkerId)?.element.classList.remove("is-near");
+  nearbyMarkerId = null;
+});
+
 async function syncSensorMarkerAnchors() {
   if (state.markerSyncRunning || !state.markerObjects.size) return;
   state.markerSyncRunning = true;
@@ -915,8 +948,65 @@ async function syncSensorMarkerAnchors() {
 function scheduleSensorMarkerSync(delay = 0) {
   window.clearTimeout(state.markerSyncTimer);
   state.markerSyncTimer = window.setTimeout(() => {
-    syncSensorMarkerAnchors().catch((error) => console.warn("Failed to sync sensor markers", error));
+    syncSensorMarkerAnchors()
+      .then(() => scheduleSensorOcclusionCheck())
+      .catch((error) => console.warn("Failed to sync sensor markers", error));
   }, delay);
+}
+
+let sensorOcclusionTimer = null;
+let sensorOcclusionRunning = false;
+let sensorOcclusionPending = false;
+async function updateSensorOcclusion() {
+  if (sensorOcclusionRunning) {
+    sensorOcclusionPending = true;
+    return;
+  }
+  if (!state.markerObjects.size) return;
+  sensorOcclusionRunning = true;
+  try {
+    scene.updateMatrixWorld(true);
+    camera.updateMatrixWorld(true);
+    const rect = elements.canvas.getBoundingClientRect();
+    const models = [...state.fragmentsModels.values()].filter((model) => model.object.visible);
+    for (const marker of state.markerObjects.values()) {
+      if (!marker.label.visible) continue;
+      const point = marker.label.getWorldPosition(new THREE.Vector3());
+      const projected = point.clone().project(camera);
+      if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) {
+        marker.element.style.visibility = "hidden";
+        continue;
+      }
+      const mouse = new THREE.Vector2(
+        rect.left + (projected.x + 1) * rect.width / 2,
+        rect.top + (1 - projected.y) * rect.height / 2,
+      );
+      const markerDistance = camera.position.distanceTo(point);
+      const tolerance = Math.max(state.modelRadius * 0.012, 0.05);
+      let occluded = false;
+      for (const model of models) {
+        const hit = await model.raycast({ camera, mouse, dom: elements.canvas });
+        if (hit?.point && camera.position.distanceTo(hit.point) < markerDistance - tolerance) {
+          occluded = true;
+          break;
+        }
+      }
+      marker.element.style.visibility = occluded ? "hidden" : "";
+    }
+  } finally {
+    sensorOcclusionRunning = false;
+    if (sensorOcclusionPending) {
+      sensorOcclusionPending = false;
+      scheduleSensorOcclusionCheck();
+    }
+  }
+}
+
+function scheduleSensorOcclusionCheck() {
+  window.clearTimeout(sensorOcclusionTimer);
+  sensorOcclusionTimer = window.setTimeout(() => {
+    updateSensorOcclusion().catch((error) => console.warn("Sensor occlusion check failed", error));
+  }, 150);
 }
 
 function resolveMobileMarkerCollisions() {
@@ -945,26 +1035,10 @@ function resolveMobileMarkerCollisions() {
 
 async function bindDevices() {
   for (const device of DEVICES) {
-    if (device.binding.kind === "marker") {
-      createMarker(device);
-      continue;
-    }
-
     const target = await findBindingObject(device);
     if (target === null) continue;
     state.boundObjects.set(device.id, target);
-    if (device.binding.modelId === "sensor") {
-      const fragmentsModel = state.fragmentsModels.get("sensor");
-      const boxes = await fragmentsModel.getBoxes([target]);
-      if (boxes.length) {
-        const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
-        const markerPosition = box.getCenter(new THREE.Vector3());
-        markerPosition.y = box.max.y + state.modelRadius * 0.008;
-        createMarker(device, markerPosition);
-      }
-    }
   }
-  await syncSensorMarkerAnchors();
   await updateAllVisualStates();
 }
 
@@ -1080,16 +1154,23 @@ function renderOccupancySeats() {
 async function styleBoundObject(deviceId) {
   const target = state.boundObjects.get(deviceId);
   if (target === undefined) return;
-  const selected = state.selectedDeviceId === deviceId;
   const status = statusFor(deviceId);
-  const statusColor = new THREE.Color(STATUS[status].color);
-
   const device = DEVICES.find((item) => item.id === deviceId);
   const fragmentsModel = state.fragmentsModels.get(device?.binding.modelId) || state.fragmentsModel;
   if (!fragmentsModel) return;
-  if (selected || status !== "normal") {
+  if (device.binding.modelId === "sensor") {
+    const color = status === "normal" ? 0x20a464
+      : status === "offline" || status === "unavailable" ? 0x8b94a6
+        : 0xe34d59;
     await fragmentsModel.highlight([target], {
-      color: status === "normal" ? new THREE.Color(0x2f7df4) : statusColor,
+      color: new THREE.Color(color),
+      opacity: 1,
+      transparent: false,
+      renderedFaces: renderedFaces.TWO,
+    });
+  } else if (state.selectedDeviceId === deviceId || status !== "normal") {
+    await fragmentsModel.highlight([target], {
+      color: status === "normal" ? new THREE.Color(0x2f7df4) : new THREE.Color(STATUS[status].color),
       opacity: 1,
       transparent: false,
       renderedFaces: renderedFaces.TWO,
@@ -1097,7 +1178,13 @@ async function styleBoundObject(deviceId) {
   }
 }
 
-async function updateAllVisualStates() {
+let visualUpdateQueue = Promise.resolve();
+function updateAllVisualStates() {
+  visualUpdateQueue = visualUpdateQueue.catch(() => {}).then(applyAllVisualStates);
+  return visualUpdateQueue;
+}
+
+async function applyAllVisualStates() {
   for (const [modelId, fragmentsModel] of state.fragmentsModels) {
     const localIds = DEVICES
       .filter((device) => device.binding.modelId === modelId && state.boundObjects.has(device.id))
@@ -1105,14 +1192,15 @@ async function updateAllVisualStates() {
     if (localIds.length) await fragmentsModel.resetHighlight(localIds);
   }
   for (const device of DEVICES) {
-    if (state.selectedDeviceId === device.id || statusFor(device.id) !== "normal") {
+    if (device.binding.modelId === "sensor" || state.selectedDeviceId === device.id || statusFor(device.id) !== "normal") {
       await styleBoundObject(device.id);
     }
     const marker = state.markerObjects.get(device.id);
     if (marker) {
-      marker.element.className = `dt-model-marker ${statusFor(device.id)}${state.selectedDeviceId === device.id ? " selected" : ""}`;
+      marker.element.className = `dt-model-marker ${statusFor(device.id)}${state.selectedDeviceId === device.id ? " selected" : ""}${marker.element.classList.contains("is-near") ? " is-near" : ""}`;
     }
   }
+  if (state.fragmentsModels.size) await fragments.update(true);
 }
 
 async function focusDevice(device) {
@@ -1491,11 +1579,13 @@ function renderSiteOverview() {
   });
   const occupiedCount = occupancySnapshots.reduce((sum, snapshot) => sum + (snapshot.values.occupancy > 0 ? 1 : 0), 0);
   const unknownOccupancyCount = occupancyDevices.length - occupancySnapshots.length;
+  const occupancySummary = occupancySnapshots.length ? `${occupiedCount} people` : "—";
+  const occupancyExplanation = `${occupiedCount} sensors detect presence; ${occupancySnapshots.length} of ${occupancyDevices.length} have occupancy readings from the last 15 minutes; ${unknownOccupancyCount} are unconfirmed`;
   if (elements.siteOccupants) {
     elements.siteOccupants.textContent = state.debugMockData
-      ? `${DEBUG_OCCUPIED_SEATS.size} / 12`
-      : occupancySnapshots.length ? `${occupiedCount} / ${occupancySnapshots.length}` : "—";
-    elements.siteOccupants.title = state.debugMockData ? "" : `${occupancySnapshots.length} recent readings; ${unknownOccupancyCount} unconfirmed`;
+      ? `${DEBUG_OCCUPIED_SEATS.size} people`
+      : occupancySummary;
+    elements.siteOccupants.title = state.debugMockData ? "" : occupancyExplanation;
   }
 
   const sourceDeviceId = "AM103-07";
@@ -1513,15 +1603,15 @@ function renderSiteOverview() {
   const pm25 = average(metricValues(["pm25"]));
   const noise = average(metricValues(["noiseLaeq"]));
   const extraIndoorValues = state.debugMockData
-    ? ["9 µg/m³", "48 dB(A)", "7 / 12"]
+    ? ["9 µg/m³", "48 dB(A)", "7 people"]
     : [
       pm25 === null ? "—" : `${formatNumber(pm25)} µg/m³`,
       noise === null ? "—" : `${formatNumber(noise)} dB(A)`,
-      occupancySnapshots.length ? `${occupiedCount} / ${occupancySnapshots.length}` : "—",
+      occupancySummary,
     ];
   document.querySelectorAll(".dt-indoor-grid .dt-metric-line strong").forEach((element, index) => {
     if (index >= 3) element.textContent = extraIndoorValues[index - 3];
-    if (index === 5) element.title = state.debugMockData ? "" : `${occupancySnapshots.length} recent readings; ${unknownOccupancyCount} unconfirmed`;
+    if (index === 5) element.title = state.debugMockData ? "" : occupancyExplanation;
   });
 
   if (!state.debugMockData) {
@@ -1963,19 +2053,16 @@ function updateMockData() {
 
 function updateDeviceConnectivity() {
   if (!state.influxConnectionKnown) return false;
-  const now = Date.now();
   let changed = false;
   for (const device of DEVICES) {
     const snapshot = state.snapshots.get(device.id);
     if (!snapshot) continue;
-    const lastLiveAt = state.lastLiveAt.get(device.id);
-    const databaseOffline = !state.influxConnected;
-    const deviceStale = state.influxConnected && (!lastLiveAt || now - lastLiveAt > INFLUX_STALE_AFTER_MS);
-    const nextStatus = databaseOffline
+    // InfluxDB currently has telemetry but no device connectivity field.
+    // A quiet sensor is not necessarily offline; only database evidence can
+    // establish that it exists, and absent evidence stays unavailable.
+    const nextStatus = !state.influxConnected || !state.liveDevices.has(device.id)
       ? "unavailable"
-      : deviceStale
-        ? device.sensorModel === "VS341" ? "normal" : "offline"
-        : ["offline", "unavailable"].includes(snapshot.status) ? "normal" : snapshot.status;
+      : sensorStatusFromValues(device, snapshot.values);
     if (snapshot.status !== nextStatus) {
       snapshot.status = nextStatus;
       changed = true;
@@ -2082,7 +2169,7 @@ function connectInfluxBridge() {
       snapshot.trends[metric.key].push({ value, time: Date.parse(message.receivedAt) || Date.now() });
       snapshot.trends[metric.key] = snapshot.trends[metric.key].slice(-24);
     }
-    snapshot.status = "normal";
+    snapshot.status = sensorStatusFromValues(device, snapshot.values);
     snapshot.updatedAt = new Date(message.receivedAt || Date.now());
     state.liveDevices.add(device.id);
     state.lastLiveAt.set(device.id, snapshot.updatedAt.getTime());
@@ -2194,6 +2281,7 @@ async function finalizeFederatedModel(componentCount) {
   await fragments.update(true);
   await createOccupancySeats();
   await bindDevices();
+  scheduleSensorOcclusionCheck();
   if (initialDevice) {
     await selectDevice(initialDevice.id, Boolean(requestedSensorId));
     if (requestedSensorId) setDevicePanelOpen(true);
@@ -2287,7 +2375,7 @@ elements.retryButton.addEventListener("click", loadModel);
 elements.layerToggles.forEach((toggle) => {
   if (toggle.dataset.modelLayer === "sensor") {
     toggle.addEventListener("click", async () => {
-      const modes = ["labels", "model", "hidden"];
+      const modes = ["model", "hidden"];
       state.sensorDisplayMode = modes[(modes.indexOf(state.sensorDisplayMode) + 1) % modes.length];
       const modelVisible = state.sensorDisplayMode !== "hidden";
       state.layerVisibility.sensor = modelVisible;
@@ -2297,8 +2385,7 @@ elements.layerToggles.forEach((toggle) => {
       renderOccupancySeats();
 
       const modeMeta = {
-        labels: { icon: "ph-eye", label: "Sensor: model and labels" },
-        model: { icon: "ph-cube", label: "Sensor: model only" },
+        model: { icon: "ph-eye", label: "Sensor: status-colored models" },
         hidden: { icon: "ph-eye-slash", label: "Sensor: hidden" },
       }[state.sensorDisplayMode];
       toggle.dataset.sensorMode = state.sensorDisplayMode;
@@ -2306,6 +2393,7 @@ elements.layerToggles.forEach((toggle) => {
       toggle.title = modeMeta.label;
       toggle.querySelector("i").className = `ph ${modeMeta.icon}`;
       if (fragmentsModel) await fragments.update(true);
+      scheduleSensorOcclusionCheck();
     });
     return;
   }
@@ -2316,6 +2404,7 @@ elements.layerToggles.forEach((toggle) => {
     if (fragmentsModel) fragmentsModel.object.visible = toggle.checked;
     toggle.closest("label")?.classList.toggle("is-off", !toggle.checked);
     if (fragmentsModel) await fragments.update(true);
+    scheduleSensorOcclusionCheck();
   });
 });
 
@@ -2626,6 +2715,7 @@ elements.canvas.addEventListener("pointerup", (event) => {
 elements.canvas.addEventListener("pointercancel", () => { pointerDownPosition = null; });
 controls.addEventListener("change", () => {
   if (state.fragmentsModels.size) fragments.update();
+  scheduleSensorOcclusionCheck();
 });
 window.addEventListener("beforeunload", () => {
   fragments?.dispose();

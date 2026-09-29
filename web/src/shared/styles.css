@@ -361,6 +361,7 @@ body[data-page="overview"] .language-control .language-select {
 .dot.ok { background: var(--ok); }
 .dot.warn { background: var(--warn); }
 .dot.alert { background: var(--alert); }
+.dot.unavailable { background: #9aabc0; }
 
 .table-wrap {
   background: var(--surface);

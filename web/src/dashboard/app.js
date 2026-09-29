@@ -44,10 +44,10 @@
 ];
 
 import "@phosphor-icons/web/regular";
+import { safetySensorStatus } from "../shared/sensor-status.js";
 
 // Overview and device-detail page behavior.
 const THEME_STORAGE_KEY = "zb202-theme";
-const INFLUX_STALE_AFTER_MS = 15 * 60 * 1000;
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 let activeTheme = document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 let overviewConnected = false;
@@ -92,6 +92,8 @@ const i18n = {
     "status.normal": "在线",
     "status.warning": "告警",
     "status.alert": "离线",
+    "status.unavailable": "数据不可用",
+    "status.fault": "告警",
     "theme.day": "日间模式",
     "theme.night": "夜间模式",
     "theme.switchToDay": "切换至日间模式",
@@ -136,6 +138,8 @@ const i18n = {
     "status.normal": "線上",
     "status.warning": "警報",
     "status.alert": "離線",
+    "status.unavailable": "資料不可用",
+    "status.fault": "警報",
     "theme.day": "日間模式",
     "theme.night": "夜間模式",
     "theme.switchToDay": "切換至日間模式",
@@ -184,6 +188,8 @@ const i18n = {
     "status.normal": "Online",
     "status.warning": "Warning",
     "status.alert": "Offline",
+    "status.unavailable": "Data unavailable",
+    "status.fault": "Alarm",
     "theme.day": "Day mode",
     "theme.night": "Night mode",
     "theme.switchToDay": "Switch to day mode",
@@ -195,6 +201,8 @@ const statusClassMap = {
   normal: "ok",
   warning: "warn",
   alert: "alert",
+  unavailable: "unavailable",
+  fault: "alert",
 };
 
 const query = new URLSearchParams(window.location.search);
@@ -474,10 +482,12 @@ function connectOverviewBridge(devices) {
   };
 
   const updateStatuses = () => {
-    const now = Date.now();
     for (const device of devices) {
-      const lastSeen = lastSeenAt.get(device.id);
-      device.status = overviewConnected && lastSeen && now - lastSeen <= INFLUX_STALE_AFTER_MS ? "normal" : "alert";
+      if (!overviewConnected || !lastSeenAt.has(device.id)) {
+        device.status = "unavailable";
+      } else {
+        device.status = safetySensorStatus(device.model, device.rawValues) || "normal";
+      }
     }
     scheduleRender();
   };
@@ -504,6 +514,8 @@ function connectOverviewBridge(devices) {
       const receivedAt = Date.parse(message.receivedAt);
       if (!Number.isFinite(receivedAt)) return;
       lastSeenAt.set(device.id, receivedAt);
+      device.rawValues ||= {};
+      Object.assign(device.rawValues, message.values || {});
       for (const [key, value] of Object.entries(message.values || {})) {
         device.latestValues[key] = formatTelemetryValue(key, value, message.metrics?.[key]?.unit);
       }
@@ -517,8 +529,8 @@ function connectOverviewBridge(devices) {
     socket.addEventListener("error", () => socket.close());
   };
 
+  updateStatuses();
   connect();
-  window.setInterval(updateStatuses, 30000);
 }
 
 function attachViewSwitch() {
