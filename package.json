@@ -10,7 +10,8 @@
     "test:bridge": "node scripts/bridge-smoke-test.mjs",
     "test:experiment": "node --test web/src/experiment/model.test.js",
     "experiment:results": "node scripts/generate-experiment-results.mjs",
-    "build": "vite build",
+    "experiment:browser": "node scripts/build-experiment-browser.mjs",
+    "build": "node scripts/build-experiment-browser.mjs && vite build && node scripts/copy-experiment-browser.mjs",
     "bim:convert": "node scripts/ifc-to-fragments.mjs",
     "preview": "vite preview"
   },
