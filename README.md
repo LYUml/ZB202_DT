@@ -1,5 +1,11 @@
 # ZB202 Web Digital Twin
 
+## 人数与 CO₂ 预测控制实验原型
+
+访问 `experiment.html` 可运行独立的研究仿真页面。它使用 0–10 人的可复现模拟场景、由另 120 个模拟训练日估计的时变马尔可夫链、单区 CO₂ 质量守恒模型，以及每 5 分钟滚动的通风优化建议。页面比较固定通风、按当前人数响应和预测控制，并可导出逐步 CSV。运行 `npm run test:experiment` 验证模型，运行 `npm run experiment:results` 生成 20 个场景的汇总和代表日 CSV；假设及局限见 [实验说明](docs/experiment/README.md)。
+
+所有风量均为**暂定的有效室外空气流量**，不是 ZB202 的 VAV 或 AHU 实测值。这个原型不会向现场 BMS 发送控制命令。真实 CO₂ 可从本地桥接服务手动选作初始状态；实验中的人员轨迹和后续 CO₂ 仍是模拟结果。
+
 [中文](README.md) | [English](README.en.md)
 
 ZB202 实验室环境监测数字孪生项目。前端使用 Vite、Three.js 和 That Open Fragments 展示 BIM 模型，并通过本地桥接服务读取 InfluxDB 中的传感器数据。

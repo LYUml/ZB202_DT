@@ -14,6 +14,7 @@ export default defineConfig({
         overview: resolve(process.cwd(), "web/overview.html"),
         device: resolve(process.cwd(), "web/device.html"),
         twin: resolve(process.cwd(), "web/twin.html"),
+        experiment: resolve(process.cwd(), "web/experiment.html"),
       },
     },
   },

@@ -8,6 +8,8 @@
     "influx:bridge": "node scripts/influxdb-bridge.mjs",
     "serve:lan": "python -m http.server 8080 --directory dist --bind 0.0.0.0",
     "test:bridge": "node scripts/bridge-smoke-test.mjs",
+    "test:experiment": "node --test web/src/experiment/model.test.js",
+    "experiment:results": "node scripts/generate-experiment-results.mjs",
     "build": "vite build",
     "bim:convert": "node scripts/ifc-to-fragments.mjs",
     "preview": "vite preview"
