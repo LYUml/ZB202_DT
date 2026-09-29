@@ -448,6 +448,38 @@ body[data-page="twin"] *::after {
 
 .dt-model-marker:focus-visible { outline: 2px solid var(--dt-accent); outline-offset: 3px; }
 
+.dt-sensor-proximity-tag {
+  --sensor-tag-color: var(--dt-ok);
+  --sensor-tag-text: #0b3020;
+  position: absolute;
+  z-index: 20;
+  max-width: min(320px, calc(100% - 16px));
+  padding: 8px 12px;
+  border: 2px solid var(--sensor-tag-color);
+  border-radius: 999px;
+  color: var(--sensor-tag-text);
+  background: var(--sensor-tag-color);
+  box-shadow: var(--dt-floating-shadow);
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.dt-sensor-proximity-tag[hidden] { display: none; }
+.dt-sensor-proximity-tag[data-status="fault"],
+.dt-sensor-proximity-tag[data-status="warning"] {
+  --sensor-tag-color: var(--dt-fault);
+  --sensor-tag-text: #370b12;
+}
+.dt-sensor-proximity-tag[data-status="offline"],
+.dt-sensor-proximity-tag[data-status="unavailable"] {
+  --sensor-tag-color: #9aa6b6;
+  --sensor-tag-text: #17202c;
+}
+
 .dt-sidebar {
   top: 14px;
   right: 14px;
@@ -1083,6 +1115,8 @@ body[data-page="twin"] { --dt-topbar-height: 76px; --dt-rail-width: 390px; --dt-
 .dt-device-item.unavailable .dt-device-status { background: var(--dt-text-muted); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dt-text-muted) 12%, transparent); }
 
 .dt-trend-chart { width: 100%; height: 122px; margin-top: 6px; }
+.dt-trend-message { margin: 0 8px 8px; color: var(--dt-text-muted); font-size: 0.62rem; line-height: 1.35; }
+.dt-trend-message[hidden] { display: none; }
 #trend-chart { height: 122px; margin-top: 6px; }
 .dt-metrics[hidden], .dt-trend-card[hidden], .dt-update-row[hidden], .dt-fault-btn[hidden] { display: none !important; }
 .dt-trend-grid line { stroke: var(--dt-border); stroke-width: 1; vector-effect: non-scaling-stroke; }

@@ -3,6 +3,7 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
 import { safetySensorStatus } from "../shared/sensor-status.js";
+import { demandAxis } from "../shared/demand-axis.js";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
@@ -87,6 +88,9 @@ const I18N = {
     componentDetails: "构件详情", componentInfo: "BIM 构件", ifcType: "IFC 类型", identifiers: "标识符",
     earlier: "较早", now: "现在",
     readingsInRange: "所选 {range} 时间范围内有 {count} 条真实记录",
+    trendOutsideRange: "所选时间内无记录，显示最近可用数据",
+    trendOneReading: "仅有一条记录，暂无法形成趋势",
+    trendNoReadings: "暂无历史记录",
     lastUpload: "最后记录", custom: "自定义", mockHistoryNote: "当前显示可用的数据窗口",
     bmsReserved: "AHU 运行数据将在后续版本接入。", aiReserved: "AI 分析模块将在后续版本接入。",
     reservedCopy: "此模块为后续功能预留。", online: "在线", offline: "离线", maintenance: "维护中",
@@ -118,6 +122,9 @@ const I18N = {
     componentDetails: "構件詳情", componentInfo: "BIM 構件", ifcType: "IFC 類型", identifiers: "識別碼",
     earlier: "較早", now: "現在",
     readingsInRange: "所選 {range} 時間範圍內有 {count} 筆真實記錄",
+    trendOutsideRange: "所選時間內無記錄，顯示最近可用資料",
+    trendOneReading: "僅有一筆記錄，暫無法形成趨勢",
+    trendNoReadings: "暫無歷史記錄",
     lastUpload: "最後記錄", custom: "自訂", mockHistoryNote: "目前顯示可用的資料視窗",
     bmsReserved: "AHU 運行資料將於後續版本接入。", aiReserved: "AI 分析模組將於後續版本接入。",
     reservedCopy: "此模組為後續功能預留。", online: "在線", offline: "離線", maintenance: "維護中",
@@ -148,6 +155,9 @@ const I18N = {
     dataPanelAria: "Sensor data panel", closeDataPanel: "Close data panel", sensorData: "Sensor Data",
     componentDetails: "Component Details", componentInfo: "BIM Component", ifcType: "IFC Type", identifiers: "Identifiers",
     readingsInRange: "{count} real readings in the selected {range} window",
+    trendOutsideRange: "No readings in this range; showing latest available data",
+    trendOneReading: "Only one reading; no trend yet",
+    trendNoReadings: "No historical readings yet",
     earlier: "Earlier", now: "Now",
     lastUpload: "Last reading", custom: "Custom", mockHistoryNote: "Showing the available data window",
     bmsReserved: "AHU operating data will be connected in a future release.", aiReserved: "AI analytics will be connected in a future release.",
@@ -530,6 +540,7 @@ const state = {
   sensorGroupFilters: new Set(SENSOR_GROUPS.map((group) => group.key)),
   calibrating: false,
   boundObjects: new Map(),
+  sensorAnchors: new Map(),
   markerObjects: new Map(),
   snapshots: new Map(),
   loadRequest: 0,
@@ -596,6 +607,56 @@ renderer.toneMappingExposure = THEME_PRESETS[activeTheme].exposure;
 const labelRenderer = new CSS2DRenderer();
 labelRenderer.domElement.className = "dt-label-layer";
 elements.wrap.appendChild(labelRenderer.domElement);
+
+const sensorProximityTag = document.createElement("div");
+sensorProximityTag.className = "dt-sensor-proximity-tag";
+sensorProximityTag.hidden = true;
+elements.wrap.appendChild(sensorProximityTag);
+let lastCanvasPointer = null;
+
+function updateSensorProximityTag() {
+  if (!lastCanvasPointer || state.sensorDisplayMode === "hidden" || !state.model) {
+    sensorProximityTag.hidden = true;
+    return;
+  }
+  const canvasRect = elements.canvas.getBoundingClientRect();
+  const wrapRect = elements.wrap.getBoundingClientRect();
+  let nearest = null;
+  let nearestDistance = 88 * 88;
+  for (const [id, anchor] of state.sensorAnchors) {
+    const projected = anchor.clone().project(camera);
+    if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) continue;
+    const x = canvasRect.left + (projected.x + 1) * canvasRect.width / 2;
+    const y = canvasRect.top + (1 - projected.y) * canvasRect.height / 2;
+    const distance = (lastCanvasPointer.x - x) ** 2 + (lastCanvasPointer.y - y) ** 2;
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+      nearest = { id, x, y };
+    }
+  }
+  if (!nearest) {
+    sensorProximityTag.hidden = true;
+    return;
+  }
+  const device = DEVICES.find((item) => item.id === nearest.id);
+  sensorProximityTag.textContent = deviceText(device, "name");
+  sensorProximityTag.dataset.status = statusFor(nearest.id);
+  sensorProximityTag.hidden = false;
+  const x = nearest.x - wrapRect.left + 14;
+  const y = nearest.y - wrapRect.top - sensorProximityTag.offsetHeight / 2;
+  sensorProximityTag.style.left = `${Math.max(8, Math.min(x, wrapRect.width - sensorProximityTag.offsetWidth - 8))}px`;
+  sensorProximityTag.style.top = `${Math.max(8, Math.min(y, wrapRect.height - sensorProximityTag.offsetHeight - 8))}px`;
+}
+
+elements.canvas.addEventListener("pointermove", (event) => {
+  if (event.pointerType === "touch") return;
+  lastCanvasPointer = { x: event.clientX, y: event.clientY };
+  updateSensorProximityTag();
+});
+elements.canvas.addEventListener("pointerleave", () => {
+  lastCanvasPointer = null;
+  sensorProximityTag.hidden = true;
+});
 
 const controls = new OrbitControls(camera, elements.canvas);
 controls.enableDamping = true;
@@ -815,6 +876,8 @@ async function clearCurrentModel() {
   state.selectedIfcItem = null;
   helpersGroup.clear();
   state.boundObjects.clear();
+  state.sensorAnchors.clear();
+  sensorProximityTag.hidden = true;
   state.markerObjects.clear();
   if (gridHelper) {
     scene.remove(gridHelper);
@@ -1038,6 +1101,13 @@ async function bindDevices() {
     const target = await findBindingObject(device);
     if (target === null) continue;
     state.boundObjects.set(device.id, target);
+    if (device.binding.modelId === "sensor") {
+      const boxes = await state.fragmentsModels.get("sensor").getBoxes([target]);
+      if (boxes.length) {
+        const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
+        state.sensorAnchors.set(device.id, box.getCenter(new THREE.Vector3()));
+      }
+    }
   }
   await updateAllVisualStates();
 }
@@ -1427,23 +1497,15 @@ function renderSocketDemandChart(mock) {
   if (values.length === 1) values.unshift(values[0]);
   const left = 28, right = 296, top = 5, bottom = 79;
   const observedMax = Math.max(...values);
-  const targetMax = Math.max(observedMax * 1.1, 0.01);
-  const roughHalfRange = targetMax / 2;
-  const magnitude = 10 ** Math.floor(Math.log10(roughHalfRange));
-  const normalizedStep = roughHalfRange / magnitude;
-  const niceFactor = normalizedStep <= 1 ? 1 : normalizedStep <= 2 ? 2 : normalizedStep <= 5 ? 5 : 10;
-  const step = niceFactor * magnitude;
   const min = 0;
-  const max = Math.max(step * 2, Math.ceil(targetMax / step) * step);
-  const tickDigits = max >= 10 ? 0 : max >= 1 ? 1 : max >= 0.1 ? 2 : 3;
-  const formatTick = (value) => Number(value.toFixed(tickDigits)).toLocaleString(activeLocale(), {
-    maximumFractionDigits: tickDigits,
+  const { max, ticks, digits } = demandAxis(observedMax);
+  const formatTick = (value) => Number(value.toFixed(digits)).toLocaleString(activeLocale(), {
+    maximumFractionDigits: digits,
   });
   const x = (index) => left + (index / (values.length - 1)) * (right - left);
   const y = (value) => bottom - ((value - min) / (max - min)) * (bottom - top);
   const points = values.map((value, index) => [x(index), y(value)]);
   const line = points.map(([px, py], index) => `${index ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`).join(" ");
-  const ticks = [min, max / 2, max];
   chart.innerHTML = `
     <g class="dt-demand-grid">${ticks.map((tick) => `<line x1="${left}" y1="${y(tick)}" x2="${right}" y2="${y(tick)}"></line><text x="${left - 5}" y="${y(tick) + 3}" text-anchor="end">${formatTick(tick)}</text>`).join("")}</g>
     <path class="dt-demand-area" d="${line} L${right} ${bottom} L${left} ${bottom} Z"></path>
@@ -1572,15 +1634,13 @@ function renderSiteOverview() {
   if (elements.siteHumidity) elements.siteHumidity.textContent = humidity === null ? "—" : `${formatNumber(humidity)} %`;
   if (elements.siteCo2) elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
   const occupancyDevices = DEVICES.filter((device) => device.sensorModel === "VS341");
-  const occupancySnapshots = occupancyDevices.map((device) => state.snapshots.get(device.id)).filter((snapshot) => {
-    const lastLiveAt = state.lastLiveAt.get(snapshot?.deviceId);
-    return state.influxConnected && Number.isFinite(snapshot?.values.occupancy)
-      && Number.isFinite(lastLiveAt) && Date.now() - lastLiveAt <= INFLUX_STALE_AFTER_MS;
-  });
+  const occupancySnapshots = occupancyDevices
+    .map((device) => state.snapshots.get(device.id))
+    .filter((snapshot) => state.influxConnected && Number.isFinite(snapshot?.values.occupancy));
   const occupiedCount = occupancySnapshots.reduce((sum, snapshot) => sum + (snapshot.values.occupancy > 0 ? 1 : 0), 0);
   const unknownOccupancyCount = occupancyDevices.length - occupancySnapshots.length;
   const occupancySummary = occupancySnapshots.length ? `${occupiedCount} people` : "—";
-  const occupancyExplanation = `${occupiedCount} sensors detect presence; ${occupancySnapshots.length} of ${occupancyDevices.length} have occupancy readings from the last 15 minutes; ${unknownOccupancyCount} are unconfirmed`;
+  const occupancyExplanation = `${occupiedCount} sensors detect presence based on their latest InfluxDB readings; ${occupancySnapshots.length} of ${occupancyDevices.length} have readings; ${unknownOccupancyCount} have no data`;
   if (elements.siteOccupants) {
     elements.siteOccupants.textContent = state.debugMockData
       ? `${DEBUG_OCCUPIED_SEATS.size} people`
@@ -1758,7 +1818,7 @@ function trendScale(metric, values) {
   };
 }
 
-function sparklinePath(samples, metric) {
+function sparklinePath(samples, metric, useSelectedRange = true) {
   const width = 360;
   const height = 140;
   const left = 40;
@@ -1768,7 +1828,7 @@ function sparklinePath(samples, metric) {
   const plotBottom = height - bottom;
   const values = samples.map((sample) => sample.value);
   const scale = trendScale(metric, values);
-  const windowMs = historyWindowMs();
+  const windowMs = useSelectedRange ? historyWindowMs() : null;
   const latestTime = Date.now();
   let domainStart = windowMs ? latestTime - windowMs : samples[0].time;
   let domainEnd = windowMs ? latestTime : samples.at(-1).time;
@@ -1779,9 +1839,9 @@ function sparklinePath(samples, metric) {
     const y = top + (1 - (sample.value - scale.min) / scale.span) * (plotBottom - top);
     return [x, y];
   });
-  if (points.length === 1) points = [[left, points[0][1]], [width - right, points[0][1]]];
+  if (points.length === 1) points = [[(left + width - right) / 2, points[0][1]]];
   const line = points.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-  const area = `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z`;
+  const area = points.length > 1 ? `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z` : "";
   const ticks = [scale.max, (scale.max + scale.min) / 2, scale.min].map((value, index) => ({
     value,
     y: top + (index / 2) * (plotBottom - top),
@@ -1790,16 +1850,37 @@ function sparklinePath(samples, metric) {
 }
 
 function renderMetricTrend(snapshot, chart, metric) {
-  const samples = metric ? samplesInSelectedRange(snapshot.trends[metric.key]) : [];
+  const history = metric ? snapshot.trends[metric.key] || [] : [];
+  const selectedSamples = samplesInSelectedRange(history);
+  const outsideRange = selectedSamples.length === 0 && history.length > 0;
+  const samples = outsideRange ? history : selectedSamples;
   const values = samples.map((sample) => sample.value);
-  chart.card.hidden = !metric || samples.length === 0;
-  if (!metric || samples.length === 0) return;
-  const paths = sparklinePath(samples, metric);
+  chart.card.hidden = !metric;
+  if (!metric) return;
   chart.label.textContent = metricText(metric);
+  let message = chart.card.querySelector(".dt-trend-message");
+  if (!message) {
+    message = document.createElement("p");
+    message.className = "dt-trend-message";
+    chart.card.appendChild(message);
+  }
+  message.textContent = !samples.length ? t("trendNoReadings")
+    : [outsideRange ? t("trendOutsideRange") : "", samples.length === 1 ? t("trendOneReading") : ""].filter(Boolean).join(" · ");
+  message.hidden = !message.textContent;
+  if (!samples.length) {
+    chart.value.textContent = "—";
+    chart.line.setAttribute("d", "");
+    chart.area.setAttribute("d", "");
+    chart.points.innerHTML = "";
+    chart.grid.innerHTML = `<line x1="40" y1="10" x2="352" y2="10"></line><line x1="40" y1="61" x2="352" y2="61"></line><line x1="40" y1="112" x2="352" y2="112"></line><line x1="40" y1="10" x2="40" y2="112"></line>`;
+    chart.axis.innerHTML = `<text x="40" y="132" text-anchor="start">${t("earlier")}</text><text x="352" y="132" text-anchor="end">${t("now")}</text>`;
+    return;
+  }
+  const paths = sparklinePath(samples, metric, !outsideRange);
   const delta = values.at(-1) - values[0];
   const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
   const deltaSign = delta > 0 ? "+" : "";
-  chart.value.innerHTML = `${formatNumber(snapshot.values[metric.key])} ${metric.unit}<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>`;
+  chart.value.innerHTML = `${formatNumber(values.at(-1))} ${metric.unit}${samples.length > 1 ? `<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>` : ""}`;
   chart.line.setAttribute("d", paths.line);
   chart.area.setAttribute("d", paths.area);
   chart.points.innerHTML = paths.points.map(([x, y]) => `
@@ -1808,12 +1889,15 @@ function renderMetricTrend(snapshot, chart, metric) {
   chart.grid.innerHTML = paths.ticks.map((tick) => `
     <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
   `).join("") + `<line x1="${paths.left}" y1="${paths.top}" x2="${paths.left}" y2="${paths.plotBottom}"></line>`;
-  const rangeLabel = `-${state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange}`;
+  const rangeLabel = outsideRange ? t("earlier") : `-${state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange}`;
+  const endLabel = outsideRange
+    ? new Date(samples.at(-1).time).toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })
+    : t("now");
   chart.axis.innerHTML = paths.ticks.map((tick) => `
     <text x="34" y="${tick.y + 3}" text-anchor="end">${tick.value.toFixed(paths.decimals)}</text>
   `).join("") + `
     <text x="${paths.left}" y="132" text-anchor="start">${rangeLabel}</text>
-    <text x="${paths.right}" y="132" text-anchor="end">${t("now")}</text>
+    <text x="${paths.right}" y="132" text-anchor="end">${endLabel}</text>
   `;
 }
 
@@ -2394,6 +2478,7 @@ elements.layerToggles.forEach((toggle) => {
       toggle.querySelector("i").className = `ph ${modeMeta.icon}`;
       if (fragmentsModel) await fragments.update(true);
       scheduleSensorOcclusionCheck();
+      updateSensorProximityTag();
     });
     return;
   }
@@ -2716,6 +2801,7 @@ elements.canvas.addEventListener("pointercancel", () => { pointerDownPosition = 
 controls.addEventListener("change", () => {
   if (state.fragmentsModels.size) fragments.update();
   scheduleSensorOcclusionCheck();
+  updateSensorProximityTag();
 });
 window.addEventListener("beforeunload", () => {
   fragments?.dispose();
