@@ -91,6 +91,7 @@ const I18N = {
     reservedCopy: "此模块为后续功能预留。", online: "在线", offline: "离线", maintenance: "维护中",
     siteOverview: "场地概览", iotSensorsList: "IoT 传感器列表", closeOverviewPanel: "关闭概览面板",
     siteTemperature: "温度", siteHumidity: "湿度", siteCo2: "CO₂", occupants: "人数",
+    modelLayersAria: "模型可见层", historyRangeAria: "历史数据范围", humidityTrendAria: "相对湿度趋势图", co2TrendAria: "CO₂ 趋势图", platformOverviewAria: "平台概览", mainNavigationAria: "主要功能",
   },
   "zh-Hant": {
     backAria: "返回設備總覽", title: "ZB202 空間設備監控", connectionAria: "資料連線狀態",
@@ -121,6 +122,7 @@ const I18N = {
     reservedCopy: "此模組為後續功能預留。", online: "在線", offline: "離線", maintenance: "維護中",
     siteOverview: "場地概覽", iotSensorsList: "IoT 感測器列表", closeOverviewPanel: "關閉概覽面板",
     siteTemperature: "溫度", siteHumidity: "濕度", siteCo2: "CO₂", occupants: "人數",
+    modelLayersAria: "模型可見層", historyRangeAria: "歷史資料範圍", humidityTrendAria: "相對濕度趨勢圖", co2TrendAria: "CO₂ 趨勢圖", platformOverviewAria: "平台概覽", mainNavigationAria: "主要功能",
   },
   en: {
     backAria: "Back to device overview", title: "ZB202 Spatial Equipment Monitoring", connectionAria: "Data connection status",
@@ -151,6 +153,7 @@ const I18N = {
     reservedCopy: "This space is reserved for a future module.", online: "Online", offline: "Offline", maintenance: "Maintenance",
     siteOverview: "Site Overview", iotSensorsList: "IoT Sensors List", closeOverviewPanel: "Close overview panel",
     siteTemperature: "Temperature", siteHumidity: "Humidity", siteCo2: "CO₂", occupants: "Occupants",
+    modelLayersAria: "Model visibility layers", historyRangeAria: "History range", humidityTrendAria: "Relative humidity trend chart", co2TrendAria: "CO₂ trend chart", platformOverviewAria: "Platform overview", mainNavigationAria: "Main navigation",
   },
 };
 
@@ -383,6 +386,37 @@ function fallbackSensorDevices() {
         { key: "co2", labelKey: "co2", unit: "ppm", value: 610 + index * 45, variance: 8 },
       ],
       ifc: { localId: `MOCK-${number}`, category: "IoT Sensor", guid: null, name: `AM103-${number}`, data: { Source: "Mock data", Binding: "Normalized model coordinate" } },
+    };
+  });
+}
+
+function configuredSafetySensors() {
+  const guidById = {
+    "VS341-10": "0a62phbxbD4BqJO95RncHd", "VS341-09": "0a62phbxbD4BqJO95RncJc",
+    "VS341-08": "0a62phbxbD4BqJO95RncJj", "VS341-07": "0a62phbxbD4BqJO95RncIJ",
+    "VS341-06": "0a62phbxbD4BqJO95RncIP", "VS341-05": "0a62phbxbD4BqJO95RncIh",
+    "VS341-04": "0a62phbxbD4BqJO95RncIj", "VS341-03": "0a62phbxbD4BqJO95RncIk",
+    "VS341-02": "0a62phbxbD4BqJO95RncIl", "VS341-01": "0a62phbxbD4BqJO95RndjG",
+    "WS303-01": "0a62phbxbD4BqJO95RndjW", "WS301-01": "0a62phbxbD4BqJO95Rndkh",
+    "WS523-02": "0a62phbxbD4BqJO95Rndb6", "WS523-03": "0a62phbxbD4BqJO95Rnddm",
+    "WS523-04": "0a62phbxbD4BqJO95RndWz", "WS301-02": "0a62phbxbD4BqJO95RndYm",
+    "WS301-03": "0a62phbxbD4BqJO95Rndzx", "WS302-02": "0a62phbxbD4BqJO95Rndva",
+  };
+  return Object.entries(guidById).map(([id, sensorGuid]) => {
+    const model = id.split("-")[0];
+    const keys = { VS341: ["occupancy", "battery"], WS301: ["magnetStatus", "tamperStatus", "battery"], WS303: ["leakageStatus", "battery"], WS302: ["noise", "battery"], WS523: ["activePower", "voltage"] }[model] || [];
+    const type = influxDeviceType(model);
+    return {
+      id,
+      name: { zh: `${id} ${type.zh}`, "zh-Hant": `${id} ${type["zh-Hant"]}`, en: `${id} ${type.en}` },
+      subtitle: { zh: `${model} · ZB202`, "zh-Hant": `${model} · ZB202`, en: `${model} · ZB202` },
+      category: "IOT_SENSOR",
+      groupKey: "sensors",
+      sensorModel: model,
+      devEui: "",
+      binding: { kind: "marker", sensorGuid },
+      metrics: keys.map((key) => telemetryMetric(key, {})),
+      ifc: { localId: null, category: "IoT Sensor", guid: sensorGuid, name: id, data: { Source: "IFC", Sensor_ID: id } },
     };
   });
 }
@@ -2149,7 +2183,7 @@ async function finalizeFederatedModel(componentCount) {
   state.modelBox.getCenter(state.modelCenter);
   state.modelRadius = Math.max(state.modelBox.getBoundingSphere(new THREE.Sphere()).radius, 1);
   showLoading(MODEL, 94, t("scannedEquipment"));
-  DEVICES = await bindSensorsToIfc(fallbackSensorDevices(), state.fragmentsModels.get("sensor"));
+  DEVICES = await bindSensorsToIfc([...fallbackSensorDevices(), ...configuredSafetySensors()], state.fragmentsModels.get("sensor"));
   MEP_COMPONENTS = await scanIfcEquipment(state.fragmentsModels.get("mep"), "mep");
   initializeDeviceSnapshots();
   const initialDevice = DEVICES.find((device) => device.id.toUpperCase() === requestedSensorId) || DEVICES[0];

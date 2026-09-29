@@ -51,7 +51,7 @@
             <button class="dt-secondary-btn" id="retry-model-btn" type="button" data-i18n="reload">重新加载</button>
           </div>
 
-          <div class="dt-layer-switcher" aria-label="模型可见层">
+          <div class="dt-layer-switcher" aria-label="Model visibility layers" data-i18n-aria="modelLayersAria">
             <label><input type="checkbox" data-model-layer="archi" checked><i class="ph ph-check" aria-hidden="true"></i><span>Architecture</span></label>
             <label><input type="checkbox" data-model-layer="mep" checked><i class="ph ph-check" aria-hidden="true"></i><span>MEP</span></label>
             <button class="dt-layer-mode" type="button" data-model-layer="sensor" data-sensor-mode="labels" aria-label="Sensor: model and labels" title="Sensor: model and labels"><i class="ph ph-eye" aria-hidden="true"></i><span>Sensor</span></button>
@@ -79,7 +79,7 @@
           <section class="dt-component-properties" id="component-properties" hidden></section>
           <div class="dt-update-row" id="update-row"><span data-i18n="lastUpload">最后上传</span><time id="updated-at">—</time></div>
           <div class="dt-history-toolbar">
-            <div class="dt-history-ranges" aria-label="历史数据范围">
+            <div class="dt-history-ranges" aria-label="History range" data-i18n-aria="historyRangeAria">
               <button type="button" class="active" data-history-range="1h">1h</button>
               <button type="button" data-history-range="12h">12h</button>
               <button type="button" data-history-range="24h">24h</button>
@@ -102,7 +102,7 @@
           </div>
           <div class="dt-trend-card" id="humidity-trend-card">
             <div class="dt-trend-heading"><div><span id="humidity-trend-label">相对湿度</span><strong id="humidity-trend-value">—</strong></div></div>
-            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="相对湿度趋势图">
+            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="Relative humidity trend chart" data-i18n-aria="humidityTrendAria">
               <g class="dt-trend-grid" id="humidity-trend-grid"></g>
               <path class="dt-trend-area" id="humidity-trend-area"></path><path class="dt-trend-line" id="humidity-trend-line"></path>
               <g class="dt-trend-points" id="humidity-trend-points"></g>
@@ -111,7 +111,7 @@
           </div>
           <div class="dt-trend-card" id="co2-trend-card">
             <div class="dt-trend-heading"><div><span id="co2-trend-label">CO₂</span><strong id="co2-trend-value">—</strong></div></div>
-            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="CO₂ 趋势图">
+            <svg class="dt-trend-chart" viewBox="0 0 360 140" preserveAspectRatio="xMidYMid meet" aria-label="CO₂ trend chart" data-i18n-aria="co2TrendAria">
               <g class="dt-trend-grid" id="co2-trend-grid"></g>
               <path class="dt-trend-area" id="co2-trend-area"></path><path class="dt-trend-line" id="co2-trend-line"></path>
               <g class="dt-trend-points" id="co2-trend-points"></g>
@@ -226,7 +226,7 @@
         </section>
       </aside>
 
-      <aside class="dt-overview-rail dt-runtime-data" aria-label="平台概览" aria-hidden="true">
+      <aside class="dt-overview-rail dt-runtime-data" aria-label="Platform overview" data-i18n-aria="platformOverviewAria" aria-hidden="true">
         <section class="dt-rail-card dt-sensor-card" id="sensor-list-card">
           <header>
             <div class="dt-sensor-title"><h2 id="asset-list-title" data-i18n="iotSensorsList">IoT 传感器列表</h2></div>
@@ -249,7 +249,7 @@
         </section>
       </aside>
 
-      <nav class="dt-bottom-nav" aria-label="主要功能">
+      <nav class="dt-bottom-nav" aria-label="Main navigation" data-i18n-aria="mainNavigationAria">
         <button type="button" class="active" data-view="overview" title="Overview" aria-label="Overview" aria-controls="dashboard-left dashboard-right" aria-expanded="true"><i class="ph ph-squares-four" aria-hidden="true"></i><span>Overview</span></button>
         <button type="button" id="device-panel-btn" data-view="sensors" title="IoT" aria-label="IoT" aria-controls="device-panel" aria-expanded="false"><i class="ph ph-broadcast" aria-hidden="true"></i><span>IoT</span></button>
         <button type="button" data-view="bms" title="BMS (unavailable)" aria-label="BMS (unavailable)" disabled><i class="ph ph-hard-drives" aria-hidden="true"></i><span>BMS</span></button>
