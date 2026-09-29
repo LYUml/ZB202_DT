@@ -20,6 +20,13 @@
       <button id="use-live" type="button" disabled>使用最新实测 CO₂</button>
       <span id="live-status" role="status">正在检查本地数据桥接…</span>
     </section>
+    <section class="occupancy-inspector" aria-label="模拟人数时间轴">
+      <div class="occupancy-heading"><div><p class="eyebrow">SIMULATED OCCUPANCY · 0–10 PEOPLE</p><h2>模拟人数</h2><p>拖动时间轴查看每个五分钟时刻的人数；这是生成的实验场景，不是 VS341 实测人数。</p></div><div class="occupancy-current" aria-live="polite"><span id="occupancy-time">--:--</span><strong id="occupancy-count">—</strong><span>人</span></div></div>
+      <div id="occupancy-bars" class="occupancy-bars" aria-hidden="true"></div>
+      <input id="occupancy-step" type="range" min="0" max="287" step="1" value="0" aria-label="选择模拟人数的时间" />
+      <div class="occupancy-axis"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+      <p class="occupancy-summary"><span>当天最多 <strong id="occupancy-peak">—</strong> 人</span><span>累计有人 <strong id="occupancy-minutes">—</strong> 分钟</span></p>
+    </section>
     <section class="assumptions" aria-label="模型假设">
       <div><small>房间尺寸</small><strong>5.9 × 7.9 × 6.1 m</strong><span>体积约 284.3 m³</span></div>
       <div><small>控制步长 / 预测时域</small><strong>5 min / 2 h</strong><span>每步重新预测并优化</span></div>

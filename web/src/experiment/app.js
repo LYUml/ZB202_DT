@@ -6,6 +6,10 @@ const summary = document.getElementById("summary");
 const chart = document.getElementById("chart");
 const liveStatus = document.getElementById("live-status");
 const liveButton = document.getElementById("use-live");
+const occupancyStep = document.getElementById("occupancy-step");
+const occupancyTime = document.getElementById("occupancy-time");
+const occupancyCount = document.getElementById("occupancy-count");
+const occupancyBars = document.getElementById("occupancy-bars");
 const names = { fixed: "固定通风", reactive: "当前人数响应", predictive: "预测控制" };
 let latestLive = null;
 let experiment;
@@ -30,6 +34,7 @@ function renderChart(data) {
 }
 
 function render(data) {
+  renderOccupancy(data);
   summary.innerHTML = data.results.map(({ policy, summary: metric }) => `<article class="result ${policy}">
     <h3>${names[policy]}</h3><div><span>占用时超过目标</span><strong>${metric.occupiedMinutesAboveTarget} min</strong></div>
     <div><span>占用时平均 CO₂</span><strong>${metric.meanOccupiedCo2Ppm ?? "—"} ppm</strong></div>
@@ -38,6 +43,25 @@ function render(data) {
     <div><span>风量切换次数</span><strong>${metric.airflowChanges}</strong></div>
   </article>`).join("");
   renderChart(data);
+}
+
+function renderOccupancy(data) {
+  const people = data.occupancy;
+  occupancyStep.max = String(people.length - 1);
+  const firstOccupied = people.findIndex((count) => count > 0);
+  occupancyStep.value = String(firstOccupied < 0 ? 0 : firstOccupied);
+  occupancyBars.innerHTML = `<svg viewBox="0 0 288 80" preserveAspectRatio="none">${people.map((count, step) => `<rect x="${step}" y="${80 - count * 7}" width="1" height="${count * 7}"/>`).join("")}</svg>`;
+  document.getElementById("occupancy-peak").textContent = String(Math.max(...people));
+  document.getElementById("occupancy-minutes").textContent = String(people.filter((count) => count > 0).length * data.config.stepMinutes);
+  showOccupancyStep();
+}
+
+function showOccupancyStep() {
+  if (!experiment) return;
+  const step = Number(occupancyStep.value);
+  occupancyTime.textContent = `${String(Math.floor(step / 12)).padStart(2, "0")}:${String(step % 12 * 5).padStart(2, "0")}`;
+  occupancyCount.textContent = String(experiment.occupancy[step]);
+  occupancyStep.setAttribute("aria-valuetext", `${occupancyTime.textContent}，模拟 ${experiment.occupancy[step]} 人`);
 }
 
 function run() {
@@ -88,6 +112,7 @@ function connectBridge() {
 
 document.getElementById("run").addEventListener("click", run);
 document.getElementById("download").addEventListener("click", downloadCsv);
+occupancyStep.addEventListener("input", showOccupancyStep);
 liveButton.addEventListener("click", () => {
   if (!latestLive) return;
   if (Date.now() - latestLive.timestamp > 15 * 60 * 1000) {
