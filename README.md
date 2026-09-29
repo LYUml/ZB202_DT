@@ -22,4 +22,35 @@ npm run dev
 - `npm run test:bridge`：检查数据桥接
 - `npm run bim:convert`：将 IFC 转为 Fragments
 
+## 项目结构
+
+```text
+ZB202_DT/
+├── .github/workflows/            # GitHub Pages 自动部署
+├── docs/architecture/            # 架构说明与技术路线
+├── dvc/                          # 设备清单备份（CSV / XLSX）
+├── models/
+│   ├── ifc/                      # IFC 源模型
+│   └── rvt/                      # Revit 源模型
+├── scripts/
+│   ├── influxdb-bridge.mjs       # InfluxDB → WebSocket 桥接
+│   ├── bridge-smoke-test.mjs     # 数据链路测试
+│   └── ifc-to-fragments.mjs      # IFC 转 Fragments
+├── web/
+│   ├── public/models/fragments/  # 浏览器运行时模型
+│   ├── src/
+│   │   ├── dashboard/            # 总览页面逻辑
+│   │   ├── shared/               # 共享样式与主题
+│   │   └── twin/                 # 三维孪生页面逻辑
+│   ├── index.html                # 默认入口
+│   ├── overview.html
+│   ├── device.html
+│   └── twin.html
+├── .env.example                  # InfluxDB 配置模板
+├── package.json                  # npm 命令与依赖
+├── start-zb202.bat               # Windows 一键启动
+├── start-zb202.command           # macOS 双击启动
+└── vite.config.js                # Vite 构建配置
+```
+
 配置文件 `.env` 仅保存在本地，不要提交真实凭据。
