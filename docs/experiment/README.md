@@ -1,6 +1,6 @@
 # ZB202 占用、CO₂ 与控制研究原型
 
-第一阶段完成情况及真实 IoT 数据的使用边界见[执行简报](execution-report.md)。
+第一阶段完成情况及真实 IoT 数据的使用边界见 [Word 执行简报](ZB202_execution_report.docx)。
 
 ## 范围
 
