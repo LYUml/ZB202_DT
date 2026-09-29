@@ -1,132 +1,25 @@
-# ZB202 Web Digital Twin
+# ZB202 Digital Twin
 
-[中文](README.md) | [English](README.en.md)
+A digital twin for ZB202 lab monitoring. The frontend displays BIM models and sensor readings; a local bridge supplies live data from InfluxDB.
 
-A digital twin for environmental monitoring in laboratory ZB202. The frontend uses Vite, Three.js, and That Open Fragments to display BIM models, while a local bridge reads sensor data from InfluxDB.
+## Run
 
-## Data path
+Requires Node.js 20.19+. In the project directory:
 
-```mermaid
-flowchart LR
-  SENSOR["Milesight sensors"] --> DB["InfluxDB<br/>zb202_iot"]
-  DB --> BRIDGE["Node.js bridge"]
-  BRIDGE --> WS["WebSocket<br/>127.0.0.1:8787"]
-  WS --> WEB["Web frontend<br/>overview / 3D twin"]
-
-  RVT["Revit"] --> IFC["IFC"]
-  IFC --> FRAG["Fragments"]
-  FRAG --> WEB
-```
-
-InfluxDB connection:
-
-```text
-URL:    http://influxdb.itf.beeerise.com
-Org:    PolyU
-Bucket: zb202_iot
-```
-
-The browser does not connect to InfluxDB directly. The API token is read only by the local bridge and is not bundled into frontend assets.
-
-## Usage
-
-### 1. Install dependencies
-
-Install Node.js 20.19 or newer, then run:
-
-```powershell
+```sh
 npm install
+cp .env.example .env
+npm run dev
 ```
 
-### 2. Configure InfluxDB
+Add the InfluxDB token and connection details to `.env`. On Windows, launch `start-zb202.bat`; on macOS, use `start-zb202.command`.
 
-Create a local environment file:
+Open `http://127.0.0.1:5173/overview.html` for the overview or `http://127.0.0.1:5173/twin.html` for the 3D twin.
 
-```powershell
-Copy-Item .env.example .env
-```
+## Commands
 
-Add the real token to `.env`:
+- `npm run build`: build the static pages
+- `npm run test:bridge`: check the data bridge
+- `npm run bim:convert`: convert IFC to Fragments
 
-```dotenv
-ZB202_INFLUX_URL=http://influxdb.itf.beeerise.com
-ZB202_INFLUX_TOKEN=your-token
-ZB202_INFLUX_ORG=PolyU
-ZB202_INFLUX_BUCKET=zb202_iot
-```
-
-`.env` is ignored by Git. Never commit a real token.
-
-### 3. Start the project
-
-On Windows, double-click:
-
-```text
-start-zb202.bat
-```
-
-On macOS, double-click `start-zb202.command` in the project root. If macOS blocks it on the first run, right-click the file in Finder and choose **Open**.
-
-Or run the combined development command. It starts the InfluxDB bridge and Vite together, and closes the bridge it started when the command exits:
-
-```powershell
-npm run dev -- --host 127.0.0.1
-```
-
-For bridge troubleshooting, it can still be started separately:
-
-```powershell
-npm run influx:bridge
-```
-
-Open:
-
-- Overview: `http://127.0.0.1:5173/overview.html`
-- 3D twin: `http://127.0.0.1:5173/twin.html`
-
-Test the data bridge:
-
-```powershell
-npm run test:bridge
-```
-
-Build production assets:
-
-```powershell
-npm run build
-```
-
-## Project structure
-
-```text
-ZB202_DT/
-├── .github/workflows/            # GitHub Pages deployment
-├── docs/architecture/            # Architecture and technical routes
-├── dvc/                          # Device-list backups (CSV / XLSX)
-├── models/
-│   ├── ifc/                      # IFC source models
-│   └── rvt/                      # Revit source models
-├── scripts/
-│   ├── influxdb-bridge.mjs       # InfluxDB-to-WebSocket bridge
-│   ├── bridge-smoke-test.mjs     # Data-path smoke test
-│   └── ifc-to-fragments.mjs      # IFC-to-Fragments conversion
-├── web/
-│   ├── public/models/fragments/  # Browser runtime models
-│   ├── src/
-│   │   ├── dashboard/            # Overview page logic
-│   │   ├── shared/               # Shared styles and themes
-│   │   └── twin/                 # 3D twin page logic
-│   ├── index.html                # Default entry point
-│   ├── overview.html
-│   ├── device.html
-│   └── twin.html
-├── .env.example                  # InfluxDB configuration template
-├── package.json                  # npm commands and dependencies
-├── start-zb202.bat               # Windows launcher
-├── start-zb202.command           # macOS double-click launcher
-└── vite.config.js                # Vite build configuration
-```
-
-The project root is reserved for entry points, configuration, and launchers. Browser runtime models belong in `web/public/models/fragments/`, and source models in `models/`.
-
-`node_modules/`, `dist/`, `.cache/`, `.env`, and `.zb202-*.log` are generated locally and are not committed to Git.
+Keep `.env` local and never commit real credentials.

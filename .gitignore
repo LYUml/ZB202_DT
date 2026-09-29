@@ -5,3 +5,5 @@ dist/
 .env
 .env.local
 .zb202-*.log
+env
+env.example
