@@ -453,7 +453,6 @@ function renderOverview(devices) {
       <tr class="device-table-row" data-href="${deviceUrl(device.id)}" tabindex="0" role="link" aria-label="${getDeviceText(device.name)} · ${statusText}">
         <td>${getDeviceText(device.name)}</td>
         <td>${device.id}</td>
-        <td>${getDeviceText(device.location)}</td>
         <td><span class="status"><i class="dot ${statusClass}"></i>${statusText}</span></td>
         <td>${formatLatestValues(device.latestValues)}</td>
       </tr>`;

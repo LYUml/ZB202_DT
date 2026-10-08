@@ -1,6 +1,8 @@
 import "dotenv/config";
 import { InfluxDB } from "@influxdata/influxdb-client";
 import mqtt from "mqtt";
+import { buildSensorHistoryQuery } from "./sensor-history.mjs";
+import { SOLAR_URL, SOLAR_MEASUREMENT, parseSolarCsv, solarPoint } from "./hko-solar.mjs";
 import { WebSocketServer, WebSocket } from "ws";
 
 const url = process.env.ZB202_INFLUX_URL;
@@ -38,6 +40,38 @@ if (missing.length) {
 }
 
 const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
+const solarBucket = process.env.ZB202_SOLAR_INFLUX_BUCKET || weatherBucket || bucket;
+const solarClient = new InfluxDB({ url, token: weatherToken });
+const solarWriteApi = solarClient.getWriteApi(org, solarBucket, "ms");
+const solarQueryApi = solarClient.getQueryApi(org);
+let latestSolar = null;
+let solarPolling = false;
+async function pollSolar() {
+  if (solarPolling) return;
+  solarPolling = true;
+  try {
+    const response = await fetch(SOLAR_URL, { signal: AbortSignal.timeout(15000) });
+    if (!response.ok) throw new Error(`HKO HTTP ${response.status}`);
+    const observation = parseSolarCsv(await response.text());
+    if (latestSolar?.receivedAt !== observation.receivedAt) {
+      solarWriteApi.writePoint(solarPoint(observation));
+      await solarWriteApi.flush();
+    }
+    // Read back from InfluxDB; the browser only receives persisted observations.
+    const rows = await solarQueryApi.collectRows(`from(bucket: ${JSON.stringify(solarBucket)})
+      |> range(start: -48h)
+      |> filter(fn: (r) => r._measurement == "${SOLAR_MEASUREMENT}" and r._field == "solarRadiation" and r.station == "King's Park")
+      |> last()`);
+    const row = rows.sort((a, b) => Date.parse(b._time) - Date.parse(a._time))[0];
+    if (row) {
+      latestSolar = { ...observation, value: Number(row._value), receivedAt: row._time };
+      broadcast(latestSolar);
+      console.log(`[HKO] King's Park solar radiation ${latestSolar.value} W/m² persisted and read from InfluxDB`);
+    }
+  } catch (error) {
+    console.error(`[HKO] Solar ingestion failed: ${error.message}`);
+  } finally { solarPolling = false; }
+}
 const weatherQueryApi = weatherBucket ? new InfluxDB({ url, token: weatherToken }).getQueryApi(org) : null;
 const websocketServer = new WebSocketServer({ host: websocketHost, port: websocketPort });
 const historyByDevice = new Map();
@@ -125,6 +159,25 @@ function buildDemandHistoryQuery(range) {
   |> group(columns: ["_time"])
   |> sum(column: "_value")
   |> sort(columns: ["_time"])`;
+}
+
+async function sendSensorHistory(socket, message) {
+  const hours = Number(message.hours);
+  const stop = new Date().toISOString();
+  try {
+    const rows = await queryApi.collectRows(buildSensorHistoryQuery({ bucket, measurement, deviceColumn, devEui: message.devEui, deviceId: message.deviceId, hours, stop }));
+    const trends = {};
+    for (const row of rows) {
+      const field = normalizeField(row._field);
+      const time = Date.parse(row._time);
+      const value = Number(row._value);
+      if (!field || !Number.isFinite(time) || !Number.isFinite(value)) continue;
+      (trends[field.key] ||= []).push({ time, value });
+    }
+    send(socket, { type: "sensor-history", requestId: message.requestId, deviceId: message.deviceId, hours, trends });
+  } catch (error) {
+    send(socket, { type: "sensor-history", requestId: message.requestId, deviceId: message.deviceId, hours, trends: {}, error: error.message });
+  }
 }
 
 async function sendDemandHistory(socket, requestedRange) {
@@ -251,6 +304,7 @@ function normalizeField(field) {
 }
 
 function acceptRow(row) {
+  if (row._measurement === SOLAR_MEASUREMENT) return null;
   const { devEui, deviceId } = normalizeDevice(row);
   const field = normalizeField(row._field);
   const value = Number(row._value);
@@ -308,6 +362,7 @@ async function poll() {
 }
 
 websocketServer.on("connection", (socket) => {
+  if (latestSolar) send(socket, latestSolar);
   send(socket, { type: "bridge-status", connected: databaseConnected, source: "influxdb", bucket, startedAt: bridgeStartedAt });
   send(socket, { type: "control-status", connected: mqttConnected, source: "mqtt", supportedDevices: [...socketDevices.keys()] });
   for (const history of historyByDevice.values()) for (const telemetry of history) send(socket, telemetry);
@@ -315,10 +370,13 @@ websocketServer.on("connection", (socket) => {
     let message;
     try { message = JSON.parse(data.toString()); } catch { return; }
     if (message.type === "socket-control") enqueueSocketControl(socket, message);
+    if (message.type === "sensor-history-request") void sendSensorHistory(socket, message);
     if (message.type === "demand-history-request") void sendDemandHistory(socket, message.range);
   });
 });
 
 console.log(`[Bridge] WebSocket ready at ws://${websocketHost}:${websocketPort}`);
 await poll();
+void pollSolar();
+setInterval(pollSolar, 10 * 60 * 1000);
 setInterval(poll, pollIntervalMs);

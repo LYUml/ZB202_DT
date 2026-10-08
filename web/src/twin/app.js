@@ -352,6 +352,7 @@ function ensureTelemetryDevice(message) {
     DEVICES.push(device);
     state.snapshots.set(device.id, { deviceId: device.id, status: "unavailable", updatedAt: new Date(), values: {}, trends: {} });
   }
+  if (normalizedEui) device.devEui = normalizedEui;
   const snapshot = state.snapshots.get(device.id);
   for (const key of Object.keys(message.values || {})) {
     if (!device.metrics.some((metric) => metric.key === key)) device.metrics.push(telemetryMetric(key, message));
@@ -694,7 +695,6 @@ async function ensureFragments() {
 const helpersGroup = new THREE.Group();
 helpersGroup.name = "digital-twin-overlays";
 scene.add(helpersGroup);
-
 const occupancyGroup = new THREE.Group();
 occupancyGroup.name = "occupancy-seat-overlays";
 
@@ -1225,32 +1225,50 @@ async function styleBoundObject(deviceId) {
   const target = state.boundObjects.get(deviceId);
   if (target === undefined) return;
   const status = statusFor(deviceId);
+  const selected = state.selectedDeviceId === deviceId && elements.devicePanel.classList.contains("is-open");
   const device = DEVICES.find((item) => item.id === deviceId);
   const fragmentsModel = state.fragmentsModels.get(device?.binding.modelId) || state.fragmentsModel;
   if (!fragmentsModel) return;
   if (device.binding.modelId === "sensor") {
-    const color = status === "normal" ? 0x20a464
+    const occupancy = device.sensorModel === "VS341";
+    const seeThrough = selected || occupancy;
+    const color = selected ? 0x2f7df4 : status === "normal" ? 0x20a464
       : status === "offline" || status === "unavailable" ? 0x8b94a6
         : 0xe34d59;
     await fragmentsModel.highlight([target], {
       color: new THREE.Color(color),
-      opacity: 1,
-      transparent: false,
+      opacity: occupancy ? (selected ? 0.8 : 0.45) : 1,
+      transparent: seeThrough,
+      depthTest: !seeThrough,
+      depthWrite: !seeThrough,
       renderedFaces: renderedFaces.TWO,
     });
   } else if (state.selectedDeviceId === deviceId || status !== "normal") {
     await fragmentsModel.highlight([target], {
       color: status === "normal" ? new THREE.Color(0x2f7df4) : new THREE.Color(STATUS[status].color),
       opacity: 1,
-      transparent: false,
+      transparent: selected,
+      depthTest: !selected,
+      depthWrite: !selected,
       renderedFaces: renderedFaces.TWO,
     });
   }
 }
 
-let visualUpdateQueue = Promise.resolve();
+let visualUpdateQueue = null;
+let visualUpdatePending = false;
 function updateAllVisualStates() {
-  visualUpdateQueue = visualUpdateQueue.catch(() => {}).then(applyAllVisualStates);
+  visualUpdatePending = true;
+  if (!visualUpdateQueue) {
+    visualUpdateQueue = (async () => {
+      try {
+        while (visualUpdatePending) {
+          visualUpdatePending = false;
+          await applyAllVisualStates();
+        }
+      } finally { visualUpdateQueue = null; }
+    })();
+  }
   return visualUpdateQueue;
 }
 
@@ -1291,10 +1309,12 @@ async function focusDevice(device) {
 
   const center = box.getCenter(new THREE.Vector3());
   const size = box.getSize(new THREE.Vector3());
-  const focusRadius = Math.max(size.length() * 0.5, state.modelRadius * 0.2);
+  const focusRadius = Math.max(size.length() * 0.5, state.modelRadius * 0.1);
   const direction = camera.position.clone().sub(controls.target).normalize();
   const destination = center.clone().add(direction.multiplyScalar(focusRadius * 5.4));
   animateCamera(destination, center);
+  controls.enablePan = true;
+  elements.deviceName.title = deviceText(device, "name");
 }
 
 function normalizedSearchText(value) {
@@ -1302,7 +1322,7 @@ function normalizedSearchText(value) {
 }
 
 function visibleDevices() {
-  const collection = state.assetView === "mep" ? MEP_COMPONENTS : DEVICES;
+  const collection = state.assetView === "mep" ? MEP_COMPONENTS : DEVICES.filter((device) => sensorGroupFor(device).key !== "weather");
   const queryText = normalizedSearchText(state.equipmentQuery);
   return collection.filter((device) => {
     if (state.assetView !== "mep" && !state.sensorGroupFilters.has(sensorGroupFor(device).key)) return false;
@@ -1324,7 +1344,7 @@ function renderSensorCategoryTags() {
   if (!container) return;
   container.hidden = state.assetView === "mep";
   if (container.hidden) return;
-  const availableGroups = SENSOR_GROUPS.filter((group) => DEVICES.some((device) => sensorGroupFor(device).key === group.key));
+  const availableGroups = SENSOR_GROUPS.filter((group) => group.key !== "weather" && DEVICES.some((device) => sensorGroupFor(device).key === group.key));
   const allSelected = availableGroups.every((group) => state.sensorGroupFilters.has(group.key));
   const tags = [{ key: "all", tagLabel: "All sensors", icon: "ph-squares-four", selected: allSelected }, ...availableGroups.map((group) => ({
     ...group,
@@ -1568,8 +1588,8 @@ function renderDebugDashboardData() {
   const outdoorMockLines = [
     '<strong>31.8<small>°C</small></strong><em>Apparent 36°</em>',
     '<strong>68<small>%</small></strong>',
-    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><em>4.2 m/s</em><i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:112.5deg" aria-hidden="true"></i></strong>',
-    '<strong class="weather">Rainy</strong>',
+    '<strong class="wind-value" aria-label="Wind from ESE at 4.2 metres per second"><em>4.2<small> m/s</small></em><i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:112.5deg" aria-hidden="true"></i></strong>',
+    '<strong>820<small> W/m²</small></strong>',
   ];
   document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => {
     line.innerHTML = mock ? outdoorMockLines[index] : "<strong>—</strong>";
@@ -1658,11 +1678,11 @@ function renderSiteOverview() {
     && Number.isFinite(lastLiveAt)
     && Date.now() - lastLiveAt <= INFLUX_STALE_AFTER_MS;
   const sourceValue = (key, unit) => sourceIsFresh && Number.isFinite(sourceSnapshot?.values[key])
-    ? `${formatNumber(sourceSnapshot.values[key])} ${unit}`
+    ? `${formatNumber(sourceSnapshot.values[key])}<small> ${unit}</small>`
     : "—";
-  elements.overviewIndoorTemperature.textContent = state.debugMockData ? "24.2 °C" : sourceValue("temperature", "°C");
-  elements.overviewIndoorHumidity.textContent = state.debugMockData ? "62.2 %" : sourceValue("humidity", "%");
-  elements.overviewIndoorCo2.textContent = state.debugMockData ? "517 ppm" : sourceValue("co2", "ppm");
+  elements.overviewIndoorTemperature.innerHTML = state.debugMockData ? "24.2 °C" : sourceValue("temperature", "°C");
+  elements.overviewIndoorHumidity.innerHTML = state.debugMockData ? "62.2 %" : sourceValue("humidity", "%");
+  elements.overviewIndoorCo2.innerHTML = state.debugMockData ? "517 ppm" : sourceValue("co2", "ppm");
   const pm25 = average(metricValues(["pm25"]));
   const noise = average(metricValues(["noiseLaeq"]));
   const extraIndoorValues = state.debugMockData
@@ -1673,7 +1693,7 @@ function renderSiteOverview() {
       occupancySummary,
     ];
   document.querySelectorAll(".dt-indoor-grid .dt-metric-line strong").forEach((element, index) => {
-    if (index >= 3) element.textContent = extraIndoorValues[index - 3];
+    if (index >= 3) element.innerHTML = extraIndoorValues[index - 3].replace(/^([\d.]+) (.+)$/, "$1<small> $2</small>");
     if (index === 5) element.title = state.debugMockData ? "" : occupancyExplanation;
   });
 
@@ -1684,19 +1704,17 @@ function renderSiteOverview() {
     const weatherUpdatedAt = weatherDevice ? state.lastLiveAt.get(weatherDevice.id) : null;
     const weatherFresh = state.influxConnected && Number.isFinite(weatherUpdatedAt)
       && Date.now() - weatherUpdatedAt <= INFLUX_STALE_AFTER_MS;
-    const weatherCode = Number(weatherValues.weatherCode);
     const windDirection = Number(weatherValues.windDirection);
     const hasWindDirection = Number.isFinite(weatherValues.windDirection);
     const windArrow = hasWindDirection
       ? `<i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:${windDirection}deg" aria-hidden="true"></i>`
       : "";
-    const weatherLabels = { 0: "Clear", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast", 45: "Fog", 51: "Drizzle", 61: "Rain", 63: "Moderate rain", 65: "Heavy rain", 80: "Rain showers", 95: "Thunderstorm" };
     const weatherLines = [
       weatherFresh && Number.isFinite(weatherValues.temperature) ? `<strong>${formatNumber(weatherValues.temperature)}<small>°C</small></strong>` : "<strong>—</strong>",
       weatherFresh && Number.isFinite(weatherValues.humidity) ? `<strong>${formatNumber(weatherValues.humidity)}<small>%</small></strong>` : "<strong>—</strong>",
-      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind ${hasWindDirection ? `from ${Math.round(windDirection)} degrees ` : ""}at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)} m/s</em>${windArrow}</strong>` : "<strong>—</strong>",
-      weatherFresh && (Number.isFinite(weatherValues.weatherCode) || (Number.isFinite(weatherValues.rainfall) && weatherValues.rainfall > 0))
-        ? `<strong class="weather">${weatherLabels[weatherCode] || "Rain"}</strong>` : "<strong>—</strong>",
+      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind ${hasWindDirection ? `from ${Math.round(windDirection)} degrees ` : ""}at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)}<small> m/s</small></em>${windArrow}</strong>` : "<strong>—</strong>",
+      state.radiation && state.influxConnected && Date.now() - Date.parse(state.radiation.receivedAt) <= 30 * 60 * 1000
+        ? `<strong>${Math.round(state.radiation.value)}<small> W/m²</small></strong>` : "<strong>—</strong>",
     ];
     document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => { line.innerHTML = weatherLines[index]; });
   }
@@ -1786,6 +1804,23 @@ function renderSiteOverview() {
   }
 }
 
+function requestSensorHistory() {
+  const device = DEVICES.find((item) => item.id === state.selectedDeviceId);
+  if (!device || state.influxSocket?.readyState !== WebSocket.OPEN) return;
+  state.sensorHistoryRequestId = `${device.id}:${Date.now()}:${Math.random()}`;
+  state.sensorHistoryLoading = true;
+  state.sensorHistoryError = null;
+  const requestId = state.sensorHistoryRequestId;
+  window.setTimeout(() => {
+    if (state.sensorHistoryRequestId === requestId && state.sensorHistoryLoading) {
+      state.sensorHistoryLoading = false;
+      state.sensorHistoryError = "History request timed out";
+      renderSelectedDevice();
+    }
+  }, 20000);
+  state.influxSocket.send(JSON.stringify({ type: "sensor-history-request", requestId: state.sensorHistoryRequestId, deviceId: device.id, devEui: device.devEui, hours: historyWindowMs() / 3600000 }));
+}
+
 function historyWindowMs() {
   if (state.historyRange === "1h") return 60 * 60 * 1000;
   if (state.historyRange === "12h") return 12 * 60 * 60 * 1000;
@@ -1801,7 +1836,13 @@ function samplesInSelectedRange(samples) {
   return samples.filter((sample) => sample.time >= cutoff);
 }
 
+function binaryMetricLabel(key, value) {
+  if (key === "magnetStatus") return activeLang === "en" ? (value > 0 ? "Open" : "Closed") : (value > 0 ? "开" : "闭");
+  return activeLang === "en" ? (value > 0 ? "1 person" : "0 people") : `${value > 0 ? 1 : 0}人`;
+}
+
 function trendScale(metric, values) {
+  if (["magnetStatus", "occupancy"].includes(metric?.key)) return { min: 0, max: 1, span: 1, decimals: 0 };
   const scaleByMetric = {
     temperature: { minimumSpan: 0.4, decimals: 1 },
     humidity: { minimumSpan: 1, decimals: 1 },
@@ -1824,7 +1865,7 @@ function trendScale(metric, values) {
 function sparklinePath(samples, metric, useSelectedRange = true) {
   const width = 360;
   const height = 140;
-  const left = 40;
+  const left = ["magnetStatus", "occupancy"].includes(metric?.key) ? 62 : 40;
   const right = 8;
   const top = 10;
   const bottom = 28;
@@ -1843,11 +1884,13 @@ function sparklinePath(samples, metric, useSelectedRange = true) {
     return [x, y];
   });
   if (points.length === 1) points = [[(left + width - right) / 2, points[0][1]]];
-  const line = points.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+  const binary = ["magnetStatus", "occupancy"].includes(metric?.key);
+  const line = points.map(([x, y], index) => index === 0 ? `M${x.toFixed(1)},${y.toFixed(1)}` : binary ? `H${x.toFixed(1)} V${y.toFixed(1)}` : `L${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const area = points.length > 1 ? `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z` : "";
-  const ticks = [scale.max, (scale.max + scale.min) / 2, scale.min].map((value, index) => ({
+  const tickValues = binary ? [1, 0] : [scale.max, (scale.max + scale.min) / 2, scale.min];
+  const ticks = tickValues.map((value, index) => ({
     value,
-    y: top + (index / 2) * (plotBottom - top),
+    y: top + (index / (tickValues.length - 1)) * (plotBottom - top),
   }));
   return { line, area, points, ticks, decimals: scale.decimals, left, right: width - right, top, plotBottom };
 }
@@ -1855,7 +1898,7 @@ function sparklinePath(samples, metric, useSelectedRange = true) {
 function renderMetricTrend(snapshot, chart, metric) {
   const history = metric ? snapshot.trends[metric.key] || [] : [];
   const selectedSamples = samplesInSelectedRange(history);
-  const outsideRange = selectedSamples.length === 0 && history.length > 0;
+  const outsideRange = false;
   const samples = outsideRange ? history : selectedSamples;
   const values = samples.map((sample) => sample.value);
   chart.card.hidden = !metric;
@@ -1867,7 +1910,7 @@ function renderMetricTrend(snapshot, chart, metric) {
     message.className = "dt-trend-message";
     chart.card.appendChild(message);
   }
-  message.textContent = !samples.length ? t("trendNoReadings")
+  message.textContent = state.sensorHistoryLoading ? "Loading selected range…" : state.sensorHistoryError ? "History query failed; try again" : !samples.length ? "No readings in the selected range"
     : [outsideRange ? t("trendOutsideRange") : "", samples.length === 1 ? t("trendOneReading") : ""].filter(Boolean).join(" · ");
   message.hidden = !message.textContent;
   if (!samples.length) {
@@ -1876,7 +1919,10 @@ function renderMetricTrend(snapshot, chart, metric) {
     chart.area.setAttribute("d", "");
     chart.points.innerHTML = "";
     chart.grid.innerHTML = `<line x1="40" y1="10" x2="352" y2="10"></line><line x1="40" y1="61" x2="352" y2="61"></line><line x1="40" y1="112" x2="352" y2="112"></line><line x1="40" y1="10" x2="40" y2="112"></line>`;
-    chart.axis.innerHTML = `<text x="40" y="132" text-anchor="start">${t("earlier")}</text><text x="352" y="132" text-anchor="end">${t("now")}</text>`;
+    chart.axis.innerHTML = `<text x="40" y="132" text-anchor="start">-${state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange}</text><text x="352" y="132" text-anchor="end">${t("now")}</text>`;
+    if (["magnetStatus", "occupancy"].includes(metric.key)) {
+      chart.axis.innerHTML += `<text x="34" y="13" text-anchor="end">${binaryMetricLabel(metric.key, 1)}</text><text x="34" y="115" text-anchor="end">${binaryMetricLabel(metric.key, 0)}</text>`;
+    }
     return;
   }
   const paths = sparklinePath(samples, metric, !outsideRange);
@@ -1884,6 +1930,7 @@ function renderMetricTrend(snapshot, chart, metric) {
   const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
   const deltaSign = delta > 0 ? "+" : "";
   chart.value.innerHTML = `${formatNumber(values.at(-1))} ${metric.unit}${samples.length > 1 ? `<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>` : ""}`;
+  if (["magnetStatus", "occupancy"].includes(metric.key)) chart.value.textContent = binaryMetricLabel(metric.key, values.at(-1));
   chart.line.setAttribute("d", paths.line);
   chart.area.setAttribute("d", paths.area);
   chart.points.innerHTML = paths.points.map(([x, y]) => `
@@ -1897,7 +1944,7 @@ function renderMetricTrend(snapshot, chart, metric) {
     ? new Date(samples.at(-1).time).toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })
     : t("now");
   chart.axis.innerHTML = paths.ticks.map((tick) => `
-    <text x="34" y="${tick.y + 3}" text-anchor="end">${tick.value.toFixed(paths.decimals)}</text>
+    <text x="${paths.left - 6}" y="${tick.y + 3}" text-anchor="end">${["magnetStatus", "occupancy"].includes(metric.key) ? binaryMetricLabel(metric.key, tick.value) : tick.value.toFixed(paths.decimals)}</text>
   `).join("") + `
     <text x="${paths.left}" y="132" text-anchor="start">${rangeLabel}</text>
     <text x="${paths.right}" y="132" text-anchor="end">${endLabel}</text>
@@ -1953,18 +2000,19 @@ function renderSelectedDevice() {
   elements.updateRow.hidden = false;
   elements.faultToggle.hidden = true;
 
-  elements.metricGrid.innerHTML = device.metrics.map((metric) => `
+  const displayedMetrics = device.metrics.filter((metric) => !(device.sensorModel === "WS301" && metric.key === "tamperStatus"));
+  elements.metricGrid.innerHTML = displayedMetrics.map((metric) => `
     <div class="dt-metric" data-metric="${metric.key}" role="group" aria-label="${metricText(metric)}" title="${metricText(metric)}">
       <i class="ph ${metric.icon || INFLUX_METRICS[metric.key]?.icon || "ph-chart-line"} dt-metric-icon" aria-hidden="true"></i>
       <span>${metricText(metric)}</span>
-      <strong>${Number.isFinite(snapshot.values[metric.key]) ? metric.key === "occupancy" && occupancyMetric ? (snapshot.values[metric.key] > 0 ? "1" : "0") : `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
+      <strong>${Number.isFinite(snapshot.values[metric.key]) ? ["magnetStatus", "occupancy"].includes(metric.key) ? binaryMetricLabel(metric.key, snapshot.values[metric.key]) : `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
   `).join("");
 
-  elements.metricTrendCards.forEach((chart, index) => renderMetricTrend(snapshot, chart, device.metrics[index]));
+  elements.metricTrendCards.forEach((chart, index) => renderMetricTrend(snapshot, chart, displayedMetrics[index]));
   const primarySamples = samplesInSelectedRange(snapshot.trends[device.metrics[0].key]);
   const selectedRangeLabel = state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange;
-  elements.historyNote.textContent = t("readingsInRange", { count: primarySamples.length, range: selectedRangeLabel });
+  elements.historyNote.textContent = state.sensorHistoryLoading ? `Loading ${selectedRangeLabel} history…` : state.sensorHistoryError ? "History query failed; try again" : t("readingsInRange", { count: primarySamples.length, range: selectedRangeLabel });
   elements.updatedAt.textContent = state.lastLiveAt.has(device.id)
     ? occupancyMetric ? snapshot.updatedAt.toLocaleString(activeLocale(), { hour12: false }) : snapshot.updatedAt.toLocaleTimeString(activeLocale(), { hour12: false })
     : "—";
@@ -2022,8 +2070,27 @@ function setDevicePanelOpen(open) {
   elements.devicePanel.classList.toggle("is-open", open);
   elements.devicePanel.setAttribute("aria-hidden", String(!open));
   elements.devicePanel.inert = !open;
+  controls.enablePan = true;
+  void updateAllVisualStates();
   elements.devicePanelButton.setAttribute("aria-expanded", String(open));
   if (open) {
+    const sensor = DEVICES.find((device) => device.id === state.selectedDeviceId);
+    if (sensor) {
+      state.iotOpenedFromOverview = true;
+      state.assetView = "sensors";
+      state.equipmentQuery = "";
+      elements.equipmentSearch.value = "";
+      state.sensorGroupFilters.add(sensorGroupFor(sensor).key);
+      elements.assetViewButtons.forEach((button) => {
+        const active = button.dataset.assetView === "sensors";
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+      });
+      workspace.classList.remove("alarm-focus");
+      workspace.classList.add("right-panel-open");
+      elements.overviewRail.setAttribute("aria-hidden", "false");
+      renderDeviceList();
+    }
     setDashboardPanelsVisible(false);
     setActivePlatformView("sensors");
   } else if (elements.devicePanelButton.classList.contains("active")) {
@@ -2037,12 +2104,30 @@ function setDevicePanelOpen(open) {
 async function selectDevice(deviceId, focus = false) {
   const device = DEVICES.find((item) => item.id === deviceId);
   if (!device) return;
-  await clearStandaloneIfcSelection();
+  if (state.selectedIfcItem) await clearStandaloneIfcSelection();
   state.selectedDeviceId = deviceId;
+  requestSensorHistory();
   state.selectedItem = device.ifc;
   renderUI();
   await updateAllVisualStates();
   if (focus) {
+    const selectedRow = elements.deviceList.querySelector(".dt-device-item.selected");
+    if (selectedRow) {
+      const listRect = elements.deviceList.getBoundingClientRect();
+      const rowRect = selectedRow.getBoundingClientRect();
+      if (rowRect.bottom > listRect.bottom) elements.deviceList.scrollTop += rowRect.bottom - listRect.bottom;
+      else if (rowRect.top < listRect.top) elements.deviceList.scrollTop += rowRect.top - listRect.top;
+    }
+    state.sensorDisplayMode = "model";
+    state.layerVisibility.sensor = true;
+    const sensorModel = state.fragmentsModels.get("sensor");
+    if (sensorModel) sensorModel.object.visible = true;
+    const toggle = elements.layerToggles.find((item) => item.dataset.modelLayer === "sensor");
+    if (toggle) {
+      toggle.dataset.sensorMode = "model";
+      toggle.setAttribute("aria-label", "Sensor: status-colored models");
+      toggle.querySelector("i").className = "ph ph-eye";
+    }
     focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
   }
   if (device.binding.kind !== "object") return;
@@ -2172,6 +2257,24 @@ function connectInfluxBridge() {
   socket.addEventListener("message", (event) => {
     let message;
     try { message = JSON.parse(event.data); } catch { return; }
+    if (message.type === "sensor-history") {
+      if (message.requestId !== state.sensorHistoryRequestId || message.deviceId !== state.selectedDeviceId) return;
+      state.sensorHistoryLoading = false;
+      state.sensorHistoryError = message.error || null;
+      const snapshot = state.snapshots.get(message.deviceId);
+      if (snapshot && !message.error) {
+        for (const metric of DEVICES.find((device) => device.id === message.deviceId)?.metrics || []) {
+          snapshot.trends[metric.key] = (message.trends[metric.key] || []).sort((a, b) => a.time - b.time);
+        }
+      }
+      renderSelectedDevice();
+      return;
+    }
+    if (message.type === "solar-radiation") {
+      state.radiation = message;
+      renderSiteOverview();
+      return;
+    }
     if (message.type === "bridge-status") {
       const wasConnected = state.influxConnected;
       state.influxConnected = Boolean(message.connected);
@@ -2182,7 +2285,7 @@ function connectInfluxBridge() {
       }
       updateDeviceConnectivity();
       renderUI();
-      if (state.influxConnected) requestSocketDemandHistory(state.socketDemandRange);
+      if (state.influxConnected) { requestSocketDemandHistory(state.socketDemandRange); requestSensorHistory(); }
       return;
     }
     if (message.type === "demand-history") {
@@ -2254,7 +2357,7 @@ function connectInfluxBridge() {
       if (!Number.isFinite(value)) continue;
       snapshot.values[metric.key] = value;
       snapshot.trends[metric.key].push({ value, time: Date.parse(message.receivedAt) || Date.now() });
-      snapshot.trends[metric.key] = snapshot.trends[metric.key].slice(-24);
+      snapshot.trends[metric.key] = snapshot.trends[metric.key].filter((sample) => sample.time >= Date.now() - Math.max(historyWindowMs(), 86400000));
     }
     snapshot.status = sensorStatusFromValues(device, snapshot.values);
     snapshot.updatedAt = new Date(message.receivedAt || Date.now());
@@ -2466,7 +2569,7 @@ elements.layerToggles.forEach((toggle) => {
       state.sensorDisplayMode = modes[(modes.indexOf(state.sensorDisplayMode) + 1) % modes.length];
       const modelVisible = state.sensorDisplayMode !== "hidden";
       state.layerVisibility.sensor = modelVisible;
-      const fragmentsModel = state.fragmentsModels.get("sensor");
+          const fragmentsModel = state.fragmentsModels.get("sensor");
       if (fragmentsModel) fragmentsModel.object.visible = modelVisible;
       for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "labels";
       renderOccupancySeats();
@@ -2594,6 +2697,23 @@ function setPlatformView(view) {
   if (view === "bms" || view === "ai") return;
   const workspace = elements.wrap.closest(".dt-workspace");
   if (workspace.classList.contains("view-transitioning")) return;
+  if (view === "sensors") {
+    if (workspace.classList.contains("right-panel-open")) {
+      setPlatformView("overview");
+      return;
+    }
+    state.iotOpenedFromOverview = true;
+    state.assetView = "sensors";
+    elements.assetViewButtons.forEach((button) => { const active = button.dataset.assetView === "sensors"; button.classList.toggle("active", active); button.setAttribute("aria-selected", String(active)); });
+    workspace.classList.remove("alarm-focus");
+    workspace.classList.add("right-panel-open");
+    elements.overviewRail.setAttribute("aria-hidden", "false");
+    const device = DEVICES.find((item) => item.id === state.selectedDeviceId && sensorGroupFor(item).key !== "weather") || DEVICES.find((item) => sensorGroupFor(item).key !== "weather");
+    if (device) void selectDevice(device.id, true);
+    setDevicePanelOpen(true);
+    scheduleSensorMarkerSync(PANEL_TRANSITION_MS + 20);
+    return;
+  }
   if (view === "alerts" && workspace.classList.contains("alarm-focus")) {
     setPlatformView("overview");
     return;
@@ -2727,18 +2847,20 @@ elements.historyRangeButtons.forEach((button) => button.addEventListener("click"
   state.historyRange = button.dataset.historyRange;
   elements.historyRangeButtons.forEach((item) => item.classList.toggle("active", item === button));
   elements.customHoursControl.classList.remove("active");
+  requestSensorHistory();
   renderSelectedDevice();
 }));
 function applyCustomHours() {
   const value = Math.round(Number(elements.customHoursInput.value));
   state.customHours = Math.max(1, Math.min(720, Number.isFinite(value) ? value : 6));
   elements.customHoursInput.value = String(state.customHours);
-  if (state.historyRange === "custom") renderSelectedDevice();
+  if (state.historyRange === "custom") { requestSensorHistory(); renderSelectedDevice(); }
 }
 elements.customHoursInput.addEventListener("focus", () => {
   state.historyRange = "custom";
   elements.historyRangeButtons.forEach((item) => item.classList.remove("active"));
   elements.customHoursControl.classList.add("active");
+  requestSensorHistory();
   renderSelectedDevice();
 });
 elements.customHoursInput.addEventListener("change", applyCustomHours);

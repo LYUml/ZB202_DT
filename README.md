@@ -54,3 +54,9 @@ ZB202_DT/
 ```
 
 配置文件 `.env` 仅保存在本地，不要提交真实凭据。
+
+## 室外太阳辐射
+
+开发桥接服务每 10 分钟采集香港天文台京士柏的 1 分钟平均总太阳辐射（W/m²），将原始香港时间转换为 UTC，写入 InfluxDB 后读回提供给前端。来源：https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_1min_solar.csv 。
+
+Measurement 为 `hko-solar-radiation`，field 为 `solarRadiation`，station tag 为 `King's Park`。默认使用天气 bucket，可通过 `ZB202_SOLAR_INFLUX_BUCKET` 指定；天气 token 需要读写权限。超过 30 分钟的观测显示为缺失。天气数据继续供室外环境使用，但不出现在 IoT 设备列表中。

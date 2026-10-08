@@ -4065,3 +4065,132 @@ body[data-page="twin"] {
   .dt-air-readings { padding: 0 9px 7px; }
   .dt-ahu-meters { grid-template-columns: 1fr; grid-template-rows: repeat(3, auto); }
 }
+
+/* One unit hierarchy across outdoor and indoor readings. */
+.dt-outdoor-grid .dt-metric-line strong small,
+.dt-indoor-grid .dt-metric-line strong small {
+  font-size: 0.52rem;
+  font-weight: 700;
+  line-height: inherit;
+}
+
+/* Keep the navigation dock identical when Overview and IoT panels change. */
+.dt-workspace .dt-bottom-nav,
+.dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+.dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+.dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: 50%;
+  right: auto;
+  width: max-content;
+  height: auto;
+  min-height: 62px;
+  max-width: calc(100% - 24px);
+  padding: 5px;
+  gap: 2px;
+  display: flex;
+  grid-template: none;
+  transform: translateX(-50%);
+  border-radius: 16px;
+}
+.dt-workspace .dt-bottom-nav button,
+.dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+  flex: 0 0 auto;
+  width: auto;
+  height: auto;
+  min-width: 72px;
+  min-height: 50px;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.dt-workspace .dt-bottom-nav button span,
+.dt-workspace.panel-open.right-panel-open .dt-bottom-nav button span {
+  display: block;
+  position: static;
+  width: auto;
+  height: auto;
+  clip: auto;
+}
+@media (max-width: 1100px) {
+  .dt-workspace .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    width: 278px;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+  .dt-workspace .dt-bottom-nav button,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav button {
+    min-width: 0;
+    min-height: 48px;
+    padding: 5px 2px;
+  }
+}
+
+@media (max-width: 1420px) {
+  .dt-workspace .dt-bottom-nav,
+  .dt-workspace.right-panel-open:not(.panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open:not(.right-panel-open) .dt-bottom-nav,
+  .dt-workspace.panel-open.right-panel-open .dt-bottom-nav {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Full-width health charts in the dedicated Alerts view. */
+.dt-workspace.alarm-focus .dt-alert-card {
+  grid-template-rows: 52px auto minmax(0, 1fr);
+}
+.dt-workspace.alarm-focus .dt-health-summary {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dt-workspace.alarm-focus .dt-health-chart {
+  width: 100%;
+  padding: 10px 12px;
+  border-right: 0;
+  grid-template-rows: auto 96px auto;
+  gap: 8px;
+}
+.dt-workspace.alarm-focus .dt-health-chart + .dt-health-chart {
+  border-left: 0;
+  border-top: 1px solid var(--dt-border);
+}
+.dt-workspace.alarm-focus .dt-health-chart canvas {
+  width: 96px !important;
+  height: 96px !important;
+}
+
+/* Match dedicated Alerts typography to the IoT detail hierarchy. */
+.dt-workspace.alarm-focus .dt-health-chart h3 {
+  font-size: 0.78rem;
+  line-height: 1.2;
+}
+.dt-workspace.alarm-focus .dt-health-chart li {
+  font-size: 0.62rem;
+  line-height: 1.3;
+  gap: 4px;
+}
+.dt-workspace.alarm-focus .dt-health-chart li b {
+  font-size: 0.68rem;
+}
+.dt-workspace.alarm-focus .dt-health-chart li i {
+  width: 6px;
+  height: 6px;
+  flex-shrink: 0;
+}
+
+/* Shared panel title hierarchy, using Overview's responsive scale. */
+body[data-page="twin"] { --dt-panel-title-size: 1rem; }
+@media (max-width: 1420px) {
+  body[data-page="twin"] { --dt-panel-title-size: 0.82rem; }
+}
+.dt-dashboard-card .dt-card-heading h2,
+.dt-dashboard-card .dt-simple-heading h2,
+.dt-data-panel .dt-data-header #data-panel-title,
+.dt-sensor-card > header #asset-list-title {
+  font-size: var(--dt-panel-title-size);
+  font-weight: 680;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
