@@ -9,5 +9,6 @@ export function buildSensorHistoryQuery({ bucket, measurement = '', deviceColumn
   |> range(start: time(v: ${q(start)}), stop: time(v: ${q(end.toISOString())}))
   ${measurement ? `|> filter(fn: (r) => r._measurement == ${q(measurement)})` : ''}
   |> filter(fn: (r) => ${devEui ? `(exists r[${q(deviceColumn)}] and (r[${q(deviceColumn)}] == ${q(devEui.toUpperCase())} or r[${q(deviceColumn)}] == ${q(devEui.toLowerCase())}))` : 'false'}${deviceId ? ` or r._measurement == ${q(deviceId.replaceAll('-', '_'))} or r._measurement == ${q(deviceId.replaceAll('_', '-'))}` : ''})
+  |> aggregateWindow(every: ${Math.max(1, Math.ceil(hours * 3600 / 600))}s, fn: last, createEmpty: false)
   |> sort(columns: ["_time"])`;
 }

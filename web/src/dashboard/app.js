@@ -474,6 +474,9 @@ function connectOverviewBridge(devices) {
   const lastSeenAt = new Map();
   let renderTimer = null;
   let socket = null;
+  let reconnectTimer = null;
+  let retryAttempt = 0;
+  let closing = false;
 
   const scheduleRender = () => {
     clearTimeout(renderTimer);
@@ -494,10 +497,13 @@ function connectOverviewBridge(devices) {
   const connect = () => {
     const bridgeUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8787`;
     socket = new WebSocket(bridgeUrl);
+    socket.addEventListener("open", () => { retryAttempt = 0; });
     socket.addEventListener("message", (event) => {
       let message;
       try { message = JSON.parse(event.data); } catch { return; }
+      if (!message || typeof message !== "object") return;
       if (message.type === "bridge-status") {
+        if (overviewConnected === Boolean(message.connected)) return;
         overviewConnected = Boolean(message.connected);
         updateStatuses();
         return;
@@ -512,6 +518,7 @@ function connectOverviewBridge(devices) {
       }
       const receivedAt = Date.parse(message.receivedAt);
       if (!Number.isFinite(receivedAt)) return;
+      if (receivedAt < (lastSeenAt.get(device.id) || 0)) return;
       lastSeenAt.set(device.id, receivedAt);
       device.rawValues ||= {};
       Object.assign(device.rawValues, message.values || {});
@@ -523,11 +530,17 @@ function connectOverviewBridge(devices) {
     socket.addEventListener("close", () => {
       overviewConnected = false;
       updateStatuses();
-      window.setTimeout(connect, 3000);
+      if (!closing) reconnectTimer = window.setTimeout(connect, Math.min(30000, 1000 * 2 ** retryAttempt++) + Math.random() * 500);
     });
     socket.addEventListener("error", () => socket.close());
   };
 
+  window.addEventListener("beforeunload", () => {
+    closing = true;
+    clearTimeout(reconnectTimer);
+    clearTimeout(renderTimer);
+    socket?.close();
+  });
   updateStatuses();
   connect();
 }

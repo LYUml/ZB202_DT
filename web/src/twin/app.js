@@ -554,6 +554,7 @@ const state = {
   influxConnectionKnown: false,
   influxConnectedAt: null,
   influxSocket: null,
+  influxDiagnostic: "",
   socketControlConnected: false,
   pendingSocketControls: new Map(),
   lastLiveAt: new Map(),
@@ -1262,7 +1263,7 @@ function updateAllVisualStates() {
   if (!visualUpdateQueue) {
     visualUpdateQueue = (async () => {
       try {
-        while (visualUpdatePending) {
+        while (visualUpdatePending && !pageClosing) {
           visualUpdatePending = false;
           await applyAllVisualStates();
         }
@@ -1272,16 +1273,24 @@ function updateAllVisualStates() {
   return visualUpdateQueue;
 }
 
+let lastVisualSignature = "";
 async function applyAllVisualStates() {
+  if (pageClosing) return;
+  const signature = JSON.stringify([activeTheme, state.selectedDeviceId, state.selectedIfcItem,
+    [...state.fragmentsModels.values()].map((model) => model.modelId),
+    DEVICES.map((device) => [device.id, statusFor(device.id), device.binding.modelId, device.binding.localId])]);
+  if (signature === lastVisualSignature) return;
   for (const [modelId, fragmentsModel] of state.fragmentsModels) {
     const localIds = DEVICES
       .filter((device) => device.binding.modelId === modelId && state.boundObjects.has(device.id))
       .map((device) => state.boundObjects.get(device.id));
     if (localIds.length) await fragmentsModel.resetHighlight(localIds);
+    if (pageClosing) return;
   }
   for (const device of DEVICES) {
     if (device.binding.modelId === "sensor" || state.selectedDeviceId === device.id || statusFor(device.id) !== "normal") {
       await styleBoundObject(device.id);
+      if (pageClosing) return;
     }
     const marker = state.markerObjects.get(device.id);
     if (marker) {
@@ -1289,6 +1298,7 @@ async function applyAllVisualStates() {
     }
   }
   if (state.fragmentsModels.size) await fragments.update(true);
+  lastVisualSignature = signature;
 }
 
 async function focusDevice(device) {
@@ -1394,8 +1404,8 @@ function renderDeviceList() {
       button.className = `dt-device-item bim${selected ? " selected" : ""}`;
       button.innerHTML = `
         <span class="dt-device-copy">
-          <strong>${deviceText(device, "name")}</strong>
-          <small>${localizedGroupLabel(groupForScannedCategory(device.category))} · ${device.category}</small>
+          <strong>${escapeHtml(deviceText(device, "name"))}</strong>
+          <small>${localizedGroupLabel(groupForScannedCategory(device.category))} · ${escapeHtml(device.category)}</small>
         </span>
         <span class="dt-device-state" aria-label="BIM"><i class="ph ph-cube" aria-hidden="true"></i></span>
       `;
@@ -1417,8 +1427,8 @@ function renderDeviceList() {
     button.className = `dt-device-item ${presentedStatus.className}${state.selectedDeviceId === device.id ? " selected" : ""}`;
     button.innerHTML = `
       <span class="dt-device-copy">
-        <strong>${deviceText(device, "name")}</strong>
-        <small>${deviceText(device, "subtitle")} · ${t(presentedStatus.key)}</small>
+        <strong>${escapeHtml(deviceText(device, "name"))}</strong>
+        <small>${escapeHtml(deviceText(device, "subtitle"))} · ${t(presentedStatus.key)}</small>
       </span>
       <span class="dt-device-state" aria-label="${t(presentedStatus.key)}"><span class="dt-device-status"></span></span>
     `;
@@ -1485,6 +1495,9 @@ function requestSocketDemandHistory(range = state.socketDemandRange) {
   if (!socket || socket.readyState !== WebSocket.OPEN) return;
   state.socketDemandHistoryLoading.add(range);
   socket.send(JSON.stringify({ type: "demand-history-request", range }));
+  window.setTimeout(() => {
+    if (state.socketDemandHistoryLoading.delete(range)) renderSocketDemandChart(state.debugMockData);
+  }, 35000);
 }
 
 function renderSocketDemandChart(mock) {
@@ -1783,14 +1796,14 @@ function renderSiteOverview() {
       if (device.sensorModel === "WS523" && Number.isFinite(values.activePower) && values.activePower > 2500) addAlarm("socket-load", "critical", "Socket load exceeds threshold", device, `${formatNumber(values.activePower)} W`);
       if (device.sensorModel === "WS523" && Number.isFinite(values.voltage) && (values.voltage < 200 || values.voltage > 250)) addAlarm("socket-voltage", "warning", "Socket voltage abnormal", device, `${formatNumber(values.voltage)} V`);
     }
-    if (!state.influxConnected) alarms.unshift({ id: "connection:database", type: "connection", level: "critical", title: "InfluxDB connection lost", deviceId: "Data service", detail: "Telemetry and history are unavailable" });
+    if (!state.influxConnected) alarms.unshift({ id: "connection:database", type: "connection", level: "critical", title: "InfluxDB connection lost", deviceId: "Data service", detail: state.influxDiagnostic || "Telemetry and history are unavailable" });
     const withState = alarms.map((alarm) => ({ ...alarm, state: state.alarmStates[alarm.id] || "active" }));
     const filtered = withState.filter((alarm) => state.alarmFilter === "all" || alarm.state === state.alarmFilter);
     const alertList = document.querySelector(".dt-alert-list");
     alertList.innerHTML = filtered.length ? filtered.map((alarm) => `
       <article class="dt-alert-item ${alarm.level} ${alarm.state}" data-alarm-id="${alarm.id}">
         <i class="ph ${alarm.type === "battery" ? "ph-battery-warning" : alarm.type.startsWith("socket") ? "ph-plug" : alarm.type === "door" ? "ph-door-open" : alarm.type === "leak" ? "ph-drop" : "ph-warning-circle"}"></i>
-        <span><strong>${alarm.title}</strong><small>${alarm.deviceId} · ${alarm.detail}</small></span>
+        <span><strong>${alarm.title}</strong><small>${escapeHtml(alarm.deviceId)} · ${escapeHtml(alarm.detail)}</small></span>
         <button type="button" data-alarm-action="${alarm.state === "active" ? "acknowledged" : "active"}">${alarm.state === "active" ? "Acknowledge" : "Reopen"}</button>
       </article>
     `).join("") : `<p class="dt-alert-empty">No ${state.alarmFilter === "all" ? "current" : state.alarmFilter} alarms</p>`;
@@ -1817,7 +1830,7 @@ function requestSensorHistory() {
       state.sensorHistoryError = "History request timed out";
       renderSelectedDevice();
     }
-  }, 20000);
+  }, 35000);
   state.influxSocket.send(JSON.stringify({ type: "sensor-history-request", requestId: state.sensorHistoryRequestId, deviceId: device.id, devEui: device.devEui, hours: historyWindowMs() / 3600000 }));
 }
 
@@ -1967,9 +1980,9 @@ function renderSelectedDevice() {
     elements.componentProperties.innerHTML = item ? `
       <h3>${t("componentDetails")}</h3>
       <dl>
-        <div><dt>${t("ifcType")}</dt><dd>${item.category || "—"}</dd></div>
-        <div><dt>${t("globalId")}</dt><dd>${item.guid || "—"}</dd></div>
-        <div><dt>${t("expressId")}</dt><dd>${item.localId ?? "—"}</dd></div>
+        <div><dt>${t("ifcType")}</dt><dd>${escapeHtml(item.category || "—")}</dd></div>
+        <div><dt>${t("globalId")}</dt><dd>${escapeHtml(item.guid || "—")}</dd></div>
+        <div><dt>${t("expressId")}</dt><dd>${escapeHtml(item.localId ?? "—")}</dd></div>
       </dl>
     ` : "";
     elements.componentProperties.querySelectorAll("dd").forEach((value) => { value.title = value.textContent; });
@@ -2021,11 +2034,27 @@ function renderSelectedDevice() {
   elements.faultToggle.disabled = !bound;
 }
 
+let telemetryRenderTimer = null;
+function scheduleTelemetryRender() {
+  if (telemetryRenderTimer !== null) return;
+  telemetryRenderTimer = window.setTimeout(() => {
+    telemetryRenderTimer = null;
+    if (!document.hidden) renderUI();
+  }, 100);
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) renderUI();
+});
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[character]));
+}
+
 function renderUI() {
   renderDeviceList();
   renderSelectedDevice();
   renderSiteOverview();
-  updateAllVisualStates().catch((error) => console.error("Failed to style BIM components", error));
+  updateAllVisualStates().catch((error) => { if (!pageClosing) console.error("Failed to style BIM components", error); });
 }
 
 function applyLanguage(lang) {
@@ -2210,6 +2239,7 @@ function setFault(deviceId, shouldFault) {
 }
 
 function updateMockData() {
+  if (document.hidden) return;
   const connectivityChanged = updateDeviceConnectivity();
   if (connectivityChanged) {
     renderDeviceList();
@@ -2243,6 +2273,9 @@ function updateDeviceConnectivity() {
   return changed;
 }
 
+let bridgeRetryAttempt = 0;
+let bridgeReconnectTimer = null;
+let pageClosing = false;
 function connectInfluxBridge() {
   if (state.influxSocket && state.influxSocket.readyState < WebSocket.CLOSING) return;
   const bridgeUrl = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.hostname}:8787`;
@@ -2254,9 +2287,11 @@ function connectInfluxBridge() {
     console.warn("InfluxDB bridge unavailable", error);
     return;
   }
+  socket.addEventListener("open", () => { bridgeRetryAttempt = 0; });
   socket.addEventListener("message", (event) => {
     let message;
     try { message = JSON.parse(event.data); } catch { return; }
+    if (!message || typeof message !== "object") return;
     if (message.type === "sensor-history") {
       if (message.requestId !== state.sensorHistoryRequestId || message.deviceId !== state.selectedDeviceId) return;
       state.sensorHistoryLoading = false;
@@ -2284,8 +2319,9 @@ function connectInfluxBridge() {
         state.influxConnectedAt = Number.isFinite(bridgeStartedAt) ? bridgeStartedAt : Date.now();
       }
       updateDeviceConnectivity();
-      renderUI();
-      if (state.influxConnected) { requestSocketDemandHistory(state.socketDemandRange); requestSensorHistory(); }
+      state.influxDiagnostic = message.error ? `Query failed (${message.error.code || message.error.name}): ${message.error.message}. Last success: ${message.lastSuccessAt || "none"}` : "";
+      if (wasConnected !== state.influxConnected || message.error) scheduleTelemetryRender();
+      if (state.influxConnected && !wasConnected) { requestSocketDemandHistory(state.socketDemandRange); requestSensorHistory(); }
       return;
     }
     if (message.type === "demand-history") {
@@ -2346,21 +2382,28 @@ function connectInfluxBridge() {
     const device = ensureTelemetryDevice(message);
     const snapshot = device && state.snapshots.get(device.id);
     if (!device || !snapshot) return;
-    const telemetryKey = `${device.id}:${message.receivedAt || JSON.stringify(message.values)}`;
+    const telemetryKey = `${device.id}:${message.receivedAt}:${JSON.stringify(message.values)}`;
     if (state.seenTelemetry.has(telemetryKey)) return;
     state.seenTelemetry.add(telemetryKey);
     if (state.seenTelemetry.size > MAX_SEEN_TELEMETRY) {
       state.seenTelemetry.delete(state.seenTelemetry.values().next().value);
     }
+    const sampleTime = Date.parse(message.receivedAt);
+    if (!Number.isFinite(sampleTime)) return;
+    snapshot.metricUpdatedAt ||= {};
     for (const metric of device.metrics) {
+      if (message.values?.[metric.key] == null) continue;
       const value = Number(message.values?.[metric.key]);
       if (!Number.isFinite(value)) continue;
-      snapshot.values[metric.key] = value;
-      snapshot.trends[metric.key].push({ value, time: Date.parse(message.receivedAt) || Date.now() });
-      snapshot.trends[metric.key] = snapshot.trends[metric.key].filter((sample) => sample.time >= Date.now() - Math.max(historyWindowMs(), 86400000));
+      if (sampleTime >= (snapshot.metricUpdatedAt[metric.key] || 0)) {
+        snapshot.values[metric.key] = value;
+        snapshot.metricUpdatedAt[metric.key] = sampleTime;
+      }
+      snapshot.trends[metric.key].push({ value, time: sampleTime });
+      snapshot.trends[metric.key] = snapshot.trends[metric.key].filter((sample) => sample.time >= Date.now() - Math.max(historyWindowMs(), 86400000)).slice(-2000);
     }
     snapshot.status = sensorStatusFromValues(device, snapshot.values);
-    snapshot.updatedAt = new Date(message.receivedAt || Date.now());
+    snapshot.updatedAt = new Date(Math.max(state.lastLiveAt.get(device.id) || 0, sampleTime));
     state.liveDevices.add(device.id);
     state.lastLiveAt.set(device.id, snapshot.updatedAt.getTime());
     const socketStatus = Number(message.values?.socketStatus);
@@ -2382,18 +2425,24 @@ function connectInfluxBridge() {
         }
       }
     }
-    renderUI();
+    scheduleTelemetryRender();
   });
   socket.addEventListener("close", () => {
     state.influxConnected = false;
+    state.influxDiagnostic = "Browser lost the connection to the local data bridge; reconnecting";
     state.influxConnectionKnown = true;
     state.influxSocket = null;
     state.socketControlConnected = false;
     for (const pending of state.pendingSocketControls.values()) window.clearTimeout(pending.timeoutId);
     state.pendingSocketControls.clear();
     updateDeviceConnectivity();
+    state.socketDemandHistoryLoading.clear();
+    state.sensorHistoryLoading = false;
     renderUI();
-    window.setTimeout(connectInfluxBridge, 3000);
+    if (!pageClosing) {
+      window.clearTimeout(bridgeReconnectTimer);
+      bridgeReconnectTimer = window.setTimeout(connectInfluxBridge, Math.min(30000, 1000 * 2 ** bridgeRetryAttempt++) + Math.random() * 500);
+    }
   });
   socket.addEventListener("error", () => socket.close());
 }
@@ -2418,7 +2467,7 @@ function addGrid() {
 
 async function loadFragmentsModel(model, requestId, modelIndex) {
   await ensureFragments();
-  const response = await fetch(model.url);
+  const response = await fetch(model.url, { signal: AbortSignal.timeout(60000) });
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const buffer = await response.arrayBuffer();
   if (requestId !== state.loadRequest) return;
@@ -2929,6 +2978,15 @@ controls.addEventListener("change", () => {
   updateSensorProximityTag();
 });
 window.addEventListener("beforeunload", () => {
+  pageClosing = true;
+  visualUpdatePending = false;
+  window.clearTimeout(bridgeReconnectTimer);
+  window.clearTimeout(telemetryRenderTimer);
+  state.influxSocket?.close();
+  resizeObserver.disconnect();
+  demandChartResizeObserver.disconnect();
+  controls.dispose();
+  renderer.dispose();
   fragments?.dispose();
 });
 
@@ -2937,12 +2995,18 @@ resizeObserver.observe(elements.wrap);
 const demandChartResizeObserver = new ResizeObserver(() => renderSocketDemandChart(state.debugMockData));
 demandChartResizeObserver.observe(document.querySelector(".dt-demand-chart"));
 
-function animate() {
+let lastLabelFrameAt = 0;
+function animate(now = 0) {
+  if (pageClosing) return;
+  requestAnimationFrame(animate);
+  if (document.hidden) return;
   controls.update();
   renderer.render(scene, camera);
-  labelRenderer.render(scene, camera);
-  resolveMobileMarkerCollisions();
-  requestAnimationFrame(animate);
+  if (now - lastLabelFrameAt >= 1000 / 30) {
+    labelRenderer.render(scene, camera);
+    resolveMobileMarkerCollisions();
+    lastLabelFrameAt = now;
+  }
 }
 
 applyTheme(activeTheme);

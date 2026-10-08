@@ -2242,7 +2242,7 @@ body[data-page="twin"] {
   font-size: 0.64rem;
 }
 
-.dt-simple-heading button {
+.dt-simple-heading button:not(.dt-panel-close) {
   padding: 2px 0;
   border: 0;
   color: var(--dt-accent);

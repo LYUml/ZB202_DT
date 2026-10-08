@@ -11,7 +11,7 @@ const org = process.env.ZB202_INFLUX_ORG;
 const bucket = process.env.ZB202_INFLUX_BUCKET || "zb202_iot";
 const measurement = process.env.ZB202_INFLUX_MEASUREMENT || "";
 const deviceColumn = process.env.ZB202_INFLUX_DEVICE_COLUMN || "devEui";
-const pollIntervalMs = Math.max(2000, Number(process.env.ZB202_INFLUX_POLL_INTERVAL_MS || 10000));
+const pollIntervalMs = Math.max(2000, Number(process.env.ZB202_INFLUX_POLL_INTERVAL_MS) || 10000);
 const pollLookback = process.env.ZB202_INFLUX_POLL_LOOKBACK || "-15m";
 const historyRange = process.env.ZB202_INFLUX_HISTORY_RANGE || "-24h";
 const weatherBucket = process.env.ZB202_WEATHER_INFLUX_BUCKET || "";
@@ -39,9 +39,10 @@ if (missing.length) {
   process.exit(1);
 }
 
-const queryApi = new InfluxDB({ url, token }).getQueryApi(org);
+const queryTimeoutMs = Math.max(1000, Number(process.env.ZB202_INFLUX_QUERY_TIMEOUT_MS) || 30000);
+const queryApi = new InfluxDB({ url, token, timeout: queryTimeoutMs }).getQueryApi(org);
 const solarBucket = process.env.ZB202_SOLAR_INFLUX_BUCKET || weatherBucket || bucket;
-const solarClient = new InfluxDB({ url, token: weatherToken });
+const solarClient = new InfluxDB({ url, token: weatherToken, timeout: queryTimeoutMs });
 const solarWriteApi = solarClient.getWriteApi(org, solarBucket, "ms");
 const solarQueryApi = solarClient.getQueryApi(org);
 let latestSolar = null;
@@ -72,14 +73,22 @@ async function pollSolar() {
     console.error(`[HKO] Solar ingestion failed: ${error.message}`);
   } finally { solarPolling = false; }
 }
-const weatherQueryApi = weatherBucket ? new InfluxDB({ url, token: weatherToken }).getQueryApi(org) : null;
-const websocketServer = new WebSocketServer({ host: websocketHost, port: websocketPort });
+const weatherQueryApi = weatherBucket ? new InfluxDB({ url, token: weatherToken, timeout: queryTimeoutMs }).getQueryApi(org) : null;
+const websocketServer = new WebSocketServer({ host: websocketHost, port: websocketPort, maxPayload: 16 * 1024,
+  verifyClient({ origin, req }) {
+    if (!origin) return true; // Non-browser monitoring clients.
+    try { return new URL(origin).hostname === new URL(`http://${req.headers.host}`).hostname; }
+    catch { return false; }
+  } });
 const historyByDevice = new Map();
 const seenRows = new Set();
 const maxSeenRows = 10000;
 let databaseConnected = false;
 let hasLoadedHistory = false;
 let polling = false;
+let lastQuerySuccessAt = null;
+let lastQueryError = null;
+let consecutiveFailures = 0;
 let mqttConnected = false;
 let processingDownlink = false;
 const downlinkQueue = [];
@@ -119,7 +128,6 @@ function buildQuery(range) {
     : "";
   return `from(bucket: ${fluxString(bucket)})
   |> range(start: ${range})${measurementFilter}
-  |> sort(columns: ["_time"])
   |> tail(n: 24)`;
 }
 
@@ -138,7 +146,6 @@ function buildWeatherQuery(range) {
     : `\n  |> filter(fn: (r) => r._measurement =~ /(?i:weather|outdoor|meteorological|aws|wx)/)`;
   return `from(bucket: ${fluxString(weatherBucket)})
   |> range(start: ${range})${measurementFilter}
-  |> sort(columns: ["_time"])
   |> tail(n: 96)`;
 }
 
@@ -194,7 +201,9 @@ async function sendDemandHistory(socket, requestedRange) {
 }
 
 function send(socket, message) {
-  if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
+  if (socket.readyState !== WebSocket.OPEN) return;
+  if (socket.bufferedAmount > 1024 * 1024) { socket.close(1013, "Client is too slow"); return; }
+  socket.send(JSON.stringify(message), (error) => { if (error) socket.terminate(); });
 }
 
 function broadcast(message) {
@@ -219,7 +228,9 @@ function publishSocketCommand(deviceId, action) {
       fport: 85,
       data: Buffer.from(commandHex, "hex").toString("base64"),
     });
+    const publishTimeout = setTimeout(() => reject(new Error("MQTT publish timed out")), 10000);
     mqttClient.publish(topic, payload, { qos: 0, retain: false }, (error) => {
+      clearTimeout(publishTimeout);
       if (error) reject(error);
       else resolve({ topic });
     });
@@ -251,6 +262,10 @@ function enqueueSocketControl(socket, message) {
     send(socket, { type: "control-result", requestId, deviceId, action, ok: false, error: "Invalid or unsupported socket command" });
     return;
   }
+  if (downlinkQueue.length >= 16 || downlinkQueue.some((item) => item.deviceId === deviceId)) {
+    send(socket, { type: "control-result", requestId, deviceId, action, ok: false, error: "Control queue busy; retry after the pending command" });
+    return;
+  }
   downlinkQueue.push({ socket, requestId, deviceId, action });
   send(socket, { type: "control-queued", requestId, deviceId, action, position: downlinkQueue.length + (processingDownlink ? 1 : 0) });
   processDownlinkQueue();
@@ -263,10 +278,14 @@ function rememberRow(rowKey) {
   return true;
 }
 
+function databaseStatus() {
+  return { type: "bridge-status", connected: databaseConnected, source: "influxdb", bucket,
+    startedAt: bridgeStartedAt, lastSuccessAt: lastQuerySuccessAt, error: lastQueryError,
+    consecutiveFailures, queryTimeoutMs };
+}
 function updateDatabaseStatus(connected) {
-  if (databaseConnected === connected) return;
   databaseConnected = connected;
-  broadcast({ type: "bridge-status", connected, source: "influxdb", bucket, startedAt: bridgeStartedAt });
+  broadcast(databaseStatus());
 }
 
 function normalizeDevice(row) {
@@ -274,7 +293,8 @@ function normalizeDevice(row) {
     const value = String(row[name] || "").replace(/[^a-fA-F0-9]/g, "").toUpperCase();
     if (value) return { devEui: value, deviceId: "" };
   }
-  return { devEui: "", deviceId: String(row._measurement || "").trim() };
+  const deviceId = String(row._measurement || "").trim();
+  return { devEui: "", deviceId: /^[a-zA-Z0-9_-]{1,80}$/.test(deviceId) ? deviceId : "" };
 }
 
 function normalizeField(field) {
@@ -328,17 +348,28 @@ function acceptRow(row) {
   return telemetry;
 }
 
+async function collectPollingRows(api, query) {
+  try { return await api.collectRows(query); }
+  catch (error) {
+    // Retry a reset connection once; permission and Flux errors need correction.
+    if (!["ECONNRESET", "EPIPE"].includes(error.code)) throw error;
+    console.warn(`[InfluxDB] Connection reset; retrying read query once (${error.code})`);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return api.collectRows(query);
+  }
+}
+
 async function poll() {
   if (polling) return;
   polling = true;
   try {
     const range = hasLoadedHistory ? pollLookback : historyRange;
-    const recentRows = await queryApi.collectRows(buildQuery(range));
-    const inventoryRows = hasLoadedHistory ? [] : await queryApi.collectRows(buildInventoryQuery());
+    const recentRows = await collectPollingRows(queryApi, buildQuery(range));
+    const inventoryRows = hasLoadedHistory ? [] : await collectPollingRows(queryApi, buildInventoryQuery());
     let weatherRows = [];
     if (weatherQueryApi) {
       try {
-        weatherRows = await weatherQueryApi.collectRows(buildWeatherQuery(range));
+        weatherRows = await collectPollingRows(weatherQueryApi, buildWeatherQuery(range));
       } catch (error) {
         console.error(`[Weather] ${error.message}`);
       }
@@ -352,9 +383,14 @@ async function poll() {
     for (const telemetry of changedTelemetry) broadcast(telemetry);
     if (!databaseConnected) console.log(`[InfluxDB] Connected to ${url}; loaded ${rows.length} rows from ${bucket}${weatherBucket ? ` + ${weatherBucket}` : ""}`);
     hasLoadedHistory = true;
+    consecutiveFailures = 0;
+    lastQueryError = null;
+    lastQuerySuccessAt = new Date().toISOString();
     updateDatabaseStatus(true);
   } catch (error) {
-    if (databaseConnected || !hasLoadedHistory) console.error(`[InfluxDB] Query failed: ${error.message}`);
+    consecutiveFailures += 1;
+    lastQueryError = { name: error.name, code: error.code || error.statusCode || null, message: error.message };
+    console.error(`[InfluxDB] Query failed (${consecutiveFailures}): ${error.message}`);
     updateDatabaseStatus(false);
   } finally {
     polling = false;
@@ -363,20 +399,49 @@ async function poll() {
 
 websocketServer.on("connection", (socket) => {
   if (latestSolar) send(socket, latestSolar);
-  send(socket, { type: "bridge-status", connected: databaseConnected, source: "influxdb", bucket, startedAt: bridgeStartedAt });
+  socket.isAlive = true;
+  socket.on("pong", () => { socket.isAlive = true; });
+  socket.on("error", (error) => console.warn(`[Bridge] Client error: ${error.message}`));
+  send(socket, databaseStatus());
+  const pendingHistory = new Set();
   send(socket, { type: "control-status", connected: mqttConnected, source: "mqtt", supportedDevices: [...socketDevices.keys()] });
   for (const history of historyByDevice.values()) for (const telemetry of history) send(socket, telemetry);
   socket.on("message", (data) => {
     let message;
     try { message = JSON.parse(data.toString()); } catch { return; }
+    if (!message || typeof message !== "object") return;
     if (message.type === "socket-control") enqueueSocketControl(socket, message);
-    if (message.type === "sensor-history-request") void sendSensorHistory(socket, message);
-    if (message.type === "demand-history-request") void sendDemandHistory(socket, message.range);
+    if (["sensor-history-request", "demand-history-request"].includes(message.type)) {
+      if (pendingHistory.has(message.type)) {
+        send(socket, message.type === "sensor-history-request"
+          ? { type: "sensor-history", requestId: message.requestId, deviceId: message.deviceId, hours: message.hours, trends: {}, error: "History query busy; retry shortly" }
+          : { type: "demand-history", range: message.range, samples: [], error: "History query busy; retry shortly" });
+        return;
+      }
+      pendingHistory.add(message.type);
+      const task = message.type === "sensor-history-request" ? sendSensorHistory(socket, message) : sendDemandHistory(socket, message.range);
+      void task.finally(() => pendingHistory.delete(message.type));
+    }
   });
 });
 
+await new Promise((resolve, reject) => {
+  websocketServer.once("listening", resolve);
+  websocketServer.once("error", reject);
+});
 console.log(`[Bridge] WebSocket ready at ws://${websocketHost}:${websocketPort}`);
-await poll();
+const heartbeat = setInterval(() => {
+  for (const socket of websocketServer.clients) {
+    if (!socket.isAlive) { socket.terminate(); continue; }
+    socket.isAlive = false;
+    socket.ping();
+  }
+}, 30000);
+websocketServer.on("close", () => clearInterval(heartbeat));
 void pollSolar();
 setInterval(pollSolar, 10 * 60 * 1000);
-setInterval(poll, pollIntervalMs);
+async function pollLoop() {
+  await poll();
+  setTimeout(pollLoop, Math.min(60000, pollIntervalMs * 2 ** Math.min(consecutiveFailures, 3)));
+}
+void pollLoop();
