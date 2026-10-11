@@ -3296,6 +3296,7 @@ body[data-page="twin"] {
   grid-template-columns: 1fr;
   grid-template-rows: auto auto auto;
   align-content: center;
+  align-items: center;
   gap: 7px;
   border: 1px solid var(--dt-border);
   border-radius: 12px;
@@ -4014,8 +4015,8 @@ body[data-page="twin"] {
 
   .dt-ahu-control {
     padding: 7px 9px;
-    grid-template-rows: minmax(0, 1fr) auto auto;
-    align-content: stretch;
+    grid-template-rows: auto auto auto;
+    align-content: center;
     gap: 4px;
   }
   .dt-ahu-control strong { margin-top: 3px; }

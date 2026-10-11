@@ -567,6 +567,8 @@ const state = {
   markerSyncTimer: null,
   markerSyncRunning: false,
   ahuDemo: false,
+  ahuSetpoint: 23,
+  ahuAppliedSetpoint: 23,
   debugMockData: (() => {
     try { return sessionStorage.getItem(DEBUG_MOCK_STORAGE_KEY) === "true"; }
     catch { return false; }
@@ -1735,18 +1737,34 @@ function renderDebugDashboardData() {
 function renderAhuData() {
   const mock = state.debugMockData;
   const demo = state.ahuDemo;
-  const ahuValues = demo ? ["23.0°C", "22.3 °C", "23.4 °C"] : mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
+  const setpoint = `${state.ahuSetpoint.toFixed(1)}°C`;
+  const ahuValues = demo ? [setpoint, "22.3 °C", "23.4 °C"] : mock ? [setpoint, "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
   document.querySelectorAll(".dt-ahu-control strong, .dt-air-readings strong").forEach((element, index) => { element.textContent = ahuValues[index]; });
   const ahuMeterValues = demo ? ["48%", "11%", "40 Hz"] : mock ? ["46%", "32%", "38 Hz"] : ["—", "—", "—"];
   const ahuMeterWidths = demo ? ["48%", "11%", "66.7%"] : mock ? ["46%", "32%", "63%"] : ["0", "0", "0"];
   document.querySelectorAll(".dt-ahu-meters b").forEach((element, index) => { element.textContent = ahuMeterValues[index]; });
   document.querySelectorAll(".dt-ahu-meters u").forEach((element, index) => { element.style.width = ahuMeterWidths[index]; });
   const ahuRange = document.querySelector(".dt-ahu-control input");
-  ahuRange.disabled = !mock || demo;
-  ahuRange.value = demo ? "23" : mock ? "23" : "18";
-  document.querySelector(".dt-ahu-control button").disabled = !mock || demo;
-  ahuRange.setAttribute("aria-label", demo ? "Demo return air setpoint" : mock ? "Zone temperature setpoint" : "Zone temperature setpoint unavailable");
+  ahuRange.disabled = !(mock || demo);
+  ahuRange.value = mock || demo ? String(state.ahuSetpoint) : "18";
+  const button = document.querySelector(".dt-ahu-control button");
+  button.disabled = !(mock || demo);
+  button.innerHTML = `<i class="ph ph-paper-plane-tilt"></i>${(mock || demo) && state.ahuAppliedSetpoint === state.ahuSetpoint && button.dataset.applied === "true" ? "Applied" : "Control"}`;
+  ahuRange.setAttribute("aria-label", demo ? "Demo temperature setpoint" : mock ? "Zone temperature setpoint" : "Zone temperature setpoint unavailable");
 }
+
+document.querySelector(".dt-ahu-control input").addEventListener("input", (event) => {
+  if (!(state.ahuDemo || state.debugMockData)) return;
+  state.ahuSetpoint = Number(event.currentTarget.value);
+  document.querySelector(".dt-ahu-control button").dataset.applied = "false";
+  renderAhuData();
+});
+document.querySelector(".dt-ahu-control button").addEventListener("click", (event) => {
+  if (!(state.ahuDemo || state.debugMockData)) return;
+  state.ahuAppliedSetpoint = state.ahuSetpoint;
+  event.currentTarget.dataset.applied = "true";
+  renderAhuData();
+});
 
 function drawDonutChart(canvas, values, colors) {
   const context = canvas.getContext("2d");
@@ -2362,7 +2380,9 @@ async function isNonSelectableIfcItem(fragmentsModel, localId) {
     || /(?:^|\b)basic\s+wall\b|\bwall[-_: ]/i.test(name);
   const isFloor = /^IFCSLAB$/i.test(category)
     || /(?:^|\b)(?:floor|flooring|slab)(?:\b|[-_: ])/i.test(name);
-  return isWall || isFloor;
+  const isFurniture = /^IFC(?:FURNISHINGELEMENT|FURNITURE|SYSTEMFURNITUREELEMENT)$/i.test(category)
+    || /(?:^|\b)(?:table|desk|chair|furniture)(?:\b|[-_: ])/i.test(name);
+  return isWall || isFloor || isFurniture;
 }
 
 function setFault(deviceId, shouldFault) {
@@ -2725,6 +2745,7 @@ async function handleCanvasSelection(event, doubleClick = false) {
   let hitPriority = Infinity;
   for (const [modelId, fragmentsModel] of state.fragmentsModels) {
     if (!fragmentsModel.object.visible) continue;
+    if (!state.calibrating && modelId === "archi") continue;
     const candidate = await fragmentsModel.raycast({
       camera,
       mouse: new THREE.Vector2(event.clientX, event.clientY),
@@ -2732,7 +2753,7 @@ async function handleCanvasSelection(event, doubleClick = false) {
     });
     if (candidate && await isNonSelectableIfcItem(fragmentsModel, candidate.localId)) continue;
     const candidateDistance = candidate?.point ? camera.position.distanceToSquared(candidate.point) : Infinity;
-    const candidatePriority = modelId === "mep" ? 0 : 1;
+    const candidatePriority = modelId === "sensor" ? 0 : 1;
     if (candidate && (!result || candidatePriority < hitPriority || (candidatePriority === hitPriority && candidateDistance < hitDistance))) {
       result = candidate;
       hitModelId = modelId;
