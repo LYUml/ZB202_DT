@@ -1046,9 +1046,21 @@ elements.wrap.addEventListener("pointerleave", () => {
 });
 
 async function syncSensorMarkerAnchors() {
-  // These models are static: keep the original world anchor across camera/LOD updates.
-  for (const marker of state.markerObjects.values()) {
-    marker.label.position.copy(marker.fixedAnchor);
+  const sensorModel = state.fragmentsModels.get("sensor");
+  if (!sensorModel) return;
+  sensorModel.object.updateWorldMatrix(true, true);
+  const markers = [...state.markerObjects].filter(([id]) => state.boundObjects.has(id));
+  const boxes = await sensorModel.getBoxes(markers.map(([id]) => state.boundObjects.get(id)));
+  for (const [index, [deviceId, marker]] of markers.entries()) {
+    const box = boxes[index];
+    if (!box || state.markerObjects.get(deviceId) !== marker) continue;
+    const center = box.getCenter(new THREE.Vector3());
+    state.sensorAnchors.set(deviceId, center.clone());
+    center.y = box.max.y + 0.025;
+    center.x += 0.035;
+    helpersGroup.worldToLocal(center);
+    marker.fixedAnchor.copy(center);
+    marker.label.position.copy(center);
   }
 }
 
@@ -1405,8 +1417,8 @@ async function focusDevice(device) {
     const boxes = await fragmentsModel.getBoxes([target]);
     if (boxes.length) box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
   }
-  if (marker) {
-    const position = marker.label.position.clone();
+  if (!box && marker) {
+    const position = marker.label.getWorldPosition(new THREE.Vector3());
     box = new THREE.Box3(position.clone(), position.clone());
   }
   if (!box) return;
@@ -2701,7 +2713,7 @@ async function handleCanvasSelection(event, doubleClick = false) {
     const hit = markerRaycaster.intersectObjects(markers.map(([, marker]) => marker.label))[0];
     const deviceId = hit && markers.find(([, marker]) => marker.label === hit.object)?.[0];
     if (deviceId) {
-      await selectDevice(deviceId);
+      await selectDevice(deviceId, true);
       setDevicePanelOpen(true);
       requestAnimationFrame(scrollSelectedSensorIntoList);
       return;
@@ -2741,7 +2753,7 @@ async function handleCanvasSelection(event, doubleClick = false) {
   }
   const device = DEVICES.find((item) => item.binding.modelId === hitModelId && state.boundObjects.get(item.id) === result.localId);
   if (device) {
-    await selectDevice(device.id);
+    await selectDevice(device.id, doubleClick);
     setDevicePanelOpen(true);
     requestAnimationFrame(scrollSelectedSensorIntoList);
   } else {
@@ -3140,6 +3152,7 @@ elements.canvas.addEventListener("dblclick", (event) => {
 });
 controls.addEventListener("change", () => {
   if (state.fragmentsModels.size) fragments.update();
+  scheduleSensorMarkerSync(200);
   scheduleSensorOcclusionCheck();
   updateSensorProximityTag();
 });
