@@ -1,13 +1,14 @@
 import { safetySensorStatus } from "../shared/sensor-status.js";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
+import { CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
 import { demandAxis } from "../shared/demand-axis.js";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
-const DEBUG_OCCUPIED_SEATS = new Set([0, 1, 3, 4, 6, 8, 9]);
+const DEBUG_OCCUPIED_SEATS = new Set([0, 1, 2, 3, 6, 8, 9]);
+const DEBUG_OFFLINE_SENSORS = new Set(["VS341-03", "AM103-05"]);
 const query = new URLSearchParams(window.location.search);
 const requestedSensorId = String(query.get("sensor") || "").replaceAll("_", "-").toUpperCase();
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -363,6 +364,10 @@ function ensureTelemetryDevice(message) {
     const priority = { occupancy: 0, battery: 1 };
     device.metrics.sort((a, b) => (priority[a.key] ?? 2) - (priority[b.key] ?? 2));
   }
+  if (device.sensorModel === "WS523") {
+    const order = ["activePower", "voltage", "current", "powerConsumption", "powerFactor", "socketStatus"];
+    device.metrics.sort((a, b) => (order.indexOf(a.key) < 0 ? order.length : order.indexOf(a.key)) - (order.indexOf(b.key) < 0 ? order.length : order.indexOf(b.key)));
+  }
   return device;
 }
 
@@ -709,6 +714,10 @@ function formatNumber(value) {
 }
 
 function statusFor(deviceId) {
+  if (state.debugMockData) {
+    if (DEBUG_OFFLINE_SENSORS.has(deviceId)) return "offline";
+    return deviceId === "WS523-03" ? "fault" : "normal";
+  }
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
@@ -728,13 +737,22 @@ function presentationStatus(status) {
   return { key: "fault", className: "fault" };
 }
 
+function occupancyValueFor(deviceId) {
+  if (!sensorIsOnline(deviceId)) return undefined;
+  if (state.debugMockData) {
+    const seat = occupancyGroup.children.find((item) => item.userData.deviceId === deviceId);
+    return seat ? Number(DEBUG_OCCUPIED_SEATS.has(seat.userData.seatIndex)) : undefined;
+  }
+  return state.snapshots.get(deviceId)?.values.occupancy;
+}
+
 function sensorEventLabel(device, snapshot) {
   const key = { VS341: "occupancy", WS301: "magnetStatus", WS303: "leakageStatus" }[device.sensorModel];
   if (!key) return "";
   const labels = activeLang === "en"
     ? { occupancy: ["Vacant", "Occupied"], magnetStatus: ["Closed", "Open"], leakageStatus: ["Dry", "Water detected"] }
     : { occupancy: ["未占用", "已占用"], magnetStatus: ["门关", "门开"], leakageStatus: ["无水浸", "检测到水浸"] };
-  const value = snapshot?.values[key];
+  const value = key === "occupancy" ? occupancyValueFor(device.id) : sensorIsOnline(device.id) ? snapshot?.values[key] : undefined;
   return Number.isFinite(value) ? labels[key][value > 0 ? 1 : 0] : activeLang === "en" ? "Unknown" : "未知";
 }
 
@@ -890,6 +908,7 @@ async function clearCurrentModel() {
   state.selectedItem = null;
   state.selectedDeviceId = null;
   state.selectedIfcItem = null;
+  for (const marker of state.markerObjects.values()) marker.label.material.dispose();
   helpersGroup.clear();
   state.boundObjects.clear();
   state.sensorAnchors.clear();
@@ -942,16 +961,43 @@ async function findBindingObject(device) {
   return localId ?? null;
 }
 
+function statusLightTexture(color) {
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 64;
+  const context = canvas.getContext("2d");
+  const glow = context.createRadialGradient(32, 32, 6, 32, 32, 30);
+  glow.addColorStop(0, color);
+  glow.addColorStop(0.35, `${color}80`);
+  glow.addColorStop(1, `${color}00`);
+  context.fillStyle = glow;
+  context.fillRect(0, 0, 64, 64);
+  context.fillStyle = color;
+  context.beginPath();
+  context.arc(32, 32, 10, 0, Math.PI * 2);
+  context.fill();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+const onlineLightTexture = statusLightTexture("#35d586");
+const offlineLightTexture = statusLightTexture("#8b94a6");
+
 function createMarker(device, worldPosition = null) {
   const element = document.createElement("div");
   element.className = "dt-sensor-online-dot";
   element.classList.toggle("is-offline", !sensorIsOnline(device.id));
   element.setAttribute("aria-hidden", "true");
 
-  const label = new CSS2DObject(element);
+  const label = new THREE.Sprite(new THREE.SpriteMaterial({
+    map: sensorIsOnline(device.id) ? onlineLightTexture : offlineLightTexture,
+    transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
+  }));
+  label.renderOrder = 30;
   label.name = `marker-${device.id}`;
   if (worldPosition) {
     label.position.copy(worldPosition);
+    label.position.x += 0.035;
+    label.position.y += 0.025;
   } else {
     const [nx, ny, nz] = device.binding.normalizedPosition;
     const size = state.modelBox.getSize(new THREE.Vector3());
@@ -962,12 +1008,14 @@ function createMarker(device, worldPosition = null) {
     );
   }
   helpersGroup.add(label);
-  label.visible = state.sensorDisplayMode === "all";
+  label.visible = state.sensorDisplayMode === "all" && device.sensorModel !== "VS341";
   state.markerObjects.set(device.id, {
     label,
     element,
     modelId: device.binding.modelId || null,
     localId: Number.isInteger(device.binding.localId) ? device.binding.localId : null,
+    fixedAnchor: label.position.clone(),
+    showStatusLight: device.sensorModel !== "VS341",
   });
 }
 
@@ -998,22 +1046,9 @@ elements.wrap.addEventListener("pointerleave", () => {
 });
 
 async function syncSensorMarkerAnchors() {
-  if (state.markerSyncRunning || !state.markerObjects.size) return;
-  state.markerSyncRunning = true;
-  try {
-    for (const marker of state.markerObjects.values()) {
-      if (marker.modelId !== "sensor" || !Number.isInteger(marker.localId)) continue;
-      const fragmentsModel = state.fragmentsModels.get(marker.modelId);
-      if (!fragmentsModel) continue;
-      const boxes = await fragmentsModel.getBoxes([marker.localId]);
-      if (!boxes.length) continue;
-      const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
-      const anchor = box.getCenter(new THREE.Vector3());
-      anchor.y = box.max.y;
-      marker.label.position.copy(anchor);
-    }
-  } finally {
-    state.markerSyncRunning = false;
+  // These models are static: keep the original world anchor across camera/LOD updates.
+  for (const marker of state.markerObjects.values()) {
+    marker.label.position.copy(marker.fixedAnchor);
   }
 }
 
@@ -1197,22 +1232,13 @@ async function createOccupancySeats() {
     toneMapped: false,
   });
   const edgeMaterial = new THREE.LineBasicMaterial({
-    color: 0x007ee5,
+    color: 0x168fe5,
     transparent: true,
-    opacity: 1,
+    opacity: 0.62,
     depthTest: false,
     depthWrite: false,
     toneMapped: false,
   });
-  const frameMaterial = new THREE.MeshBasicMaterial({
-    color: 0x007ee5,
-    depthTest: false,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-    toneMapped: false,
-    transparent: true,
-  });
-
   for (let row = 0; row < rows; row += 1) {
     for (let column = 0; column < columns; column += 1) {
       const seatIndex = row * columns + column;
@@ -1221,8 +1247,9 @@ async function createOccupancySeats() {
       seat.userData.seatIndex = seatIndex;
       seat.userData.occupied = DEBUG_OCCUPIED_SEATS.has(seatIndex);
 
-      const overlayWidth = seatWidth - inset * 2;
-      const overlayDepth = seatDepth - inset * 2;
+      const overlaySize = Math.min(seatWidth, seatDepth) - inset * 2;
+      const overlayWidth = overlaySize;
+      const overlayDepth = overlaySize;
       const geometry = new THREE.BoxGeometry(overlayWidth, slabHeight, overlayDepth);
       const fill = new THREE.Mesh(geometry, fillMaterial.clone());
       fill.position.y = slabHeight / 2;
@@ -1230,24 +1257,11 @@ async function createOccupancySeats() {
       seat.add(fill);
       seat.userData.fill = fill;
 
-      const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
+      const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial.clone());
       outline.position.y = slabHeight / 2;
       outline.renderOrder = 21;
       seat.add(outline);
-
-      const frameThickness = Math.min(overlayWidth, overlayDepth) * 0.012;
-      const frameParts = [
-        { width: overlayWidth, depth: frameThickness, x: 0, z: -overlayDepth / 2 + frameThickness / 2 },
-        { width: overlayWidth, depth: frameThickness, x: 0, z: overlayDepth / 2 - frameThickness / 2 },
-        { width: frameThickness, depth: overlayDepth, x: -overlayWidth / 2 + frameThickness / 2, z: 0 },
-        { width: frameThickness, depth: overlayDepth, x: overlayWidth / 2 - frameThickness / 2, z: 0 },
-      ];
-      for (const part of frameParts) {
-        const border = new THREE.Mesh(new THREE.BoxGeometry(part.width, slabHeight * 1.08, part.depth), frameMaterial);
-        border.position.set(part.x, slabHeight * 0.54, part.z);
-        border.renderOrder = 22;
-        seat.add(border);
-      }
+      seat.userData.outline = outline;
 
       seat.position.set(
         tableBox.min.x + seatWidth * (column + 0.5),
@@ -1285,16 +1299,16 @@ function renderOccupancySeats() {
   const overlaysVisible = state.sensorDisplayMode === "all" && state.layerVisibility.archi;
   occupancyGroup.visible = overlaysVisible;
   for (const seat of occupancyGroup.children) {
-    const value = state.snapshots.get(seat.userData.deviceId)?.values.occupancy;
-    const occupied = state.debugMockData
-      ? DEBUG_OCCUPIED_SEATS.has(seat.userData.seatIndex)
-      : Number.isFinite(value) && value > 0;
+    const value = occupancyValueFor(seat.userData.deviceId);
+    const occupied = Number.isFinite(value) && value > 0;
+    const online = sensorIsOnline(seat.userData.deviceId);
     seat.userData.occupied = occupied;
     seat.visible = overlaysVisible;
-    seat.userData.fill.material.color.setHex(occupied ? 0x328bc7 : 0xbadcf0);
-    seat.userData.fill.material.opacity = occupied ? 0.72 : 0.22;
-    seat.userData.icon.visible = occupied;
-    seat.userData.occupancyStatus = occupied ? "occupied" : Number.isFinite(value) ? "vacant" : "unknown";
+    seat.userData.fill.material.color.setHex(!online ? 0x9aa3b0 : occupied ? 0x70b2d8 : 0xbadcf0);
+    seat.userData.outline.material.color.setHex(online ? 0x168fe5 : 0x8b94a6);
+    seat.userData.fill.material.opacity = !online ? 0.24 : occupied ? 0.58 : 0.14;
+    seat.userData.icon.visible = online && occupied;
+    seat.userData.occupancyStatus = !online ? "offline" : occupied ? "occupied" : Number.isFinite(value) ? "vacant" : "unknown";
   }
 }
 
@@ -1370,8 +1384,9 @@ async function applyAllVisualStates() {
     }
     const marker = state.markerObjects.get(device.id);
     if (marker) {
-      marker.label.visible = state.sensorDisplayMode === "all";
+      marker.label.visible = state.sensorDisplayMode === "all" && marker.showStatusLight;
       marker.element.classList.toggle("is-offline", !sensorIsOnline(device.id));
+      marker.label.material.map = sensorIsOnline(device.id) ? onlineLightTexture : offlineLightTexture;
     }
   }
   renderOccupancySeats();
@@ -1414,6 +1429,7 @@ function visibleDevices() {
   const collection = state.assetView === "mep" ? MEP_COMPONENTS : DEVICES.filter((device) => sensorGroupFor(device).key !== "weather");
   const queryText = normalizedSearchText(state.equipmentQuery);
   return collection.filter((device) => {
+    if (device.debugOnly && !state.debugMockData) return false;
     if (state.assetView !== "mep" && !state.sensorGroupFilters.has(sensorGroupFor(device).key)) return false;
     if (!queryText) return true;
     const searchable = [
@@ -1499,20 +1515,22 @@ function renderDeviceList() {
     }
     const snapshot = state.snapshots.get(device.id);
     const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id) || state.liveDevices.has(device.id);
-    const status = bound ? snapshot.status : "unavailable";
+    const status = statusFor(device.id);
     const button = document.createElement("button");
     button.type = "button";
     const online = !["offline", "unavailable"].includes(status);
     const eventLabel = sensorEventLabel(device, snapshot);
     const eventKey = { VS341: "occupancy", WS301: "magnetStatus", WS303: "leakageStatus" }[device.sensorModel];
-    const eventValue = snapshot?.values[eventKey];
+    const eventValue = eventKey === "occupancy" ? occupancyValueFor(device.id) : online ? snapshot?.values[eventKey] : undefined;
     const eventActive = Number.isFinite(eventValue) && eventValue > 0;
     const eventIcon = !Number.isFinite(eventValue) ? "ph-question"
-      : { VS341: eventActive ? "ph-user" : "ph-circle",
+      : { VS341: eventActive ? "ph-user-circle" : "ph-circle",
           WS301: eventActive ? "ph-door-open" : "ph-door",
           WS303: eventActive ? "ph-drop" : "ph-drop-slash" }[device.sensorModel];
     const fullName = deviceText(device, "name");
     const sensorName = fullName.startsWith(device.id) ? fullName.slice(device.id.length).trim() : fullName;
+    button.dataset.deviceId = device.id;
+    button.dataset.modelBound = String(state.boundObjects.has(device.id));
     button.className = `dt-device-item dt-sensor-item ${online ? "normal" : "unavailable"}${state.selectedDeviceId === device.id ? " selected" : ""}`;
     button.innerHTML = `
       <span class="dt-device-copy">
@@ -1523,7 +1541,7 @@ function renderDeviceList() {
       <span class="dt-device-state" aria-label="${t(online ? "online" : "offline")}" title="${t(online ? "online" : "offline")}"><span class="dt-device-status"></span></span>
     `;
     button.querySelector("small").title = fullName;
-    if (eventLabel) button.querySelector(".dt-device-event").title = `${eventLabel} · ${snapshot.updatedAt.toLocaleString(activeLocale())}`;
+    if (eventLabel) button.querySelector(".dt-device-event").title = state.debugMockData ? `${eventLabel} · Virtual demo` : `${eventLabel} · ${snapshot.updatedAt.toLocaleString(activeLocale())}`;
     button.addEventListener("click", () => {
       selectDevice(device.id, true);
       setDevicePanelOpen(true);
@@ -1636,15 +1654,16 @@ function renderSocketDemandChart(mock) {
     <g class="dt-demand-grid">${ticks.map((tick) => `<line x1="${left}" y1="${y(tick)}" x2="${right}" y2="${y(tick)}"></line><text x="${left - 5}" y="${y(tick) + 3}" text-anchor="end">${formatTick(tick)}</text>`).join("")}</g>
     <path class="dt-demand-area" d="${line} L${right} ${bottom} L${left} ${bottom} Z"></path>
     <path class="dt-demand-line" d="${line}"></path>
-    <g class="dt-demand-points">${points.map(([px, py]) => `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="1.7"></circle>`).join("")}</g>
     <g class="dt-demand-axis"><text x="${left}" y="96" text-anchor="start">${labels[0]}</text><text x="${(left + right) / 2}" y="96" text-anchor="middle">${labels[1]}</text><text x="${right}" y="96" text-anchor="end">${labels[2]}</text></g>
   `;
   chart.setAttribute("aria-label", `${state.socketDemandRange} ${mock ? "virtual" : "InfluxDB"} electrical demand trend`);
 }
 
 function renderDebugDashboardData() {
-  if (state.renderedDebugMockData === state.debugMockData) return;
-  state.renderedDebugMockData = state.debugMockData;
+  const demoDeviceCount = DEVICES.filter((device) => !device.debugOnly || state.debugMockData).length;
+  const signature = `${state.debugMockData}:${demoDeviceCount}`;
+  if (state.renderedDebugMockData === signature) return;
+  state.renderedDebugMockData = signature;
   const mock = state.debugMockData;
   renderOccupancySeats();
 
@@ -1671,7 +1690,7 @@ function renderDebugDashboardData() {
   `;
 
   const healthData = mock
-    ? { sensor: [17, 1, 1], battery: [14, 4, 1] }
+    ? { sensor: [Math.max(0, demoDeviceCount - 3), 2, 1], battery: [Math.max(0, demoDeviceCount - 5), 4, 1] }
     : { sensor: [0, 0, 0], battery: [0, 0, 0] };
   const healthColors = {
     sensor: ["#18ad78", "#9aabc0", "#ef476f"],
@@ -1684,7 +1703,8 @@ function renderDebugDashboardData() {
     drawDonutChart(chart.querySelector("canvas"), values, healthColors[key]);
   });
   document.querySelector(".dt-alert-list").innerHTML = mock ? `
-    <button type="button" class="critical"><i class="ph ph-warning-circle"></i><span><strong>Door contact abnormal opening</strong><small>Door-01 · 19:42 · after hours</small></span></button>
+    <button type="button" class="warning"><i class="ph ph-wifi-slash"></i><span><strong>Occupancy sensor offline</strong><small>VS341-03 · Gray seat · Occupancy unavailable</small></span></button>
+    <button type="button" class="warning"><i class="ph ph-wifi-slash"></i><span><strong>Environment sensor offline</strong><small>AM103-05 · Gray status light</small></span></button>
     <button type="button" class="warning"><i class="ph ph-battery-warning"></i><span><strong>Battery replacement required</strong><small>WS523-03 · maintenance due</small></span></button>
   ` : "";
 
@@ -1768,6 +1788,7 @@ function renderSiteOverview() {
   if (elements.siteCo2) elements.siteCo2.textContent = co2 === null ? "—" : `${formatNumber(co2)} ppm`;
   const occupancyDevices = DEVICES.filter((device) => device.sensorModel === "VS341");
   const occupancySnapshots = occupancyDevices
+    .filter((device) => sensorIsOnline(device.id))
     .map((device) => state.snapshots.get(device.id))
     .filter((snapshot) => Number.isFinite(snapshot?.values.occupancy));
   const occupiedCount = occupancySnapshots.reduce((sum, snapshot) => sum + (snapshot.values.occupancy > 0 ? 1 : 0), 0);
@@ -1800,7 +1821,7 @@ function renderSiteOverview() {
     ];
   document.querySelectorAll(".dt-indoor-grid .dt-metric-line strong").forEach((element, index) => {
     if (index >= 3) element.innerHTML = extraIndoorValues[index - 3].replace(/^([\d.]+) (.+)$/, "$1<small> $2</small>");
-    if (index === 5) element.title = state.debugMockData ? "" : occupancyExplanation;
+    if (index === 5) element.title = state.debugMockData ? "Virtual demo: 7 occupied, 2 vacant, 1 offline (VS341-03); 10 seats total" : occupancyExplanation;
   });
 
   if (!state.debugMockData) {
@@ -1940,12 +1961,13 @@ function samplesInSelectedRange(samples) {
 }
 
 function binaryMetricLabel(key, value) {
+  if (key === "socketStatus") return activeLang === "en" ? (value > 0 ? "On" : "Off") : (value > 0 ? "开启" : "关闭");
   if (key === "magnetStatus") return activeLang === "en" ? (value > 0 ? "Open" : "Closed") : (value > 0 ? "开" : "闭");
   return activeLang === "en" ? (value > 0 ? "1 person" : "0 people") : `${value > 0 ? 1 : 0}人`;
 }
 
 function trendScale(metric, values) {
-  if (["magnetStatus", "occupancy"].includes(metric?.key)) return { min: 0, max: 1, span: 1, decimals: 0 };
+  if (["magnetStatus", "occupancy", "socketStatus"].includes(metric?.key)) return { min: 0, max: 1, span: 1, decimals: 0 };
   const scaleByMetric = {
     temperature: { minimumSpan: 0.4, decimals: 1 },
     humidity: { minimumSpan: 1, decimals: 1 },
@@ -1968,7 +1990,7 @@ function trendScale(metric, values) {
 function sparklinePath(samples, metric, useSelectedRange = true) {
   const width = 360;
   const height = 140;
-  const left = ["magnetStatus", "occupancy"].includes(metric?.key) ? 62 : 40;
+  const left = ["magnetStatus", "occupancy", "socketStatus"].includes(metric?.key) ? 62 : 40;
   const right = 8;
   const top = 10;
   const bottom = 28;
@@ -1987,7 +2009,7 @@ function sparklinePath(samples, metric, useSelectedRange = true) {
     return [x, y];
   });
   if (points.length === 1) points = [[(left + width - right) / 2, points[0][1]]];
-  const binary = ["magnetStatus", "occupancy"].includes(metric?.key);
+  const binary = ["magnetStatus", "occupancy", "socketStatus"].includes(metric?.key);
   const line = points.map(([x, y], index) => index === 0 ? `M${x.toFixed(1)},${y.toFixed(1)}` : binary ? `H${x.toFixed(1)} V${y.toFixed(1)}` : `L${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
   const area = points.length > 1 ? `${line} L${points.at(-1)[0].toFixed(1)},${plotBottom} L${points[0][0].toFixed(1)},${plotBottom} Z` : "";
   const tickValues = binary ? [1, 0] : [scale.max, (scale.max + scale.min) / 2, scale.min];
@@ -2026,7 +2048,7 @@ function renderMetricTrend(snapshot, chart, metric) {
     chart.points.innerHTML = "";
     chart.grid.innerHTML = `<line x1="40" y1="10" x2="352" y2="10"></line><line x1="40" y1="61" x2="352" y2="61"></line><line x1="40" y1="112" x2="352" y2="112"></line><line x1="40" y1="10" x2="40" y2="112"></line>`;
     chart.axis.innerHTML = `<text x="40" y="132" text-anchor="start">-${state.historyRange === "custom" ? `${state.customHours}h` : state.historyRange}</text><text x="352" y="132" text-anchor="end">${t("now")}</text>`;
-    if (["magnetStatus", "occupancy"].includes(metric.key)) {
+    if (["magnetStatus", "occupancy", "socketStatus"].includes(metric.key)) {
       chart.axis.innerHTML += `<text x="34" y="13" text-anchor="end">${binaryMetricLabel(metric.key, 1)}</text><text x="34" y="115" text-anchor="end">${binaryMetricLabel(metric.key, 0)}</text>`;
     }
     return;
@@ -2036,12 +2058,10 @@ function renderMetricTrend(snapshot, chart, metric) {
   const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
   const deltaSign = delta > 0 ? "+" : "";
   chart.value.innerHTML = `${formatNumber(values.at(-1))} ${metric.unit}${samples.length > 1 ? `<small class="dt-trend-delta ${deltaClass}">Δ ${deltaSign}${formatNumber(delta)} ${metric.unit}</small>` : ""}`;
-  if (["magnetStatus", "occupancy"].includes(metric.key)) chart.value.textContent = binaryMetricLabel(metric.key, values.at(-1));
+  if (["magnetStatus", "occupancy", "socketStatus"].includes(metric.key)) chart.value.textContent = binaryMetricLabel(metric.key, values.at(-1));
   chart.line.setAttribute("d", paths.line);
   chart.area.setAttribute("d", paths.area);
-  chart.points.innerHTML = paths.points.map(([x, y]) => `
-    <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4"></circle>
-  `).join("");
+  chart.points.innerHTML = "";
   chart.grid.innerHTML = paths.ticks.map((tick) => `
     <line x1="${paths.left}" y1="${tick.y}" x2="${paths.right}" y2="${tick.y}"></line>
   `).join("") + `<line x1="${paths.left}" y1="${paths.top}" x2="${paths.left}" y2="${paths.plotBottom}"></line>`;
@@ -2050,7 +2070,7 @@ function renderMetricTrend(snapshot, chart, metric) {
     ? new Date(samples.at(-1).time).toLocaleTimeString(activeLocale(), { hour: "2-digit", minute: "2-digit" })
     : t("now");
   chart.axis.innerHTML = paths.ticks.map((tick) => `
-    <text x="${paths.left - 6}" y="${tick.y + 3}" text-anchor="end">${["magnetStatus", "occupancy"].includes(metric.key) ? binaryMetricLabel(metric.key, tick.value) : tick.value.toFixed(paths.decimals)}</text>
+    <text x="${paths.left - 6}" y="${tick.y + 3}" text-anchor="end">${["magnetStatus", "occupancy", "socketStatus"].includes(metric.key) ? binaryMetricLabel(metric.key, tick.value) : tick.value.toFixed(paths.decimals)}</text>
   `).join("") + `
     <text x="${paths.left}" y="132" text-anchor="start">${rangeLabel}</text>
     <text x="${paths.right}" y="132" text-anchor="end">${endLabel}</text>
@@ -2089,9 +2109,12 @@ function renderSelectedDevice() {
   elements.componentProperties.hidden = true;
   elements.componentProperties.innerHTML = "";
   elements.historyNote.closest(".dt-history-toolbar").hidden = false;
-  const snapshot = state.snapshots.get(device.id);
+  const storedSnapshot = state.snapshots.get(device.id);
+  const snapshot = device.sensorModel === "VS341"
+    ? { ...storedSnapshot, values: { ...storedSnapshot.values, occupancy: occupancyValueFor(device.id) } }
+    : storedSnapshot;
   const bound = device.binding.kind === "marker" || state.boundObjects.has(device.id) || state.liveDevices.has(device.id);
-  const displayStatus = bound ? snapshot.status : "unavailable";
+  const displayStatus = statusFor(device.id);
   const presentedStatus = presentationStatus(displayStatus);
   const occupancyMetric = device.sensorModel === "VS341";
 
@@ -2111,7 +2134,7 @@ function renderSelectedDevice() {
     <div class="dt-metric" data-metric="${metric.key}" role="group" aria-label="${metricText(metric)}" title="${metricText(metric)}">
       <i class="ph ${metric.icon || INFLUX_METRICS[metric.key]?.icon || "ph-chart-line"} dt-metric-icon" aria-hidden="true"></i>
       <span>${metricText(metric)}</span>
-      <strong>${Number.isFinite(snapshot.values[metric.key]) ? ["magnetStatus", "occupancy"].includes(metric.key) ? binaryMetricLabel(metric.key, snapshot.values[metric.key]) : `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
+      <strong>${Number.isFinite(snapshot.values[metric.key]) ? ["magnetStatus", "occupancy", "socketStatus"].includes(metric.key) ? binaryMetricLabel(metric.key, snapshot.values[metric.key]) : `${formatNumber(snapshot.values[metric.key])}<small>${metric.unit}</small>` : "—"}</strong>
     </div>
   `).join("");
 
@@ -2245,7 +2268,7 @@ async function selectDevice(deviceId, focus = false) {
     state.layerVisibility.sensor = true;
     const sensorModel = state.fragmentsModels.get("sensor");
     if (sensorModel) sensorModel.object.visible = true;
-    for (const [id, marker] of state.markerObjects) marker.label.visible = true;
+    for (const marker of state.markerObjects.values()) marker.label.visible = marker.showStatusLight;
     const toggle = elements.layerToggles.find((item) => item.dataset.modelLayer === "sensor");
     if (toggle) {
       toggle.dataset.sensorMode = "all";
@@ -2485,6 +2508,7 @@ function connectInfluxBridge() {
     const device = ensureTelemetryDevice(message);
     const snapshot = device && state.snapshots.get(device.id);
     if (!device || !snapshot) return;
+    device.debugOnly = false;
     const telemetryKey = `${device.id}:${message.receivedAt}:${JSON.stringify(message.values)}`;
     if (state.seenTelemetry.has(telemetryKey)) return;
     state.seenTelemetry.add(telemetryKey);
@@ -2615,6 +2639,8 @@ async function finalizeFederatedModel(componentCount) {
   DEVICES = await bindSensorsToIfc([...fallbackSensorDevices(), ...configuredSafetySensors()], state.fragmentsModels.get("sensor"));
   MEP_COMPONENTS = await scanIfcEquipment(state.fragmentsModels.get("mep"), "mep");
   initializeDeviceSnapshots();
+  // This socket is in the equipment plan but has no item in the sensor IFC.
+  ensureTelemetryDevice({ deviceId: "WS523-01", values: {} });
   const initialDevice = DEVICES.find((device) => device.id.toUpperCase() === requestedSensorId) || DEVICES[0];
   state.selectedDeviceId = initialDevice?.id || null;
   state.selectedItem = initialDevice?.ifc || null;
@@ -2723,7 +2749,7 @@ elements.layerToggles.forEach((toggle) => {
       state.layerVisibility.sensor = modelVisible;
           const fragmentsModel = state.fragmentsModels.get("sensor");
       if (fragmentsModel) fragmentsModel.object.visible = modelVisible;
-      for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "all";
+      for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "all" && marker.showStatusLight;
       renderOccupancySeats();
 
       const modeMeta = {
@@ -3110,18 +3136,27 @@ resizeObserver.observe(elements.wrap);
 const demandChartResizeObserver = new ResizeObserver(() => renderSocketDemandChart(state.debugMockData));
 demandChartResizeObserver.observe(document.querySelector(".dt-demand-chart"));
 
-let lastLabelFrameAt = 0;
+
 function animate(now = 0) {
   if (pageClosing) return;
   requestAnimationFrame(animate);
   if (document.hidden) return;
   controls.update();
-  renderer.render(scene, camera);
-  if (now - lastLabelFrameAt >= 1000 / 30) {
-    labelRenderer.render(scene, camera);
-    resolveMobileMarkerCollisions();
-    lastLabelFrameAt = now;
+  // Size in pixels, position in model coordinates; draw lights and geometry together.
+  camera.updateMatrixWorld();
+  const lightPosition = new THREE.Vector3();
+  const viewportHeight = elements.canvas.clientHeight || 1;
+  for (const marker of state.markerObjects.values()) {
+    if (!marker.label.visible) continue;
+    marker.label.getWorldPosition(lightPosition).applyMatrix4(camera.matrixWorldInverse);
+    const scale = 16 * 2 * Math.max(-lightPosition.z, camera.near)
+      * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) / viewportHeight;
+    marker.label.scale.set(scale, scale, 1);
   }
+  renderer.render(scene, camera);
+  // Project status lights using the same camera frame as the model.
+  labelRenderer.render(scene, camera);
+  resolveMobileMarkerCollisions();
 }
 
 applyTheme(activeTheme);

@@ -4192,15 +4192,15 @@ body[data-page="twin"] { --dt-panel-title-size: 1rem; }
   min-height: 0;
   border-radius: 50%;
   background: #35d586;
-  box-shadow: 0 0 3px 1px rgb(53 213 134 / 45%);
-  margin-left: 9px;
-  margin-top: -9px;
+  border: 0;
+  box-shadow: 0 0 4px 1px rgb(53 213 134 / 48%);
+  margin: 0;
   pointer-events: none;
 }
 
 .dt-sensor-online-dot.is-offline {
   background: #8b94a6;
-  box-shadow: 0 0 3px 1px rgb(139 148 166 / 30%);
+  box-shadow: 0 0 3px 1px rgb(139 148 166 / 25%);
 }
 
 .dt-platform-clock {
