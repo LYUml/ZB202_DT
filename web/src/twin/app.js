@@ -2247,6 +2247,15 @@ function setDevicePanelOpen(open) {
   scheduleSensorMarkerSync(320);
 }
 
+function scrollSelectedSensorIntoList() {
+  const selectedRow = elements.deviceList.querySelector(".dt-device-item.selected");
+  if (!selectedRow) return;
+  const listRect = elements.deviceList.getBoundingClientRect();
+  const rowRect = selectedRow.getBoundingClientRect();
+  if (rowRect.bottom > listRect.bottom) elements.deviceList.scrollTop += rowRect.bottom - listRect.bottom;
+  else if (rowRect.top < listRect.top) elements.deviceList.scrollTop += rowRect.top - listRect.top;
+}
+
 async function selectDevice(deviceId, focus = false) {
   const device = DEVICES.find((item) => item.id === deviceId);
   if (!device) return;
@@ -2257,13 +2266,7 @@ async function selectDevice(deviceId, focus = false) {
   renderUI();
   await updateAllVisualStates();
   if (focus) {
-    const selectedRow = elements.deviceList.querySelector(".dt-device-item.selected");
-    if (selectedRow) {
-      const listRect = elements.deviceList.getBoundingClientRect();
-      const rowRect = selectedRow.getBoundingClientRect();
-      if (rowRect.bottom > listRect.bottom) elements.deviceList.scrollTop += rowRect.bottom - listRect.bottom;
-      else if (rowRect.top < listRect.top) elements.deviceList.scrollTop += rowRect.top - listRect.top;
-    }
+    scrollSelectedSensorIntoList();
     state.sensorDisplayMode = "all";
     state.layerVisibility.sensor = true;
     const sensorModel = state.fragmentsModels.get("sensor");
@@ -2685,8 +2688,25 @@ async function loadModel() {
   }
 }
 
-async function handleCanvasSelection(event) {
+async function handleCanvasSelection(event, doubleClick = false) {
   if (!state.model) return;
+  if (doubleClick && !state.calibrating) {
+    const rect = elements.canvas.getBoundingClientRect();
+    const markerRaycaster = new THREE.Raycaster();
+    markerRaycaster.setFromCamera(new THREE.Vector2(
+      ((event.clientX - rect.left) / rect.width) * 2 - 1,
+      -((event.clientY - rect.top) / rect.height) * 2 + 1,
+    ), camera);
+    const markers = [...state.markerObjects.entries()].filter(([, marker]) => marker.label.visible);
+    const hit = markerRaycaster.intersectObjects(markers.map(([, marker]) => marker.label))[0];
+    const deviceId = hit && markers.find(([, marker]) => marker.label === hit.object)?.[0];
+    if (deviceId) {
+      await selectDevice(deviceId);
+      setDevicePanelOpen(true);
+      requestAnimationFrame(scrollSelectedSensorIntoList);
+      return;
+    }
+  }
   let result = null;
   let hitModelId = null;
   let hitDistance = Infinity;
@@ -2721,8 +2741,9 @@ async function handleCanvasSelection(event) {
   }
   const device = DEVICES.find((item) => item.binding.modelId === hitModelId && state.boundObjects.get(item.id) === result.localId);
   if (device) {
-    selectDevice(device.id, true);
+    await selectDevice(device.id);
     setDevicePanelOpen(true);
+    requestAnimationFrame(scrollSelectedSensorIntoList);
   } else {
     selectIfcItem(result.localId, hitModelId);
   }
@@ -3113,6 +3134,10 @@ elements.canvas.addEventListener("pointerup", (event) => {
   if (distance < 10) handleCanvasSelection(event).catch((error) => console.error("BIM selection failed", error));
 });
 elements.canvas.addEventListener("pointercancel", () => { pointerDownPosition = null; });
+elements.canvas.addEventListener("dblclick", (event) => {
+  if (event.button !== 0) return;
+  handleCanvasSelection(event, true).catch((error) => console.error("Sensor double-click selection failed", error));
+});
 controls.addEventListener("change", () => {
   if (state.fragmentsModels.size) fragments.update();
   scheduleSensorOcclusionCheck();
