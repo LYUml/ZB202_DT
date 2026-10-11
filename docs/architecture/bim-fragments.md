@@ -22,17 +22,16 @@ flowchart LR
 
 ## Local workflow
 
-1. Export the coordinated Revit model to `models/ifc/ZN1001.ifc`.
-2. Convert it:
+1. Export the three coordinated models to `models/ifc/` with stable GlobalIds.
+2. Convert each source model:
 
-   ```powershell
-   npm run bim:convert -- .\models\ifc\ZN1001.ifc .\web\public\models\fragments\ZN1001.frag
+   ```sh
+   npm run bim:convert -- models/ifc/lab-archi.ifc web/public/models/fragments/Lab-archi.frag
+   npm run bim:convert -- models/ifc/lab-mep.ifc web/public/models/fragments/Lab-mep.frag
+   npm run bim:convert -- models/ifc/lab-sensor.ifc web/public/models/fragments/Sensor.frag
    ```
 
-3. Run `npm run dev`.
-4. Open the unchanged room-view framework at `http://127.0.0.1:5173/twin.html`.
-
-The room-view entry loads IFC/Fragments by default and retains the existing HTML, styles, sidebar, device cards, camera controls, status simulation, and spatial-marker behavior.
+3. Run `npm run dev` and open `http://127.0.0.1:5173/twin.html`.
 
 ## Large-model rules
 

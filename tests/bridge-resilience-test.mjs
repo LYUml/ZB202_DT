@@ -4,7 +4,7 @@ import net from "node:net";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
 import WebSocket from "ws";
-import { buildSensorHistoryQuery } from "./sensor-history.mjs";
+import { buildSensorHistoryQuery } from "../scripts/sensor-history.mjs";
 
 assert.throws(() => buildSensorHistoryQuery({ deviceId: "bad", hours: 24, stop: new Date().toISOString() }));
 const query = buildSensorHistoryQuery({ bucket: "test", deviceId: "AM103-01", hours: 720, stop: new Date().toISOString() });

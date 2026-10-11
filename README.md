@@ -19,23 +19,23 @@ npm run dev
 ## 常用命令
 
 - `npm run build`：构建静态页面
-- `npm run test:bridge`：检查数据桥接
+- `npm run test:bridge`：检查运行中的数据桥接（只读）
+- `npm run test:resilience`：隔离模拟数据库故障与恢复
 - `npm run bim:convert`：将 IFC 转为 Fragments
 
 ## 项目结构
 
 ```text
 ZB202_DT/
-├── .github/workflows/            # GitHub Pages 自动部署
-├── docs/architecture/            # 架构说明与技术路线
-├── dvc/                          # 设备清单备份（CSV / XLSX）
+├── docs/                         # 架构、排障记录与英文说明
+├── data/device-inventory/        # 设备清单备份（CSV / XLSX）
 ├── models/
 │   ├── ifc/                      # IFC 源模型
 │   └── rvt/                      # Revit 源模型
 ├── scripts/
 │   ├── influxdb-bridge.mjs       # InfluxDB → WebSocket 桥接
-│   ├── bridge-smoke-test.mjs     # 数据链路测试
 │   └── ifc-to-fragments.mjs      # IFC 转 Fragments
+├── tests/                        # 数据链路与隔离故障测试
 ├── web/
 │   ├── public/models/fragments/  # 浏览器运行时模型
 │   ├── src/
@@ -60,3 +60,15 @@ ZB202_DT/
 开发桥接服务每 10 分钟采集香港天文台京士柏的 1 分钟平均总太阳辐射（W/m²），将原始香港时间转换为 UTC，写入 InfluxDB 后读回提供给前端。来源：https://data.weather.gov.hk/weatherAPI/hko_data/regional-weather/latest_1min_solar.csv 。
 
 Measurement 为 `hko-solar-radiation`，field 为 `solarRadiation`，station tag 为 `King's Park`。默认使用天气 bucket，可通过 `ZB202_SOLAR_INFLUX_BUCKET` 指定；天气 token 需要读写权限。超过 30 分钟的观测显示为缺失。天气数据继续供室外环境使用，但不出现在 IoT 设备列表中。
+
+## 文件维护与运行方式
+
+项目使用本地开发服务或局域网静态服务，GitHub Pages 已停用，仓库不再包含自动部署工作流。
+
+- `web/` 保存前端源码和浏览器使用的静态模型；`models/` 保存可编辑的 Revit 与 IFC 源模型。
+- `scripts/` 保存开发服务、数据桥接与模型转换工具；`tests/` 保存验证脚本。
+- `data/device-inventory/` 是历史设备清单备份，供人工核对，不是前端实时数据源。
+- `docs/` 保存架构及排障记录；[英文说明](docs/README.en.md) 位于此目录。
+- `.env` 是当前本地配置，`.env.example` 是唯一配置模板。
+- `node_modules/` 是可重新安装的依赖；`dist/` 是 `npm run build` 生成的产物，两者不提交 Git。使用 `npm run serve:lan` 前先构建。
+- 根目录的 Windows/macOS 启动器保留，方便双击启动。`web/device.html` 保留用于兼容旧设备链接。

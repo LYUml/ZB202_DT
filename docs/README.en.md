@@ -23,3 +23,9 @@ Open `http://127.0.0.1:5173/overview.html` for the overview or `http://127.0.0.1
 - `npm run bim:convert`: convert IFC to Fragments
 
 Keep `.env` local and never commit real credentials.
+
+## Layout
+
+`web/`: frontend and runtime models. `models/`: Revit/IFC sources. `scripts/`: runtime and conversion tools. `tests/`: bridge checks. `data/device-inventory/`: historical inventory backups. `docs/`: architecture and troubleshooting.
+
+GitHub Pages is disabled. Run locally or build with `npm run build` before `npm run serve:lan`. Keep the root launchers for Windows/macOS. `web/device.html` preserves legacy device links.
