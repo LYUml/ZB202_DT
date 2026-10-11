@@ -449,8 +449,8 @@ body[data-page="twin"] *::after {
 .dt-model-marker:focus-visible { outline: 2px solid var(--dt-accent); outline-offset: 3px; }
 
 .dt-sensor-proximity-tag {
-  --sensor-tag-color: var(--dt-ok);
-  --sensor-tag-text: #0b3020;
+  --sensor-tag-color: #ffffff;
+  --sensor-tag-text: #17202c;
   position: absolute;
   z-index: 20;
   max-width: min(320px, calc(100% - 16px));
@@ -459,7 +459,7 @@ body[data-page="twin"] *::after {
   border-radius: 999px;
   color: var(--sensor-tag-text);
   background: var(--sensor-tag-color);
-  box-shadow: var(--dt-floating-shadow);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 22%), 0 3px 10px rgb(15 23 42 / 10%);
   font-size: 0.76rem;
   font-weight: 650;
   line-height: 1.25;
@@ -469,16 +469,6 @@ body[data-page="twin"] *::after {
   pointer-events: none;
 }
 .dt-sensor-proximity-tag[hidden] { display: none; }
-.dt-sensor-proximity-tag[data-status="fault"],
-.dt-sensor-proximity-tag[data-status="warning"] {
-  --sensor-tag-color: var(--dt-fault);
-  --sensor-tag-text: #370b12;
-}
-.dt-sensor-proximity-tag[data-status="offline"],
-.dt-sensor-proximity-tag[data-status="unavailable"] {
-  --sensor-tag-color: #9aa6b6;
-  --sensor-tag-text: #17202c;
-}
 
 .dt-sidebar {
   top: 14px;
@@ -4194,3 +4184,86 @@ body[data-page="twin"] { --dt-panel-title-size: 1rem; }
   line-height: 1.2;
   letter-spacing: -0.02em;
 }
+
+/* A fixed-size status light beside the sensor, with no pointer hit area. */
+.dt-sensor-online-dot {
+  width: 5px;
+  height: 5px;
+  min-height: 0;
+  border-radius: 50%;
+  background: #35d586;
+  box-shadow: 0 0 3px 1px rgb(53 213 134 / 45%);
+  margin-left: 9px;
+  margin-top: -9px;
+  pointer-events: none;
+}
+
+.dt-sensor-online-dot.is-offline {
+  background: #8b94a6;
+  box-shadow: 0 0 3px 1px rgb(139 148 166 / 30%);
+}
+
+.dt-platform-clock {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 10px;
+  padding-left: 0;
+  border-left: 0;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.dt-clock-time, .dt-clock-date { font-size: 0.85rem; font-weight: 500; color: var(--dt-text-soft); }
+@media (max-width: 600px) {
+  .dt-platform-clock { padding-left: 0; gap: 7px; }
+  .dt-clock-time, .dt-clock-date { font-size: 0.68rem; }
+}
+
+.dt-sensor-card .dt-device-item.dt-sensor-item {
+  grid-template-columns: minmax(0, 1fr) auto 20px;
+  height: auto;
+  min-height: 62px;
+  gap: 8px;
+  padding: 10px 12px;
+  align-items: center;
+}
+.dt-sensor-item .dt-device-copy { grid-column: 1; min-width: 0; display: grid; gap: 3px; }
+.dt-sensor-item .dt-device-copy strong { font-size: 0.8rem; line-height: 1.25; }
+.dt-sensor-item .dt-device-copy small {
+  font-size: 0.75rem;
+  line-height: 1.35;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  color: var(--dt-text-soft);
+}
+.dt-sensor-item .dt-device-state { grid-column: 3; min-width: 20px; width: 20px; justify-self: end; }
+.dt-sensor-item .dt-device-event {
+  grid-column: 2;
+  font-size: 0.6rem;
+  padding: 4px 6px;
+  border: 1px solid var(--dt-border);
+  border-radius: 6px;
+  background: var(--dt-panel-raised);
+  color: var(--dt-text-soft);
+  white-space: nowrap;
+}
+.dt-device-event[hidden] { display: none; }
+
+.dt-sensor-item .dt-device-event {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--dt-text-soft);
+  font-size: 16px;
+  line-height: 1;
+}
+.dt-sensor-item .dt-device-event.is-active { color: var(--dt-accent); }
+.dt-sensor-item .dt-device-event[hidden] { display: none; }

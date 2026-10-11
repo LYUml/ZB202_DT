@@ -1,13 +1,13 @@
+import { safetySensorStatus } from "../shared/sensor-status.js";
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { CSS2DObject, CSS2DRenderer } from "three/addons/renderers/CSS2DRenderer.js";
 import "@phosphor-icons/web/regular";
-import { safetySensorStatus } from "../shared/sensor-status.js";
 import { demandAxis } from "../shared/demand-axis.js";
 
 const THEME_STORAGE_KEY = "zb202-theme";
 const DEBUG_MOCK_STORAGE_KEY = "zb202-debug-mock-data";
-const DEBUG_OCCUPIED_SEATS = new Set([0, 1, 3, 6, 8, 10, 11]);
+const DEBUG_OCCUPIED_SEATS = new Set([0, 1, 3, 4, 6, 8, 9]);
 const query = new URLSearchParams(window.location.search);
 const requestedSensorId = String(query.get("sensor") || "").replaceAll("_", "-").toUpperCase();
 const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -561,6 +561,7 @@ const state = {
   seenTelemetry: new Set(),
   markerSyncTimer: null,
   markerSyncRunning: false,
+  ahuDemo: false,
   debugMockData: (() => {
     try { return sessionStorage.getItem(DEBUG_MOCK_STORAGE_KEY) === "true"; }
     catch { return false; }
@@ -575,7 +576,7 @@ const state = {
     catch { return {}; }
   })(),
   iotOpenedFromOverview: true,
-  sensorDisplayMode: "model",
+  sensorDisplayMode: "all",
   layerVisibility: Object.fromEntries(MODELS.map((model) => [model.id, true])),
 };
 
@@ -711,6 +712,10 @@ function statusFor(deviceId) {
   return state.snapshots.get(deviceId)?.status || "unavailable";
 }
 
+function sensorIsOnline(deviceId) {
+  return ["normal", "warning", "fault"].includes(statusFor(deviceId));
+}
+
 function sensorStatusFromValues(device, values) {
   return safetySensorStatus(device.sensorModel, values) || "normal";
 }
@@ -721,6 +726,16 @@ function presentationStatus(status) {
   if (status === "offline") return { key: "offline", className: "unavailable" };
   if (status === "unavailable") return { key: "dataUnavailable", className: "unavailable" };
   return { key: "fault", className: "fault" };
+}
+
+function sensorEventLabel(device, snapshot) {
+  const key = { VS341: "occupancy", WS301: "magnetStatus", WS303: "leakageStatus" }[device.sensorModel];
+  if (!key) return "";
+  const labels = activeLang === "en"
+    ? { occupancy: ["Vacant", "Occupied"], magnetStatus: ["Closed", "Open"], leakageStatus: ["Dry", "Water detected"] }
+    : { occupancy: ["未占用", "已占用"], magnetStatus: ["门关", "门开"], leakageStatus: ["无水浸", "检测到水浸"] };
+  const value = snapshot?.values[key];
+  return Number.isFinite(value) ? labels[key][value > 0 ? 1 : 0] : activeLang === "en" ? "Unknown" : "未知";
 }
 
 function unwrapIfcValue(value) {
@@ -928,17 +943,10 @@ async function findBindingObject(device) {
 }
 
 function createMarker(device, worldPosition = null) {
-  const element = document.createElement("button");
-  element.type = "button";
-  element.className = "dt-model-marker normal";
-  element.innerHTML = `<span class="dt-marker-pulse"></span><span class="dt-marker-name">${device.id}</span>`;
-  element.setAttribute("aria-label", device.id);
-  element.querySelector(".dt-marker-name").textContent = deviceText(device, "name");
-  element.addEventListener("click", (event) => {
-    event.stopPropagation();
-    selectDevice(device.id, true);
-    setDevicePanelOpen(true);
-  });
+  const element = document.createElement("div");
+  element.className = "dt-sensor-online-dot";
+  element.classList.toggle("is-offline", !sensorIsOnline(device.id));
+  element.setAttribute("aria-hidden", "true");
 
   const label = new CSS2DObject(element);
   label.name = `marker-${device.id}`;
@@ -954,7 +962,7 @@ function createMarker(device, worldPosition = null) {
     );
   }
   helpersGroup.add(label);
-  label.visible = state.sensorDisplayMode === "labels";
+  label.visible = state.sensorDisplayMode === "all";
   state.markerObjects.set(device.id, {
     label,
     element,
@@ -965,7 +973,7 @@ function createMarker(device, worldPosition = null) {
 
 let nearbyMarkerId = null;
 elements.wrap.addEventListener("pointermove", (event) => {
-  if (event.pointerType === "touch" || state.sensorDisplayMode !== "labels") return;
+  if (event.pointerType === "touch" || state.sensorDisplayMode !== "all") return;
   let nearestId = null;
   let nearestDistance = 44 * 44;
   for (const [id, marker] of state.markerObjects) {
@@ -1001,7 +1009,7 @@ async function syncSensorMarkerAnchors() {
       if (!boxes.length) continue;
       const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
       const anchor = box.getCenter(new THREE.Vector3());
-      anchor.y = box.max.y + state.modelRadius * 0.008;
+      anchor.y = box.max.y;
       marker.label.position.copy(anchor);
     }
   } finally {
@@ -1039,6 +1047,11 @@ async function updateSensorOcclusion() {
       const projected = point.clone().project(camera);
       if (projected.z < -1 || projected.z > 1 || Math.abs(projected.x) > 1 || Math.abs(projected.y) > 1) {
         marker.element.style.visibility = "hidden";
+        continue;
+      }
+      // Tiny online lights remain readable through building geometry.
+      if (marker.element.classList.contains("dt-sensor-online-dot")) {
+        marker.element.style.visibility = "";
         continue;
       }
       const mouse = new THREE.Vector2(
@@ -1106,7 +1119,11 @@ async function bindDevices() {
       const boxes = await state.fragmentsModels.get("sensor").getBoxes([target]);
       if (boxes.length) {
         const box = boxes.reduce((combined, item) => combined.union(item), new THREE.Box3());
-        state.sensorAnchors.set(device.id, box.getCenter(new THREE.Vector3()));
+        const anchor = box.getCenter(new THREE.Vector3());
+        state.sensorAnchors.set(device.id, anchor);
+        const indicatorAnchor = anchor.clone();
+        indicatorAnchor.y = box.max.y;
+        createMarker(device, indicatorAnchor);
       }
     }
   }
@@ -1132,38 +1149,68 @@ async function createOccupancySeats() {
   if (!tableBox) return;
 
   const columns = 2;
-  const rows = 6;
+  const rows = 5;
   const tableSize = tableBox.getSize(new THREE.Vector3());
   const seatWidth = tableSize.x / columns;
   const seatDepth = tableSize.z / rows;
   const inset = Math.min(seatWidth, seatDepth) * 0.055;
   const overlayY = tableBox.max.y + Math.max(state.modelRadius * 0.003, 0.018);
   const slabHeight = Math.max(state.modelRadius * 0.006, 0.035);
-  const fillMaterial = new THREE.MeshStandardMaterial({
-    color: 0x86b9d6,
-    opacity: 1,
-    transparent: false,
-    depthTest: true,
-    depthWrite: true,
+  // Configure transparency before the first render so fills remain stable at every distance.
+  const fillMaterial = new THREE.MeshBasicMaterial({
+    color: 0xbadcf0,
+    transparent: true,
+    opacity: 0.22,
+    depthTest: false,
+    depthWrite: false,
     side: THREE.DoubleSide,
-    roughness: 0.4,
-    metalness: 0.05,
+    toneMapped: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  });
+  const iconCanvas = document.createElement("canvas");
+  iconCanvas.width = iconCanvas.height = 256;
+  const context = iconCanvas.getContext("2d");
+  context.fillStyle = "#168bff";
+  context.beginPath();
+  context.arc(128, 128, 116, 0, Math.PI * 2);
+  context.fill();
+  context.strokeStyle = "#fff";
+  context.lineWidth = 10;
+  context.stroke();
+  context.beginPath();
+  context.arc(128, 98, 29, 0, Math.PI * 2);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(72, 182);
+  context.bezierCurveTo(78, 126, 178, 126, 184, 182);
+  context.stroke();
+  const iconTexture = new THREE.CanvasTexture(iconCanvas);
+  iconTexture.colorSpace = THREE.SRGBColorSpace;
+  const iconMaterial = new THREE.MeshBasicMaterial({
+    map: iconTexture,
+    depthTest: false,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    toneMapped: false,
   });
   const edgeMaterial = new THREE.LineBasicMaterial({
     color: 0x007ee5,
     transparent: true,
     opacity: 1,
-    depthTest: true,
+    depthTest: false,
     depthWrite: false,
     toneMapped: false,
   });
-  const frameMaterial = new THREE.MeshStandardMaterial({
+  const frameMaterial = new THREE.MeshBasicMaterial({
     color: 0x007ee5,
-    depthTest: true,
+    depthTest: false,
     depthWrite: false,
     side: THREE.DoubleSide,
-    roughness: 0.3,
-    metalness: 0.1,
+    toneMapped: false,
+    transparent: true,
   });
 
   for (let row = 0; row < rows; row += 1) {
@@ -1177,17 +1224,18 @@ async function createOccupancySeats() {
       const overlayWidth = seatWidth - inset * 2;
       const overlayDepth = seatDepth - inset * 2;
       const geometry = new THREE.BoxGeometry(overlayWidth, slabHeight, overlayDepth);
-      const fill = new THREE.Mesh(geometry, fillMaterial);
+      const fill = new THREE.Mesh(geometry, fillMaterial.clone());
       fill.position.y = slabHeight / 2;
       fill.renderOrder = 20;
       seat.add(fill);
+      seat.userData.fill = fill;
 
       const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgeMaterial);
       outline.position.y = slabHeight / 2;
       outline.renderOrder = 21;
       seat.add(outline);
 
-      const frameThickness = Math.min(overlayWidth, overlayDepth) * 0.035;
+      const frameThickness = Math.min(overlayWidth, overlayDepth) * 0.012;
       const frameParts = [
         { width: overlayWidth, depth: frameThickness, x: 0, z: -overlayDepth / 2 + frameThickness / 2 },
         { width: overlayWidth, depth: frameThickness, x: 0, z: overlayDepth / 2 - frameThickness / 2 },
@@ -1195,8 +1243,8 @@ async function createOccupancySeats() {
         { width: frameThickness, depth: overlayDepth, x: overlayWidth / 2 - frameThickness / 2, z: 0 },
       ];
       for (const part of frameParts) {
-        const border = new THREE.Mesh(new THREE.BoxGeometry(part.width, slabHeight * 0.92, part.depth), frameMaterial);
-        border.position.set(part.x, slabHeight * 0.46, part.z);
+        const border = new THREE.Mesh(new THREE.BoxGeometry(part.width, slabHeight * 1.08, part.depth), frameMaterial);
+        border.position.set(part.x, slabHeight * 0.54, part.z);
         border.renderOrder = 22;
         seat.add(border);
       }
@@ -1206,19 +1254,47 @@ async function createOccupancySeats() {
         overlayY,
         tableBox.min.z + seatDepth * (row + 0.5),
       );
+      const iconSize = Math.min(overlayWidth, overlayDepth) * 0.32;
+      const icon = new THREE.Mesh(new THREE.PlaneGeometry(iconSize, iconSize), iconMaterial);
+      icon.rotation.x = -Math.PI / 2;
+      // Opposite table sides face inward; rotate in the icon's own plane.
+      icon.rotateZ(column === 0 ? -Math.PI / 2 : Math.PI / 2);
+      icon.position.y = slabHeight + 0.003;
+      icon.renderOrder = 23;
+      seat.add(icon);
+      seat.userData.icon = icon;
       seat.visible = false;
       occupancyGroup.add(seat);
     }
+  }
+  // Split by table side, then sort along its length: five sensors per side.
+  const sensors = DEVICES.filter((device) => device.sensorModel === "VS341" && state.sensorAnchors.has(device.id))
+    .sort((a, b) => state.sensorAnchors.get(a.id).x - state.sensorAnchors.get(b.id).x);
+  for (let column = 0; column < columns; column += 1) {
+    const sideSensors = sensors.slice(column * rows, (column + 1) * rows)
+      .sort((a, b) => state.sensorAnchors.get(a.id).z - state.sensorAnchors.get(b.id).z);
+    sideSensors.forEach((device, row) => {
+      occupancyGroup.children[row * columns + column].userData.deviceId = device.id;
+    });
   }
   helpersGroup.add(occupancyGroup);
   renderOccupancySeats();
 }
 
 function renderOccupancySeats() {
-  const overlaysVisible = state.debugMockData && state.sensorDisplayMode === "labels";
+  const overlaysVisible = state.sensorDisplayMode === "all" && state.layerVisibility.archi;
   occupancyGroup.visible = overlaysVisible;
   for (const seat of occupancyGroup.children) {
-    seat.visible = overlaysVisible && seat.userData.occupied;
+    const value = state.snapshots.get(seat.userData.deviceId)?.values.occupancy;
+    const occupied = state.debugMockData
+      ? DEBUG_OCCUPIED_SEATS.has(seat.userData.seatIndex)
+      : Number.isFinite(value) && value > 0;
+    seat.userData.occupied = occupied;
+    seat.visible = overlaysVisible;
+    seat.userData.fill.material.color.setHex(occupied ? 0x328bc7 : 0xbadcf0);
+    seat.userData.fill.material.opacity = occupied ? 0.72 : 0.22;
+    seat.userData.icon.visible = occupied;
+    seat.userData.occupancyStatus = occupied ? "occupied" : Number.isFinite(value) ? "vacant" : "unknown";
   }
 }
 
@@ -1231,14 +1307,13 @@ async function styleBoundObject(deviceId) {
   const fragmentsModel = state.fragmentsModels.get(device?.binding.modelId) || state.fragmentsModel;
   if (!fragmentsModel) return;
   if (device.binding.modelId === "sensor") {
+    if (!selected) return;
     const occupancy = device.sensorModel === "VS341";
-    const seeThrough = selected || occupancy;
-    const color = selected ? 0x2f7df4 : status === "normal" ? 0x20a464
-      : status === "offline" || status === "unavailable" ? 0x8b94a6
-        : 0xe34d59;
+    const seeThrough = true;
+    const color = 0x2f7df4;
     await fragmentsModel.highlight([target], {
       color: new THREE.Color(color),
-      opacity: occupancy ? (selected ? 0.8 : 0.45) : 1,
+      opacity: occupancy ? 0.8 : 1,
       transparent: seeThrough,
       depthTest: !seeThrough,
       depthWrite: !seeThrough,
@@ -1277,6 +1352,7 @@ let lastVisualSignature = "";
 async function applyAllVisualStates() {
   if (pageClosing) return;
   const signature = JSON.stringify([activeTheme, state.selectedDeviceId, state.selectedIfcItem,
+    elements.devicePanel.classList.contains("is-open"),
     [...state.fragmentsModels.values()].map((model) => model.modelId),
     DEVICES.map((device) => [device.id, statusFor(device.id), device.binding.modelId, device.binding.localId])]);
   if (signature === lastVisualSignature) return;
@@ -1294,9 +1370,12 @@ async function applyAllVisualStates() {
     }
     const marker = state.markerObjects.get(device.id);
     if (marker) {
-      marker.element.className = `dt-model-marker ${statusFor(device.id)}${state.selectedDeviceId === device.id ? " selected" : ""}${marker.element.classList.contains("is-near") ? " is-near" : ""}`;
+      marker.label.visible = state.sensorDisplayMode === "all";
+      marker.element.classList.toggle("is-offline", !sensorIsOnline(device.id));
     }
   }
+  renderOccupancySeats();
+  scheduleSensorOcclusionCheck();
   if (state.fragmentsModels.size) await fragments.update(true);
   lastVisualSignature = signature;
 }
@@ -1423,17 +1502,28 @@ function renderDeviceList() {
     const status = bound ? snapshot.status : "unavailable";
     const button = document.createElement("button");
     button.type = "button";
-    const presentedStatus = presentationStatus(status);
-    button.className = `dt-device-item ${presentedStatus.className}${state.selectedDeviceId === device.id ? " selected" : ""}`;
+    const online = !["offline", "unavailable"].includes(status);
+    const eventLabel = sensorEventLabel(device, snapshot);
+    const eventKey = { VS341: "occupancy", WS301: "magnetStatus", WS303: "leakageStatus" }[device.sensorModel];
+    const eventValue = snapshot?.values[eventKey];
+    const eventActive = Number.isFinite(eventValue) && eventValue > 0;
+    const eventIcon = !Number.isFinite(eventValue) ? "ph-question"
+      : { VS341: eventActive ? "ph-user" : "ph-circle",
+          WS301: eventActive ? "ph-door-open" : "ph-door",
+          WS303: eventActive ? "ph-drop" : "ph-drop-slash" }[device.sensorModel];
+    const fullName = deviceText(device, "name");
+    const sensorName = fullName.startsWith(device.id) ? fullName.slice(device.id.length).trim() : fullName;
+    button.className = `dt-device-item dt-sensor-item ${online ? "normal" : "unavailable"}${state.selectedDeviceId === device.id ? " selected" : ""}`;
     button.innerHTML = `
       <span class="dt-device-copy">
-        <strong>${escapeHtml(deviceText(device, "name"))}</strong>
-        <small>${escapeHtml(deviceText(device, "subtitle"))} · ${t(presentedStatus.key)}</small>
+        <strong>${escapeHtml(device.id)}</strong>
+        <small>${escapeHtml(sensorName)}</small>
       </span>
-      <span class="dt-device-state" aria-label="${t(presentedStatus.key)}"><span class="dt-device-status"></span></span>
+      <span class="dt-device-event ${eventActive ? "is-active" : ""}" role="img" aria-label="${escapeHtml(eventLabel)}" ${eventLabel ? "" : "hidden"}><i class="ph ${eventIcon || "ph-question"}" aria-hidden="true"></i></span>
+      <span class="dt-device-state" aria-label="${t(online ? "online" : "offline")}" title="${t(online ? "online" : "offline")}"><span class="dt-device-status"></span></span>
     `;
-    button.querySelector("strong").title = deviceText(device, "name");
-    button.querySelector("small").title = `${deviceText(device, "subtitle")} · ${t(presentedStatus.key)}`;
+    button.querySelector("small").title = fullName;
+    if (eventLabel) button.querySelector(".dt-device-event").title = `${eventLabel} · ${snapshot.updatedAt.toLocaleString(activeLocale())}`;
     button.addEventListener("click", () => {
       selectDevice(device.id, true);
       setDevicePanelOpen(true);
@@ -1608,16 +1698,22 @@ function renderDebugDashboardData() {
     line.innerHTML = mock ? outdoorMockLines[index] : "<strong>—</strong>";
   });
 
-  const ahuValues = mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
+}
+
+function renderAhuData() {
+  const mock = state.debugMockData;
+  const demo = state.ahuDemo;
+  const ahuValues = demo ? ["23.0°C", "22.3 °C", "23.4 °C"] : mock ? ["23.0°C", "17.8 °C", "24.1 °C"] : ["—", "—", "—"];
   document.querySelectorAll(".dt-ahu-control strong, .dt-air-readings strong").forEach((element, index) => { element.textContent = ahuValues[index]; });
-  const ahuMeterValues = mock ? ["46%", "32%", "38 Hz"] : ["—", "—", "—"];
-  const ahuMeterWidths = mock ? ["46%", "32%", "63%"] : ["0", "0", "0"];
+  const ahuMeterValues = demo ? ["48%", "11%", "40 Hz"] : mock ? ["46%", "32%", "38 Hz"] : ["—", "—", "—"];
+  const ahuMeterWidths = demo ? ["48%", "11%", "66.7%"] : mock ? ["46%", "32%", "63%"] : ["0", "0", "0"];
   document.querySelectorAll(".dt-ahu-meters b").forEach((element, index) => { element.textContent = ahuMeterValues[index]; });
   document.querySelectorAll(".dt-ahu-meters u").forEach((element, index) => { element.style.width = ahuMeterWidths[index]; });
   const ahuRange = document.querySelector(".dt-ahu-control input");
-  ahuRange.disabled = !mock;
-  ahuRange.value = mock ? "23" : "18";
-  document.querySelector(".dt-ahu-control button").disabled = !mock;
+  ahuRange.disabled = !mock || demo;
+  ahuRange.value = demo ? "23" : mock ? "23" : "18";
+  document.querySelector(".dt-ahu-control button").disabled = !mock || demo;
+  ahuRange.setAttribute("aria-label", demo ? "Demo return air setpoint" : mock ? "Zone temperature setpoint" : "Zone temperature setpoint unavailable");
 }
 
 function drawDonutChart(canvas, values, colors) {
@@ -1656,6 +1752,7 @@ function drawDonutChart(canvas, values, colors) {
 
 function renderSiteOverview() {
   renderDebugDashboardData();
+  renderAhuData();
   const snapshots = [...state.snapshots.values()];
   const metricValues = (keys) => snapshots.flatMap((snapshot) => keys
     .filter((key) => Number.isFinite(snapshot.values[key]))
@@ -1672,7 +1769,7 @@ function renderSiteOverview() {
   const occupancyDevices = DEVICES.filter((device) => device.sensorModel === "VS341");
   const occupancySnapshots = occupancyDevices
     .map((device) => state.snapshots.get(device.id))
-    .filter((snapshot) => state.influxConnected && Number.isFinite(snapshot?.values.occupancy));
+    .filter((snapshot) => Number.isFinite(snapshot?.values.occupancy));
   const occupiedCount = occupancySnapshots.reduce((sum, snapshot) => sum + (snapshot.values.occupancy > 0 ? 1 : 0), 0);
   const unknownOccupancyCount = occupancyDevices.length - occupancySnapshots.length;
   const occupancySummary = occupancySnapshots.length ? `${occupiedCount} people` : "—";
@@ -1686,11 +1783,7 @@ function renderSiteOverview() {
 
   const sourceDeviceId = "AM103-07";
   const sourceSnapshot = state.snapshots.get(sourceDeviceId);
-  const lastLiveAt = state.lastLiveAt.get(sourceDeviceId);
-  const sourceIsFresh = state.influxConnected
-    && Number.isFinite(lastLiveAt)
-    && Date.now() - lastLiveAt <= INFLUX_STALE_AFTER_MS;
-  const sourceValue = (key, unit) => sourceIsFresh && Number.isFinite(sourceSnapshot?.values[key])
+  const sourceValue = (key, unit) => Number.isFinite(sourceSnapshot?.values[key])
     ? `${formatNumber(sourceSnapshot.values[key])}<small> ${unit}</small>`
     : "—";
   elements.overviewIndoorTemperature.innerHTML = state.debugMockData ? "24.2 °C" : sourceValue("temperature", "°C");
@@ -1714,19 +1807,16 @@ function renderSiteOverview() {
     const weatherDevice = DEVICES.find((device) => sensorGroupFor(device).key === "weather");
     const weatherSnapshot = weatherDevice ? state.snapshots.get(weatherDevice.id) : null;
     const weatherValues = weatherSnapshot?.values || {};
-    const weatherUpdatedAt = weatherDevice ? state.lastLiveAt.get(weatherDevice.id) : null;
-    const weatherFresh = state.influxConnected && Number.isFinite(weatherUpdatedAt)
-      && Date.now() - weatherUpdatedAt <= INFLUX_STALE_AFTER_MS;
     const windDirection = Number(weatherValues.windDirection);
     const hasWindDirection = Number.isFinite(weatherValues.windDirection);
     const windArrow = hasWindDirection
       ? `<i class="ph ph-arrow-up dt-wind-arrow" style="--wind-direction:${windDirection}deg" aria-hidden="true"></i>`
       : "";
     const weatherLines = [
-      weatherFresh && Number.isFinite(weatherValues.temperature) ? `<strong>${formatNumber(weatherValues.temperature)}<small>°C</small></strong>` : "<strong>—</strong>",
-      weatherFresh && Number.isFinite(weatherValues.humidity) ? `<strong>${formatNumber(weatherValues.humidity)}<small>%</small></strong>` : "<strong>—</strong>",
-      weatherFresh && Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind ${hasWindDirection ? `from ${Math.round(windDirection)} degrees ` : ""}at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)}<small> m/s</small></em>${windArrow}</strong>` : "<strong>—</strong>",
-      state.radiation && state.influxConnected && Date.now() - Date.parse(state.radiation.receivedAt) <= 30 * 60 * 1000
+      Number.isFinite(weatherValues.temperature) ? `<strong>${formatNumber(weatherValues.temperature)}<small>°C</small></strong>` : "<strong>—</strong>",
+      Number.isFinite(weatherValues.humidity) ? `<strong>${formatNumber(weatherValues.humidity)}<small>%</small></strong>` : "<strong>—</strong>",
+      Number.isFinite(weatherValues.windSpeed) ? `<strong class="wind-value" aria-label="Wind ${hasWindDirection ? `from ${Math.round(windDirection)} degrees ` : ""}at ${formatNumber(weatherValues.windSpeed)} metres per second"><em>${formatNumber(weatherValues.windSpeed)}<small> m/s</small></em>${windArrow}</strong>` : "<strong>—</strong>",
+      Number.isFinite(state.radiation?.value)
         ? `<strong>${Math.round(state.radiation.value)}<small> W/m²</small></strong>` : "<strong>—</strong>",
     ];
     document.querySelectorAll(".dt-outdoor-grid .dt-metric-line").forEach((line, index) => { line.innerHTML = weatherLines[index]; });
@@ -1927,7 +2017,10 @@ function renderMetricTrend(snapshot, chart, metric) {
     : [outsideRange ? t("trendOutsideRange") : "", samples.length === 1 ? t("trendOneReading") : ""].filter(Boolean).join(" · ");
   message.hidden = !message.textContent;
   if (!samples.length) {
-    chart.value.textContent = "—";
+    const cachedOccupancy = metric.key === "occupancy" ? snapshot.values[metric.key] : null;
+    chart.value.textContent = Number.isFinite(cachedOccupancy)
+      ? binaryMetricLabel(metric.key, cachedOccupancy)
+      : "—";
     chart.line.setAttribute("d", "");
     chart.area.setAttribute("d", "");
     chart.points.innerHTML = "";
@@ -2051,6 +2144,7 @@ function escapeHtml(value) {
 }
 
 function renderUI() {
+  renderOccupancySeats();
   renderDeviceList();
   renderSelectedDevice();
   renderSiteOverview();
@@ -2147,14 +2241,17 @@ async function selectDevice(deviceId, focus = false) {
       if (rowRect.bottom > listRect.bottom) elements.deviceList.scrollTop += rowRect.bottom - listRect.bottom;
       else if (rowRect.top < listRect.top) elements.deviceList.scrollTop += rowRect.top - listRect.top;
     }
-    state.sensorDisplayMode = "model";
+    state.sensorDisplayMode = "all";
     state.layerVisibility.sensor = true;
     const sensorModel = state.fragmentsModels.get("sensor");
     if (sensorModel) sensorModel.object.visible = true;
+    for (const [id, marker] of state.markerObjects) marker.label.visible = true;
     const toggle = elements.layerToggles.find((item) => item.dataset.modelLayer === "sensor");
     if (toggle) {
-      toggle.dataset.sensorMode = "model";
-      toggle.setAttribute("aria-label", "Sensor: status-colored models");
+      toggle.dataset.sensorMode = "all";
+      toggle.setAttribute("aria-label", "All: sensors, occupancy and online indicators");
+      toggle.title = toggle.getAttribute("aria-label");
+      toggle.querySelector("span").textContent = "All";
       toggle.querySelector("i").className = "ph ph-eye";
     }
     focusDevice(device).catch((error) => console.error("Failed to focus BIM component", error));
@@ -2247,10 +2344,16 @@ function updateMockData() {
   }
   renderSelectedDevice();
   renderSiteOverview();
-  elements.clock.textContent = new Date().toLocaleString(activeLocale(), {
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+  const clockNow = new Date();
+  const clockOptions = { timeZone: "Asia/Hong_Kong" };
+  elements.clock.querySelector(".dt-clock-time").textContent = clockNow.toLocaleTimeString(activeLocale(), {
+    ...clockOptions, hour: "2-digit", minute: "2-digit", hourCycle: "h23",
   });
+  elements.clock.querySelector(".dt-clock-date").textContent = clockNow.toLocaleDateString(activeLocale(), {
+    ...clockOptions, year: "numeric", month: "short", day: "numeric",
+  });
+  elements.clock.dateTime = clockNow.toISOString();
+  elements.clock.title = "Hong Kong · UTC+8";
 }
 
 function updateDeviceConnectivity() {
@@ -2518,8 +2621,8 @@ async function finalizeFederatedModel(componentCount) {
   addGrid();
   fitCameraToModel(false);
   await fragments.update(true);
-  await createOccupancySeats();
   await bindDevices();
+  await createOccupancySeats();
   scheduleSensorOcclusionCheck();
   if (initialDevice) {
     await selectDevice(initialDevice.id, Boolean(requestedSensorId));
@@ -2614,23 +2717,25 @@ elements.retryButton.addEventListener("click", loadModel);
 elements.layerToggles.forEach((toggle) => {
   if (toggle.dataset.modelLayer === "sensor") {
     toggle.addEventListener("click", async () => {
-      const modes = ["model", "hidden"];
+      const modes = ["all", "model", "hidden"];
       state.sensorDisplayMode = modes[(modes.indexOf(state.sensorDisplayMode) + 1) % modes.length];
       const modelVisible = state.sensorDisplayMode !== "hidden";
       state.layerVisibility.sensor = modelVisible;
           const fragmentsModel = state.fragmentsModels.get("sensor");
       if (fragmentsModel) fragmentsModel.object.visible = modelVisible;
-      for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "labels";
+      for (const marker of state.markerObjects.values()) marker.label.visible = state.sensorDisplayMode === "all";
       renderOccupancySeats();
 
       const modeMeta = {
-        model: { icon: "ph-eye", label: "Sensor: status-colored models" },
+        all: { icon: "ph-eye", label: "All: sensors, occupancy and online indicators" },
+        model: { icon: "ph-cube", label: "Sensor only: occupancy and online indicators hidden" },
         hidden: { icon: "ph-eye-slash", label: "Sensor: hidden" },
       }[state.sensorDisplayMode];
       toggle.dataset.sensorMode = state.sensorDisplayMode;
       toggle.setAttribute("aria-label", modeMeta.label);
       toggle.title = modeMeta.label;
       toggle.querySelector("i").className = `ph ${modeMeta.icon}`;
+      toggle.querySelector("span").textContent = { all: "All", model: "Sensor", hidden: "Hidden" }[state.sensorDisplayMode];
       if (fragmentsModel) await fragments.update(true);
       scheduleSensorOcclusionCheck();
       updateSensorProximityTag();
@@ -2643,6 +2748,7 @@ elements.layerToggles.forEach((toggle) => {
     const fragmentsModel = state.fragmentsModels.get(toggle.dataset.modelLayer);
     if (fragmentsModel) fragmentsModel.object.visible = toggle.checked;
     toggle.closest("label")?.classList.toggle("is-off", !toggle.checked);
+    renderOccupancySeats();
     if (fragmentsModel) await fragments.update(true);
     scheduleSensorOcclusionCheck();
   });
@@ -2936,11 +3042,20 @@ elements.assetViewButtons.forEach((button) => button.addEventListener("click", (
 }));
 elements.clock.addEventListener("dblclick", (event) => {
   event.preventDefault();
+  state.ahuDemo = false;
   state.debugMockData = !state.debugMockData;
   state.renderedDebugMockData = null;
   try { sessionStorage.setItem(DEBUG_MOCK_STORAGE_KEY, String(state.debugMockData)); } catch { /* Session storage is optional. */ }
   renderUI();
   console.info(`[ZB202 debug] Virtual dashboard data ${state.debugMockData ? "enabled" : "disabled"}.`);
+});
+document.querySelector(".dt-brand h1").addEventListener("dblclick", (event) => {
+  event.preventDefault();
+  state.ahuDemo = !state.ahuDemo;
+  state.debugMockData = false;
+  state.renderedDebugMockData = null;
+  try { sessionStorage.setItem(DEBUG_MOCK_STORAGE_KEY, "false"); } catch { /* Session storage is optional. */ }
+  renderUI();
 });
 window.addEventListener("keydown", (event) => {
   if (event.key === "Escape" && elements.devicePanel.classList.contains("is-open")) setDevicePanelOpen(false);
